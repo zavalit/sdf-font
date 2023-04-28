@@ -1,0 +1,11 @@
+{
+  "name": "webglify",
+  "workspaces": [
+    "packages/*"
+  ],
+  "devDependencies": {
+    "lerna": "^6.6.1",
+    "parcel": "^2.8.3",
+    "typescript": "^5.0.4"
+  }
+}
