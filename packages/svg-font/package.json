@@ -1,10 +1,9 @@
 {
   "name": "@webglify/svg-font",
-  "version": "0.0.1",
-  
+  "version": "0.0.2",
+  "private": "true",
   "dependencies": {
     "bidi-js": "^1.0.2"
   },
   "main": "index.ts"
-
 }
