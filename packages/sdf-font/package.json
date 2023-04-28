@@ -18,5 +18,24 @@
   },
   "scripts": {
     "build": "parcel build"
-  }
+  },
+  "description": "webgl sdf font",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zavalit/webglify.git#main"
+  },
+  "keywords": [
+    "sdf",
+    "font"
+  ],
+  "author": "Vsevolod Dolgopolov",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/zavalit/webglify/issues"
+  },
+  "homepage": "https://github.com/zavalit/webglify/tree/main#readme"
 }
