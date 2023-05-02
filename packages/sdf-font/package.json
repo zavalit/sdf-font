@@ -5,7 +5,7 @@
   "main": "lib/main.js",
   "module": "lib/module.js",
   "types": "lib/types.d.ts",
-  "private": "false",
+  "private": false,
   "devDependencies": {
     "@parcel/packager-ts": "^2.8.3",
     "@parcel/transformer-glsl": "^2.8.3",

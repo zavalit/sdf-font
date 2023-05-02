@@ -3,6 +3,7 @@
   "workspaces": [
     "packages/*"
   ],
+  "private": false,
   "devDependencies": {
     "lerna": "^6.6.1",
     "parcel": "^2.8.3",
