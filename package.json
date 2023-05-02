@@ -1,5 +1,5 @@
 {
-  "name": "webglify",
+  "name": "webglify_t",
   "workspaces": [
     "packages/*"
   ],
