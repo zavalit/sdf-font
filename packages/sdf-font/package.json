@@ -1,5 +1,5 @@
 {
-  "name": "sdf-font",
+  "name": "@webglify/sdf-font",
   "version": "0.0.4",
   "source": "src/index.ts",
   "main": "lib/main.js",

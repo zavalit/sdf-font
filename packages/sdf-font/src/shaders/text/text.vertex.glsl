@@ -1,56 +1,73 @@
 #version 300 es
-
 layout(location=0) in vec2 position;
 layout(location=1) in vec4 glyphBounds;
 layout(location=2) in float glyphIndex;
-layout(location=4) in vec2 uv;
 
-
-uniform vec4 uGlyphBounds;
-uniform float uGlyphIndex;
 uniform vec2 uSDFTextureSize;
+uniform mat4 uProjectionMatrix;
+uniform float uAspectRatio;
+uniform vec2 uResolution;
 uniform float uSDFGlyphSize;
-uniform mediump vec2 uResolution;
 
-out vec4 vGlyphBounds;
-out vec4 vTroikaTextureUVBounds;
+
 out vec2 vGlyphUV;
-out vec2 vTroikaGlyphDimensions;
-out float vTroikaTextureChannel;
-out float vGlyphIndex;
-out vec2 vUv;
 
 
 
-void main() {
-    
-    vec4 bounds = glyphBounds;
-    vGlyphBounds = glyphBounds;
-    vGlyphIndex = glyphIndex;
-
-    float aspectRatio = uResolution.x / uResolution.y;
-
-    vec2 pos = position.xy;
+float vertexAlignOffset = -1.;
+float texColumnCount = 8.;
+float texRowCount = 8.;
     
 
-    pos.x *= aspectRatio;
 
-     vec2 clippedXY = (mix(bounds.xy, bounds.zw, pos) - bounds.xy) / (bounds.zw - bounds.xy);
-    // //vec2 clippedXY = mix(bounds.xy, bounds.zw, pos);
-    
 
-     pos = mix(bounds.xy, bounds.zw, clippedXY);
-     pos.x +=  glyphIndex;
-    
-    vGlyphUV = pos;
-    
-    // vTroikaGlyphUV = clippedXY.xy;
-    vTroikaGlyphDimensions = vec2(bounds[2] - bounds[0], bounds[3] - bounds[1]);
+float remap (float value, float inMin, float inMax, float outMin, float outMax) {
 
-   
-    vUv = uv;
-    vUv = pos;
+    float lerpValue = (value - inMin) / (inMax - inMin);
+
+    return mix(outMin, outMax, lerpValue);
+}
+
+void main(){
+
+    
+    float maxX = uSDFTextureSize.x;
+    float maxY = uSDFTextureSize.y;
+    float column = mod(glyphIndex, texColumnCount);
+    float row = floor(glyphIndex / texRowCount);
+    vec4 glyphClip = vec4(
+        (uSDFGlyphSize * (column))/maxX, uSDFGlyphSize * row/maxY, // top left corner
+        (uSDFGlyphSize * (column + 1.))/maxX, uSDFGlyphSize * (row + 1.)/maxY // bottom right corner 
+    );
+    vec2 glyphUV = mix(glyphClip.xy, glyphClip.zw, position);
+
+
+    vec4 gb = glyphBounds;
+
+    vec2 pos = mix(gb.xy, gb.zw, position);
+    
+    pos = (uProjectionMatrix * vec4(pos, 0., 1.)).xy;
+    pos.x += vertexAlignOffset;
     
 
     gl_Position = vec4(pos, 0., 1.);
+
+    
+    vGlyphUV = glyphUV;
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//     vec2 clippedXY = (mix(bounds.xy, bounds.zw, pos) - bounds.xy) / (bounds.zw - bounds.xy);

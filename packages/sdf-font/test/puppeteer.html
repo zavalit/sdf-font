@@ -7,7 +7,7 @@
                 
             }
             body {
-                
+                background: transparent
             }
             canvas {
                 background: transparent
@@ -24,6 +24,9 @@
     </head>
     <body>
         <script src="./init.ts" type="module"></script>
-       
+       <script>
+        [...Array(256).keys()].map(k => console.log(k, String.fromCodePoint(k)))
+       </script>
+
     </body>
 </html>

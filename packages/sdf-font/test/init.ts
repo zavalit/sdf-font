@@ -1,4 +1,4 @@
-import {createSDFTexture, renderText, Api} from '../src'
+import {createSDFTexture, renderText, initTypr, Api} from '../src'
 import fontUrl from 'url:./Roboto/Roboto-Regular.ttf'
 
 
@@ -15,7 +15,7 @@ textApiWhite.canvas.height = height * devicePixelRatio
 textApiWhite.canvas.style.width = `${width}`
 textApiWhite.canvas.style.height = `${height}`
 
-const [widthR, heightR] = [350, 100]
+const [widthR, heightR] = [450, 100]
 textApiRed.canvas.setAttribute('id', 'red')
 textApiRed.canvas.width = widthR * devicePixelRatio
 textApiRed.canvas.height = heightR * devicePixelRatio
@@ -24,32 +24,41 @@ textApiRed.canvas.height = heightR * devicePixelRatio
 textApiRed.canvas.style.width = `${widthR}`
 textApiRed.canvas.style.height = `${heightR}`
 
-
 document.body.appendChild(textureApi.canvas)
-document.body.appendChild(textApiWhite.canvas)
-document.body.appendChild(textApiRed.canvas)
+document.body.prepend(textApiWhite.canvas)
+document.body.prepend(textApiRed.canvas)
 
 
-const text = 'bwä';
+let text = 'qqwddsdlksldk sdlksdl ';
+//text = 'Apyl'
+
+const alphabet = [...Array(256).keys()].map(k => String.fromCodePoint(k))
+
+
+const sdfSize = 64;
 
 (async() => {
 
-    // render sdf texture
-    const sdfTexture = await createSDFTexture(textureApi.gl, {
-        text, 
+    
+    const params = {
+        text: alphabet.join(''),
         //fontUrl: '/fonts/Roboto/Roboto-Regular.ttf', 
         fontUrl,
-        sdfMargin: 1/256, 
+        sdfMargin: 1/sdfSize, 
         sdfExponent: 9., 
 
-        sdfWidth: 256, 
-        sdfHeight: 256, 
-        sdfGlyphSize: 256, 
-        sdfBufferSize: 256,
+        sdfWidth: sdfSize, 
+        sdfHeight: sdfSize, 
+        sdfGlyphSize: sdfSize, 
+        sdfBufferSize: sdfSize,
         
-        fontSize: .5,
-        letterSpacing: .9
-    })
+        fontSize: 1.,
+        letterSpacing: .95
+    }
+    const typr = await initTypr(fontUrl)
+
+    //render sdf texture
+    const sdfTexture = await createSDFTexture(textureApi.gl, typr, params)
 
     
 
@@ -57,8 +66,8 @@ const text = 'bwä';
 
 
     // render text
-    renderText(textApiWhite.gl, sdfTexture)
-    renderText(textApiRed.gl, sdfTexture,)
+    renderText(textApiWhite.gl, sdfTexture, typr, params, text)
+    renderText(textApiRed.gl, sdfTexture, typr, params, text)
 
     // var image = textureApi.canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");  // here is the most important part because if you dont replace you will get a DOM 18 exception.
 

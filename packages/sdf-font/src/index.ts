@@ -1,14 +1,17 @@
-import vertexShader from './shaders/text/card.vertex.debug.glsl';
-import fragmentShader from './shaders/text/card.fragment.debug.glsl';
+import textVertexShader from './shaders/text/text.vertex.glsl';
+import textFragmentShader from './shaders/text/text.fragment.glsl';
 
 
 
 import FontSvgApi, {getSegements, Typr} from '@webglify/svg-font'
 
-import lengthFragment from './shaders/fragment.fbo.glsl'
-import mainVertex from './shaders/vertex.fbo.glsl'
-import viewportQuadVertex from  './shaders/vertex.glsl'
-import postFragment from './shaders/fragment.glsl'
+
+import segmentsVertex from './shaders/segments/segments.vertex.glsl'
+import segmentsFragment from './shaders/segments/segments.fragment.glsl'
+import groupVertex from  './shaders/segments/group.vertex.glsl'
+
+//import groupFragment from './shaders/segments/group.fragment.glsl'
+import groupFragment from './shaders/segments/group.fragment.glsl'
 
 export class Api {
 
@@ -40,12 +43,15 @@ export class Api {
     }
 }
 
-const webgl = (gl, charsMeta: CharMeta[], sdfGlyphSize, sdfExponent) => {
+const webgl = (gl, charsMeta: CharMeta[], sdfGlyphSize, sdfExponent, columnCount = 8) => {
 
-    console.log('charsMeta', charsMeta)
+
+    const tWidth = columnCount * sdfGlyphSize
+    const tHeight = Math.ceil( sdfGlyphSize * charsMeta.length / columnCount)
+   
     const textureSize = {
-        width: charsMeta.length * sdfGlyphSize,
-        height: sdfGlyphSize
+        width: tWidth,
+        height: tHeight
     }
 
     gl.canvas.width = textureSize.width
@@ -55,7 +61,7 @@ const webgl = (gl, charsMeta: CharMeta[], sdfGlyphSize, sdfExponent) => {
         0,0,
         2,0,
         0,2
-        ])
+    ])
 
     // create texture for sdf
     const sdfTexture = gl.createTexture()!;
@@ -77,9 +83,6 @@ const webgl = (gl, charsMeta: CharMeta[], sdfGlyphSize, sdfExponent) => {
         // switch to Framwebuffer
         gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
 
-        // gl.activeTexture(gl.TEXTURE0 + textureUnit)
-        // gl.bindTexture(gl.TEXTURE_2D, sdfTexture)
-
         // attach sdf texture to framebuffer
         gl.framebufferTexture2D(
             gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, sdfTexture, 0
@@ -88,14 +91,12 @@ const webgl = (gl, charsMeta: CharMeta[], sdfGlyphSize, sdfExponent) => {
        
         // compile shaders
         const vs = gl.createShader(gl.VERTEX_SHADER)!;
-        gl.shaderSource(vs, mainVertex);    
+        gl.shaderSource(vs, segmentsVertex);    
         gl.compileShader(vs)
-        console.log('fbo verex status: ', gl.getShaderInfoLog(vs));
         
         const fs = gl.createShader(gl.FRAGMENT_SHADER)!;
-        gl.shaderSource(fs, lengthFragment);    
+        gl.shaderSource(fs, segmentsFragment);    
         gl.compileShader(fs)
-        console.log('fbo ragment status: ', gl.getShaderInfoLog(fs));
         
         // init porgramm
         const prog = gl.createProgram()!;
@@ -108,24 +109,23 @@ const webgl = (gl, charsMeta: CharMeta[], sdfGlyphSize, sdfExponent) => {
         gl.bindBuffer(gl.ARRAY_BUFFER, pb);
         gl.bufferData(gl.ARRAY_BUFFER, position, gl.STATIC_DRAW)
         
-        const pLoc = gl.getAttribLocation(prog, 'aUV')
-        gl.vertexAttribPointer(pLoc, 2, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(pLoc);
-        gl.vertexAttribDivisor(pLoc, 0);
+        
+        gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(0);
 
         {
             // provde lineSegments attribute
 
             charsMeta.forEach((charMeta, i) => {
-
+                const column = i%columnCount
+                const row = Math.floor(i/columnCount)
                 const b2 = gl.createBuffer()
                 
                 gl.bindBuffer(gl.ARRAY_BUFFER, b2)
                 gl.bufferData(gl.ARRAY_BUFFER,  new Float32Array(charMeta.lineSegments), gl.DYNAMIC_DRAW)
-                const b2l = gl.getAttribLocation(prog, 'aLineSegments');
-                gl.vertexAttribPointer(b2l, 4, gl.FLOAT, false, 0, 0);
-                gl.enableVertexAttribArray(b2l);
-                gl.vertexAttribDivisor(b2l, 1);
+                gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 0, 0);
+                gl.enableVertexAttribArray(1);
+                gl.vertexAttribDivisor(1, 1);
 
 
                 // schedule Program
@@ -135,14 +135,13 @@ const webgl = (gl, charsMeta: CharMeta[], sdfGlyphSize, sdfExponent) => {
                 gl.blendFunc(gl.ONE, gl.ONE)
                 gl.blendEquationSeparate(gl.FUNC_ADD, gl.MAX)
             
-                gl.viewport(i*sdfGlyphSize, 0, sdfGlyphSize, sdfGlyphSize)
+                gl.viewport(column*sdfGlyphSize, row*sdfGlyphSize, sdfGlyphSize, sdfGlyphSize)
                 //gl.clear(gl.COLOR_BUFFER_BIT)
 
                 // provide maxDist uniform
                 const mLoc = gl.getUniformLocation(prog, 'uMaxDistance')
                 gl.uniform1f(mLoc, charMeta.maxDistance)
                 
-
                 const vLoc = gl.getUniformLocation(prog, 'uGlyphBounds')
                 gl.uniform4fv(vLoc, charMeta.sdfViewBox)
 
@@ -167,21 +166,18 @@ const webgl = (gl, charsMeta: CharMeta[], sdfGlyphSize, sdfExponent) => {
     //put texture drawn to framebuffer into canvas
    
     const vs = gl.createShader(gl.VERTEX_SHADER)!;
-    gl.shaderSource(vs, viewportQuadVertex);
+    gl.shaderSource(vs, groupVertex);
     gl.compileShader(vs);
-    console.log('vertex shader status: ', gl.getShaderInfoLog(vs))
+
 
     const fs = gl.createShader(gl.FRAGMENT_SHADER)!;
-    gl.shaderSource(fs, postFragment);
+    gl.shaderSource(fs, groupFragment);
     gl.compileShader(fs);
-    console.log('fragment shader status: ', gl.getShaderInfoLog(fs))
 
     const prog = gl.createProgram()!;
     gl.attachShader(prog, vs);
     gl.attachShader(prog, fs);
     gl.linkProgram(prog);
-
-    console.log('outer program status:', gl.getProgramInfoLog(prog));
 
     // providde position attribute
     // put data in a buffer
@@ -195,10 +191,9 @@ const webgl = (gl, charsMeta: CharMeta[], sdfGlyphSize, sdfExponent) => {
     gl.enableVertexAttribArray(pLoc);
 
     gl.viewport(0, 0, textureSize.width, textureSize.height)
+    gl.colorMask(false, false, false, true);
 
     gl.useProgram(prog);
-
-    //gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer)
 
 
     // add texture unifoform
@@ -208,14 +203,6 @@ const webgl = (gl, charsMeta: CharMeta[], sdfGlyphSize, sdfExponent) => {
 
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     
-    
-    
-    
-    const ext = gl.getExtension('GMAN_webgl_memory');
-    if(ext) {
-        console.log(ext.getMemoryInfo())
-    }
-
     
 
 }
@@ -230,6 +217,7 @@ interface CharMeta {
 class CharsData {
     renderableGlyphCount: number;
     charsMap: Map<number, CharMeta>
+    charCodes: number[];
     fontMeta;
     sdfMeta: {sdfGlyphSize: number, sdfMargin: number}
     
@@ -243,11 +231,18 @@ class CharsData {
         Z: 0
     }
 
-    constructor (fontMeta, sdfMeta) {
+    constructor (fontMeta, sdfMeta, charCodes: number[]) {
         this.renderableGlyphCount = 0;
         this.charsMap = new Map()
+        this.charCodes = charCodes
         this.fontMeta = fontMeta
         this.sdfMeta = sdfMeta
+
+        charCodes.forEach((charCode: number, index:number) => {
+        
+            return this.add(charCode, index)        
+       
+        })
     }
 
     add (charCode: number, index:number) {
@@ -327,7 +322,7 @@ class CharsData {
             }
         }
 
-        
+      
         return this;
     }
 
@@ -341,8 +336,6 @@ class CharsData {
 const getFontMetaData = (typrFont, {text, sdfGlyphSize, sdfMargin, fontSize, letterSpacing}) => {
     const os2 = typrFont['OS/2']
     
-    console.log('typrFont', typrFont, os2)
-
     const fontMeta = {
       unitsPerEm: typrFont.head.unitsPerEm,
       ascender: os2.sTypoAscender,
@@ -353,29 +346,25 @@ const getFontMetaData = (typrFont, {text, sdfGlyphSize, sdfMargin, fontSize, let
     };
     
     
-    const charCodes = new Uint16Array(
-        [...text].map((_, i) => text.codePointAt(i)))
+    const charCodes = [...text].map((_, i) => text.codePointAt(i))
       
     
 
-    const glyphsData = charCodes.reduce((acc: any, charCode: number, index:number) => {
-        
-        return acc.add(charCode, index)        
-   
-    }, new CharsData(typrFont, {sdfGlyphSize, sdfMargin}))
+    const glyphsData = new CharsData(typrFont, {sdfGlyphSize, sdfMargin}, charCodes)
     
-    const {charsMap, renderableGlyphCount} = glyphsData
+    const { charsMap } = glyphsData
 
     const fontSizeMult = fontSize / fontMeta.unitsPerEm
-     // Determine appropriate value for 'normal' line height based on the font's actual metrics
-      // TODO this does not guarantee individual glyphs won't exceed the line height, e.g. Roboto; should we use yMin/Max instead?
       
     let lineHeight = (fontMeta.ascender - fontMeta.descender + fontMeta.lineGap) / fontMeta.unitsPerEm
     
     // Determine line height and leading adjustments
     lineHeight = lineHeight * fontSize
     const halfLeading = (lineHeight - (fontMeta.ascender - fontMeta.descender) * fontSizeMult) / 2
-    const topBaseline = -(fontMeta.ascender * fontSizeMult + halfLeading)
+    let topBaseline = -(fontMeta.ascender * fontSizeMult + halfLeading)
+    
+    // since there is no multiline now, handle it by default
+    topBaseline = 0;
     
   
     
@@ -413,27 +402,42 @@ const getFontMetaData = (typrFont, {text, sdfGlyphSize, sdfMargin, fontSize, let
 
     return {
         glyphBounds,
-        charsMap
+        charsMap,
+        charCodes
     }
 
 } 
 
 
-export const createSDFTexture = async (gl, params) => {
-
+const getCharsMap = (typrFont, {text, sdfGlyphSize, sdfMargin}) => {
     
-    const fontSvgApi = await FontSvgApi.asyncInit(params.fontUrl)
+    
+    const charCodes = [...text].map((_, i) => text.codePointAt(i))          
+
+    const glyphsData = new CharsData(typrFont, {sdfGlyphSize, sdfMargin}, charCodes)
+    
+    const {charsMap} = glyphsData
+
+    return charsMap
+    
+}
+
+
+export const initTypr = async (fontUrl) => {
+    
+    const fontSvgApi = await FontSvgApi.asyncInit(fontUrl)
     
     const typr = fontSvgApi.parse()
+
+    return typr
     
-    console.log('fontSvgApi', fontSvgApi, params.fontUrl)
+}
 
-    const {glyphBounds, charsMap} = getFontMetaData(typr, params)
 
-    gl.canvas.width = params.sdfWidth
-    gl.canvas.height = params.sdfHeight
+export const createSDFTexture = async (gl, typr, params) => {
 
-    console.log('charsMap', charsMap, 'glyphBounds', glyphBounds)
+    
+    const charsMap = getCharsMap(typr, params)
     
 
     const {sdfExponent, sdfGlyphSize} = params
@@ -442,23 +446,24 @@ export const createSDFTexture = async (gl, params) => {
     
     
     return {
-        texture: gl.canvas,
-        meta: {glyphBounds, sdfExponent, sdfGlyphSize}
+        texture: gl.canvas
     }
 }
 
 
-export const renderText = (gl, sdfTexture) => {
-    const {texture, meta} = sdfTexture
-    console.log('meta', meta)
+export const renderText = (gl, sdfTexture, typr, params, text ) => {
+  
+    const {texture} = sdfTexture
+
+    const meta = getFontMetaData(typr, {...params, text})
+    
     const vs = gl.createShader(gl.VERTEX_SHADER)!;
-    gl.shaderSource(vs, vertexShader);
+    gl.shaderSource(vs, textVertexShader);
     gl.compileShader(vs);
     
     const fs = gl.createShader(gl.FRAGMENT_SHADER)!;
-    gl.shaderSource(fs, fragmentShader);
+    gl.shaderSource(fs, textFragmentShader);
     gl.compileShader(fs);
-    console.log('fragment:',gl.getShaderInfoLog(fs))
     
     // attach shaders to programm
     const prog = gl.createProgram()!;
@@ -466,16 +471,14 @@ export const renderText = (gl, sdfTexture) => {
     gl.attachShader(prog, fs);
     gl.linkProgram(prog);
     
-    console.log(gl.getProgramInfoLog(prog))
-    console.log(gl.getShaderInfoLog(vs));
-    
+
     // provide attributes
     const bp = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, bp)
     const positions = new Float32Array([    
-        -1, -1, 
-        -1, 1, 
-        1, -1,
+        0, 0, 
+        0, 1, 
+        1, 0,
         1, 1, 
     ])
     
@@ -486,76 +489,16 @@ export const renderText = (gl, sdfTexture) => {
     gl.enableVertexAttribArray(0);
     gl.vertexAttribDivisor(0, 0)
 
-    
-    // const barycentric = new Float32Array([
-    //     1, 0, 0, 
-    //     0, 1, 0, 
-    //     0, 0, 1, 
-    //     1, 0, 0, 
-    //     0, 1, 0, 
-    //     0, 0, 1, 
-    // ])
-    
-    // const bb = gl.createBuffer();
-    // gl.bindBuffer(gl.ARRAY_BUFFER, bb)
-    
-    // gl.bufferData(gl.ARRAY_BUFFER, barycentric, gl.STATIC_DRAW)
-    
-    // const bLoc = gl.getAttribLocation(prog, 'barycentric');
-    // gl.vertexAttribPointer(bLoc, 3, gl.FLOAT, false, 3*4, 0);
-    // gl.enableVertexAttribArray(bLoc);
-    
-    // create the buffer
-    const indexBuffer = gl.createBuffer();
-
-    // debug draw
-    //drawStateStats(drawStateCanvasGL!, gl)
-     
-    // make this buffer the current 'ELEMENT_ARRAY_BUFFER'
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-     
-    //Fill the current element array buffer with data
-    const indices = [
-      0, 1, 2,   // first triangle
-      2, 1, 3,   // second triangle
-    ];
-    // const indices = [
-    //     0, 2, 1,   // first triangle
-    //     2, 3, 1,   // second triangle
-    //  ];
-
-    gl.bufferData(
-        gl.ELEMENT_ARRAY_BUFFER,
-        new Uint16Array(indices),
-        gl.STATIC_DRAW
-    );
-    
-    //
-    // provide UV attrib
-    //
-    const b4 = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, b4)
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
-        0,0,
-        0,1,
-        1,0,
-        1,1
-    ]), gl.STATIC_DRAW);
-    
-    gl.vertexAttribPointer(4, 2, gl.FLOAT, false, 2*4, 0)
-    gl.enableVertexAttribArray(4)
-    gl.vertexAttribDivisor(4, 0)
-
-
-    
+   
+   
     //
     // GlyphBounds
     //
     
-    console.log('meta.glyphBounds', meta.glyphBounds)
     const b2 = gl.createBuffer()
     gl.bindBuffer(gl.ARRAY_BUFFER, b2)
     gl.bufferData(gl.ARRAY_BUFFER, meta.glyphBounds, gl.STATIC_DRAW)
+    
     gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 4*4, 0);
     gl.enableVertexAttribArray(1)
     gl.vertexAttribDivisor(1, 1)
@@ -568,15 +511,12 @@ export const renderText = (gl, sdfTexture) => {
     const b3 = gl.createBuffer()
     gl.bindBuffer(gl.ARRAY_BUFFER, b3)     
 
-    const b3Data = [...Array(meta.glyphBounds.length/4)].map((_, i) => i)
-    gl.bufferData(gl.ARRAY_BUFFER, new Uint16Array(b3Data), gl.STATIC_DRAW)
+    const glyphIndexes = meta.charCodes
+    
+    gl.bufferData(gl.ARRAY_BUFFER, new Uint16Array(glyphIndexes), gl.STATIC_DRAW)
     gl.vertexAttribPointer(2, 1, gl.UNSIGNED_SHORT, false, 2, 0);
     gl.enableVertexAttribArray(2)
     gl.vertexAttribDivisor(2, 1)
-
-
-    
-
 
 
 
@@ -595,56 +535,60 @@ export const renderText = (gl, sdfTexture) => {
     
     // prepare programm
     gl.useProgram(prog)
+    gl.enable(gl.BLEND)
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
 
-
-    // // glyphIndex
-    // const gilLoc = gl.getUniformLocation(prog, 'uGlyphIndex')    
-    // gl.uniform1f(gilLoc, 0)
-
-    //uTroikaSDFTextureSize
+    
+    //uSDFTextureSize
     const stsLoc = gl.getUniformLocation(prog, 'uSDFTextureSize')    
     gl.uniform2fv(stsLoc, [texture.width, texture.height])
-    console.log(' [texture.width, texture.height]',  [texture.width, texture.height])
-
-    // console.log('meta', meta)
-    // //uSDFExponent
-    // const sesLoc = gl.getUniformLocation(prog, 'uSDFExponent')    
-    // gl.uniform1f(sesLoc, meta.sdfExponent)
-
-    // //uSDFGlyphSize
-    // const sgsLoc = gl.getUniformLocation(prog, 'uSDFGlyphSize')    
-    // gl.uniform1f(sgsLoc, meta.sdfGlyphSize)
-
-    //uGlyphBounds
-    // const gbLoc = gl.getUniformLocation(prog, 'aGlyphBounds')    
-    // gl.uniform4fv(gbLoc, [...meta.glyphBounds])
-    // console.log('meta.glyphBounds', [...meta.glyphBounds])
-
-    //uGlyphBounds
-    const arLoc = gl.getUniformLocation(prog, 'uResolution')    
-    gl.uniform2fv(arLoc, [gl.canvas.width, gl.canvas.height])
-    console.log('uResolution', [gl.canvas.width, gl.canvas.height])
-
-    const u3 = gl.getUniformLocation(prog, 'uSDFExponent')    
-    gl.uniform1f(u3, meta.sdfExponent)
-
+  
+    
     const u5 = gl.getUniformLocation(prog, 'uColor')    
-    gl.uniform3fv(u5, [.1,1.,.0])
+    gl.uniform3fv(u5, [.1,1.,.0])    
 
-    const u6 = gl.getUniformLocation(prog, 'uFontSize')    
-    gl.uniform1f(u6, meta.fontSize)
-    console.log('meta.fontSize', meta.fontSize)
-
-    const u4 = gl.getUniformLocation(prog, 'uTroikaSDFGlyphSize')    
-    gl.uniform1f(u4, meta.sdfGlyphSize)
+    const projectionMatrix = createProjectionMatrix(gl.canvas.width, gl.canvas.height)
+    
+    const u7 = gl.getUniformLocation(prog, 'uProjectionMatrix')    
+    gl.uniformMatrix4fv(u7, false, projectionMatrix);
+    
+    const u4 = gl.getUniformLocation(prog, 'uSDFGlyphSize')    
+    
+    gl.uniform1f(u4, params.sdfGlyphSize)
 
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight)
 
-    // const uclLoc = gl.getUniformLocation(prog, 'uClipRect')    
-    // gl.uniform4fv(uclLoc, meta.clipRect)
-    
     // draw
-    //gl.drawRangeElements(gl.TRIANGLES, 0,6,-1, gl.UNSIGNED_BYTE, 0);
-    gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, b3Data.length)
+    gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0., 4, glyphIndexes.length)
 
-}
+  }
+
+
+  function orthographic(left, right, bottom, top, near, far) {
+    return [
+        2 / (right - left), 0, 0, 0,
+        0, 2 / (top - bottom), 0, 0,
+        0, 0, 2 / (near - far), 0,
+        -(right + left) / (right - left), -(top + bottom) / (top - bottom), -(far + near) / (far - near), 1
+    ];
+  }
+
+
+
+  function createProjectionMatrix(width, height) {
+    // Calculate the aspect ratio of the canvas
+    var aspectRatio = width / height;
+
+    // Calculate the extents of the viewing volume in the x direction
+    var left = -aspectRatio;
+    var right = aspectRatio;
+
+    // The extents in the y direction are -1 and 1
+    var bottom = -1;
+    var top = 1;
+
+    // Create and return the orthographic projection matrix
+    //return orthographic(-1, 1, -1, 1, -1, 1);
+    return orthographic(left, right, bottom, top, -1, 1);
+  
+  }
