@@ -1,6 +1,37 @@
-import {createSDFTexture, renderText, initTypr, Api} from '../src'
+import {renderText, initTypr, getFontMetaData} from '../src'
+import createSDFTexture from '../src/sdfTexture'
 import fontUrl from 'url:./Roboto/Roboto-Regular.ttf'
 
+
+export class Api {
+
+    canvas: HTMLCanvasElement
+    gl: WebGL2RenderingContext
+
+    constructor(canvas: HTMLCanvasElement, options?: WebGLContextAttributes) {
+        
+        this.canvas = canvas
+        
+        const gl = this.canvas.getContext('webgl2', options)!
+        
+        if(gl === null) {
+            throw new Error('webgl2 is not supported')
+        }
+        
+        this.gl = gl;
+        
+    }
+    
+    static init(canvas?: HTMLCanvasElement, options?: WebGLContextAttributes) {
+        
+        if (!canvas) {
+            canvas = document.createElement('canvas')
+        }
+        
+        return new Api(canvas, options)
+
+    }
+}
 
 const textureApi = Api.init(undefined, {premultipliedAlpha: false})
 const textApiWhite = Api.init(undefined)
@@ -66,8 +97,10 @@ const sdfSize = 64;
 
 
     // render text
-    renderText(textApiWhite.gl, sdfTexture, typr, params, text)
-    renderText(textApiRed.gl, sdfTexture, typr, params, text)
+    const meta = getFontMetaData(typr, {...params, text})
+
+    renderText(textApiWhite.gl, sdfTexture, meta)
+    renderText(textApiRed.gl, sdfTexture, meta)
 
     // var image = textureApi.canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");  // here is the most important part because if you dont replace you will get a DOM 18 exception.
 

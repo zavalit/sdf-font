@@ -1,0 +1,25 @@
+{
+  "name": "@webglify/chain",
+  "version": "0.0.1",
+  "description": "draw call chain api",
+  "keywords": [
+    "webgl"
+  ],
+  "author": "Vsevolod Dolgopolov",
+  "homepage": "https://github.com/zavalit/webglify#readme",
+  "license": "MIT",
+  "main": "src/index.ts",
+  "files": [
+    "src"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zavalit/webglify.git"
+  },
+  "bugs": {
+    "url": "https://github.com/zavalit/webglify/issues"
+  }
+}
