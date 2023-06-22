@@ -2,8 +2,14 @@ import segmentsVertex from './shaders/segments/segments.vertex.glsl'
 import segmentsFragment from './shaders/segments/segments.fragment.glsl'
 import groupVertex from  './shaders/segments/group.vertex.glsl'
 import groupFragment from './shaders/segments/group.fragment.glsl'
-import {getSegements, Typr} from '@webglify/svg-font'
+import FontSvgApi, {getSegements, codeToGlyph, glyphToPath, FontDataType} from '@webglify/svg-font'
 import chain, {createFramebuffer} from '@webglify/chain'
+import { SDFParams } from '.'
+
+
+interface CharsSDFParams extends SDFParams {
+  chars: string
+}
 
 const addVertexData  = (gl: WebGL2RenderingContext) => {
 
@@ -26,12 +32,12 @@ const addVertexData  = (gl: WebGL2RenderingContext) => {
 
 }
 
-const renderChainedTextute = (gl: WebGL2RenderingContext, charsMeta: CharMeta[], sdfGlyphSize, sdfExponent, columnCount = 8) => {
+const renderChainedTextute = (gl: WebGL2RenderingContext, charsMeta: CharMeta[], {sdfGlyphSize, sdfExponent}: SDFParams, columnCount = 8) => {
 
   const dpr = Math.min(2, window.devicePixelRatio)
   
   const width = columnCount * sdfGlyphSize
-  const height = Math.ceil( (sdfGlyphSize) * charsMeta.length / columnCount)
+  const height = Math.ceil( charsMeta.length / columnCount) * sdfGlyphSize
   const canvasWidth = width / dpr
   const canvasHeight = height / dpr
   
@@ -173,14 +179,14 @@ class CharsData {
 
   add (charCode: number, index:number) {
       
-      const glyphId = Typr.U.codeToGlyph(this.fontMeta, charCode)
+      const glyphId = codeToGlyph(this.fontMeta, charCode)
       const char = String.fromCharCode(charCode)
       const isWhitespace = !!char && new RegExp(CharsData.lineBreakingWhiteSpace).test(char)
 
       !isWhitespace && this.renderableGlyphCount++
       
-      if(!this.charsMap[charCode]) {
-          const {cmds, crds} = Typr.U.glyphToPath(this.fontMeta, glyphId)
+      if(!this.charsMap.get(charCode)) {
+          const {cmds, crds} = glyphToPath(this.fontMeta, glyphId)
            // Build path string
            let path = ''
            let crdsIdx = 0
@@ -229,12 +235,13 @@ class CharsData {
 
           const lineSegments = getSegements(path)
           
-          this.charsMap[charCode] = {
+          this.charsMap.set(charCode, {
               sdfViewBox,             
               maxDistance,
               lineSegments
+            })
           }
-      }
+      
 
     
       return this;
@@ -247,13 +254,20 @@ class CharsData {
 }
 
 
-
-const getCharsMap = (typrFont, {text, sdfGlyphSize, sdfMargin}) => {
+export const initFont = async (fontUrl: string) => {
     
-    
-  const charCodes = [...text].map((_, i) => text.codePointAt(i))          
+  const fontSvgApi = await FontSvgApi.asyncInit(fontUrl)
+  
+  return fontSvgApi.parse()
 
-  const glyphsData = new CharsData(typrFont, {sdfGlyphSize, sdfMargin}, charCodes)
+  
+  
+}
+const getCharsMap = (fontData: FontDataType, {sdfGlyphSize, sdfMargin}: SDFParams, chars: string) => {
+        
+  const charCodes = [...chars].map((_, i) => chars.codePointAt(i))
+
+  const glyphsData = new CharsData(fontData, {sdfGlyphSize, sdfMargin}, charCodes)
   
   const {charsMap} = glyphsData
 
@@ -267,19 +281,23 @@ export type TextureType = {
   texture: HTMLCanvasElement
 }
 
-const createSDFTexture = async (gl, typr, params): Promise<TextureType> => {
+
+
+const createSDFTexture = async (gl: WebGL2RenderingContext, fontData: FontDataType, params: SDFParams, chars: string): Promise<TextureType> => {
 
     
-  const charsMap = getCharsMap(typr, params)
+  const charsMap = getCharsMap(fontData, params, chars)
   
-
-  const {sdfExponent, sdfGlyphSize} = params
-  const oc = Object.values(charsMap).sort((a,b) => a.index - b.index)
-  renderChainedTextute(gl, oc, sdfGlyphSize, sdfExponent)
+  const occ: CharMeta[] = [];
   
+  charsMap.forEach((v, k) => {    
+    occ[k] = v
+  });
+ 
+  renderChainedTextute(gl, occ, params)
   
   return {
-      texture: gl.canvas
+      texture: gl.canvas as HTMLCanvasElement
   }
 }
 

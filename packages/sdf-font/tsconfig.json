@@ -1,5 +1,6 @@
 {
-  "include": ["src/**/*"],
+  "include": ["src/**/**/*"],
+  "typeRoots": ["./"],
   "compilerOptions": {
     "target": "es2021",
     "strict": true,

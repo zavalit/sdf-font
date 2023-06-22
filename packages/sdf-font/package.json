@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@webglify/chain": "^0.0.1",
-    "@webglify/svg-font": "^0.0.4"
+    "@webglify/svg-font": "^0.0.3"
   },
   "scripts": {
     "build": "parcel build"

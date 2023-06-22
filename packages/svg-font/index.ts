@@ -1,4 +1,4 @@
-import {Typr} from './Typr'
+import {Typr, parseFont, FontDataType} from './Typr'
 //import woff2otf from './woff2otf'
 import bidiFactory from 'bidi-js'
 const bidi  = bidiFactory()
@@ -12,7 +12,7 @@ class Api {
     }
 
     parse() {
-        return Typr.parse(this.fontBuffer)[0]
+      return parseFont(this.fontBuffer)[0]
     }
 
     
@@ -27,10 +27,10 @@ class Api {
         return new Api(buffer)
     }
 
-    static fontTag(buffer: ArrayBuffer) {
-        const peek = new Uint8Array(buffer, 0, 4)
-        return Typr.B.readASCII(peek, 0, 4)
-    }
+    // static fontTag(buffer: ArrayBuffer) {
+    //     const peek = new Uint8Array(buffer, 0, 4)
+    //     return Typr.B.readASCII(peek, 0, 4)
+    // }
 
     // static woff2OTF(buffer: ArrayBuffer): ArrayBuffer {
         
@@ -814,4 +814,9 @@ export default Api;
 
 export {getSegements} from './approximate'
 
-export {Typr} from './Typr'
+export const codeToGlyph = (fontData: FontDataType, charCode: number) => Typr.U.codeToGlyph(fontData, charCode)
+export const glyphToPath =  (fontData: FontDataType, glyphId: number) => Typr.U.glyphToPath(fontData, glyphId)
+
+export {
+  FontDataType
+} 

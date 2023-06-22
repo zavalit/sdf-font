@@ -46,8 +46,9 @@ void main(){
 
     vec2 pos = mix(gb.xy, gb.zw, position);
     
-    pos = (uProjectionMatrix * vec4(pos, 0., 1.)).xy;
+    pos = (vec4(pos, 0., 1.) * uProjectionMatrix) .xy;
     pos.x += vertexAlignOffset;
+    
     
 
     gl_Position = vec4(pos, 0., 1.);
