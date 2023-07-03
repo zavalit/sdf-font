@@ -1,6 +1,6 @@
 {
   "name": "@webglify/sdf-font",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "source": "src/index.ts",
   "main": "lib/main.js",
   "types": "./types.d.ts",
@@ -14,7 +14,7 @@
     "typescript": "^5.0.4"
   },
   "dependencies": {
-    "@webglify/chain": "^0.0.1",
+    "@webglify/chain": "^0.0.2",
     "@webglify/svg-font": "^0.0.3"
   },
   "scripts": {

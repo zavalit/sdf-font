@@ -31,7 +31,7 @@ type ChainDrawProps = {
   performance: {
     last_60: number [],
     avg: number,
-    max: number
+    max?: number
   }[]
   renderFrame: (time: number) => void
   programs: ProgramsMapType
@@ -281,7 +281,7 @@ export default (
  
 
 
-function loadImage(url, callback) {
+function loadImage(url: string, callback: (i:HTMLImageElement) => void) {
   const image = new Image();
   image.src = url;
   image.onload = () => callback(image);
@@ -289,7 +289,7 @@ function loadImage(url, callback) {
 }
 
 
-function createTexture(gl: WebGL2RenderingContext, image: TexImageSource, settings?: (gl:WebGL2RenderingContext, image) => void) {
+function createTexture(gl: WebGL2RenderingContext, image: TexImageSource, settings?: (gl:WebGL2RenderingContext, image: TexImageSource) => void) {
   
   const texture = gl.createTexture();
 
@@ -315,7 +315,7 @@ function createTexture(gl: WebGL2RenderingContext, image: TexImageSource, settin
 
 }
 
-export const createFramebuffer = (gl:WebGL2RenderingContext, { width, height}) => {
+export const createFramebuffer = (gl:WebGL2RenderingContext, { width, height} : {width: number, height: number}) => {
     // Create a framebuffer
     const framebuffer = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
@@ -347,7 +347,7 @@ export const createFramebuffer = (gl:WebGL2RenderingContext, { width, height}) =
 }
 
 
-export const createProgramm = (gl: WebGL2RenderingContext, {vertexShader, fragmentShader}): WebGLProgram => {
+export const createProgramm = (gl: WebGL2RenderingContext, {vertexShader, fragmentShader}: {vertexShader: string, fragmentShader: string}): WebGLProgram => {
    // initiaize program and attach shaders
    const prog = gl.createProgram()!;
 
@@ -389,7 +389,7 @@ export const convertCanvasTexture = (gl: WebGL2RenderingContext, canvas: HTMLCan
 
 
 
-const addDefaultVertexData = (gl) => {
+const addDefaultVertexData = (gl: WebGL2RenderingContext) => {
 
     const vao = gl.createVertexArray()
     gl.bindVertexArray(vao)
@@ -404,6 +404,7 @@ const addDefaultVertexData = (gl) => {
     ]), gl.STATIC_DRAW);
 
     // Set up the vertex attribute pointers
+    const location = 0
     gl.enableVertexAttribArray(location);
     gl.vertexAttribPointer(location, 2, gl.FLOAT, false, 0, 0);
 
