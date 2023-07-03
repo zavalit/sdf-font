@@ -54,7 +54,7 @@ export default (
   const ext = gl.getExtension('EXT_disjoint_timer_query_webgl2');
   if (!ext) {
     // The extension is not supported
-    console.log('EXT_disjoint_timer_query_webgl2 extension is not supported.');
+    console.warn('EXT_disjoint_timer_query_webgl2 extension is not supported.');
   }
   
   const calls = callsProps.map(({ vertexShader, fragmentShader, devicePixelRatio=2, ...props }, index:number) => {
@@ -335,7 +335,7 @@ export const createFramebuffer = (gl:WebGL2RenderingContext, { width, height} : 
     
     // Check if the framebuffer is complete
     if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
-        console.error('Framebuffer is not complete');
+        throw new Error('Framebuffer is not complete');
     }
   
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -356,8 +356,7 @@ export const createProgramm = (gl: WebGL2RenderingContext, {vertexShader, fragme
      gl.shaderSource(shader, shaderSource);
      gl.compileShader(shader);
      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-       console.error(shaderType, gl.getShaderInfoLog(shader));
-       return;
+      throw new Error(`${shaderType}: ${gl.getShaderInfoLog(shader)}`);       
      }
      gl.attachShader(prog, shader);
    };
@@ -366,7 +365,7 @@ export const createProgramm = (gl: WebGL2RenderingContext, {vertexShader, fragme
    attachShader(gl.FRAGMENT_SHADER, fragmentShader);
    gl.linkProgram(prog);
    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-     console.error(gl.getProgramInfoLog(prog));
+    throw new Error(gl.getProgramInfoLog(prog)?.toString());
    }
    return prog
 }
