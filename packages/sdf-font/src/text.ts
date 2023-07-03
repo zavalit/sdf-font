@@ -111,7 +111,12 @@ class TextData {
 export const getTextMetaData = (fontData: FontDataType, params: ParamsProps): RenderTextProps  => {
   
     const {text, fontSize, letterSpacing, sdfGlyphSize} = params
-    const charCodes = [...text].map((_, i) => text.codePointAt(i) as number)
+    if(typeof text !== 'string'){
+      throw new Error(`text value is wrong: "${text}"`)
+    }
+    const charCodes = [...text].map((_, i) => {
+      return text.codePointAt(i) as number
+    })
     
     const glyphsData = new TextData(fontData, params, charCodes)
     
@@ -192,14 +197,14 @@ export const getTextMetaData = (fontData: FontDataType, params: ParamsProps): Re
 
 
 
-type ViewportType = {
+export type ViewportType = {
   x: number,
   y: number,
   width: number,
   height: number
 }
 
-type ColorType = {
+export type ColorType = {
   r: number
   g: number
   b: number
@@ -284,7 +289,7 @@ export const renderText = (gl: WebGL2RenderingContext, sdfTexture: { texture: an
             
             return () => {
               gl.uniform2fv(u1, [texture.width, texture.height])
-              gl.uniform3fv(u2, [uColor.r,uColor.g,uColor.b])    
+              gl.uniform3fv(u2, [uColor.r + 1,uColor.g,uColor.b])    
               gl.uniformMatrix4fv(u3, false, projectionMatrix);
               gl.uniform1f(u4, meta.sdfGlyphSize);
             }
@@ -295,7 +300,6 @@ export const renderText = (gl: WebGL2RenderingContext, sdfTexture: { texture: an
           gl.enable(gl.BLEND)
           gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
           const {x, y, width, height} = viewport
-          console.log('x, y, width, height', x, y, width, height)
           gl.viewport.call(gl, x, y, width, height);
 
           gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0., 4, glyphIndexes.length)

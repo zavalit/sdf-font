@@ -56,7 +56,7 @@ textCanvas.style.width =  `${textWidth}`;
 const textGL = textCanvas.getContext('webgl2')!
 document.body.appendChild(textCanvas) 
 
-textBlocks.slice(-20).forEach((text, i) => {
+textBlocks.slice(0, 1).forEach((text, i) => {
   
   const meta = getTextMetaData(sdfTexture.fontData, {...params, text})
   viewport.y = 80 * i
@@ -64,6 +64,30 @@ textBlocks.slice(-20).forEach((text, i) => {
   
 })
 
+
+
+// try to encode json into texture
+
+// Your JSON object
+var data = {"unitsPerEm":2048,"ascender":1536,"descender":-512,"capHeight":1456,"xHeight":1082,"lineGap":102};
+
+// Convert the JSON object to an array of numbers
+var numbers = Object.values(data);
+
+// Create an array to hold the color data
+var colors = new Uint8Array(numbers.length * 4);
+
+
+// Convert each number to a color and store it in the colors array
+for (var i = 0; i < numbers.length; i++) {
+  var number = numbers[i];
+  colors[i * 4 + 0] = (number >> 24) & 0xFF; // Red
+  colors[i * 4 + 1] = (number >> 16) & 0xFF; // Green
+  colors[i * 4 + 2] = (number >> 8) & 0xFF; // Blue
+  colors[i * 4 + 3] = number & 0xFF; // Alpha
+}
+
+console.log('numbers', numbers, colors)
 
 })()
 

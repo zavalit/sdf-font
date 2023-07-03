@@ -14,7 +14,7 @@ out vec2 vGlyphUV;
 
 
 
-float vertexAlignOffset = -1.;
+float vertexAlignOffset = -.9;
 float texColumnCount = 8.;
 float texRowCount = 8.;
     
@@ -46,7 +46,7 @@ void main(){
 
     vec2 pos = mix(gb.xy, gb.zw, position);
     
-    pos = (vec4(pos, 0., 1.) * uProjectionMatrix) .xy;
+    pos = (vec4(pos, 0., 1.) * uProjectionMatrix).xy;
     pos.x += vertexAlignOffset;
     
     
@@ -58,17 +58,3 @@ void main(){
 
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-//     vec2 clippedXY = (mix(bounds.xy, bounds.zw, pos) - bounds.xy) / (bounds.zw - bounds.xy);
