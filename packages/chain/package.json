@@ -1,6 +1,6 @@
 {
   "name": "@webglify/chain",
-  "version": "0.0.3",
+  "version": "0.0.5",
   "description": "draw call chain api",
   "keywords": [
     "webgl"
@@ -13,7 +13,8 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "watch": "watch 'npm run build' ./src"
   },
   "publishConfig": {
     "access": "public"
@@ -24,5 +25,8 @@
   },
   "bugs": {
     "url": "https://github.com/zavalit/webglify/issues"
+  },
+  "devDependencies": {
+    "watch": "^1.0.2"
   }
 }

@@ -1,6 +1,6 @@
 import createSDFTexture, { initFont} from "./sdfTexture"
 import {getTextMetaData, renderText, ViewportType} from "./text"
-import { FontDataType} from '@webglify/svg-font'
+import { FontDataType} from '@webglify/sdf-texture'
 
 
 export interface SDFParams {sdfGlyphSize: number, sdfMargin: number,  sdfExponent: number}

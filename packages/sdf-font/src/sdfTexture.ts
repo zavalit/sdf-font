@@ -2,7 +2,7 @@ import segmentsVertex from './shaders/segments/segments.vertex.glsl'
 import segmentsFragment from './shaders/segments/segments.fragment.glsl'
 import groupVertex from  './shaders/segments/group.vertex.glsl'
 import groupFragment from './shaders/segments/group.fragment.glsl'
-import FontSvgApi, {getSegements, codeToGlyph, glyphToPath, FontDataType} from '@webglify/svg-font'
+import FontSvgApi, {getSegements, codeToGlyph, glyphToPath, FontDataType} from '@webglify/sdf-texture'
 import chain, {createFramebuffer} from '@webglify/chain'
 import { SDFParams } from '.'
 

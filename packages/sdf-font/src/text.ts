@@ -2,7 +2,7 @@ import textVertexShader from './shaders/text/text.vertex.glsl';
 import textFragmentShader from './shaders/text/text.fragment.glsl';
 import chain, {convertCanvasTexture} from '@webglify/chain'
 
-import { codeToGlyph, glyphToPath, FontDataType} from '@webglify/svg-font'
+import { codeToGlyph, glyphToPath, FontDataType} from '@webglify/sdf-texture'
 import {SDFParams, ParamsProps} from '.'
 
 export interface TextCharMeta {

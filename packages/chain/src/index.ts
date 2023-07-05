@@ -109,8 +109,9 @@ export default (
     gl.uniform1f(u2, 0);
     const u3 = gl.getUniformLocation(prog, "uMouse");
     gl.uniform2fv(u3, [MOUSE_COORDS.x, MOUSE_COORDS.y]);
+    const u4 = gl.getUniformLocation(prog, "uDpr");
+    gl.uniform1f(u4, devicePixelRatio);
   
-   
     
     const applyUniform = props.addUniformData 
     ? props.addUniformData(gl, prog)

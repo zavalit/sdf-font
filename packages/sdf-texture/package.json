@@ -1,5 +1,5 @@
 {
-  "name": "@webglify/svg-font",
+  "name": "@webglify/sdf-texture",
   "version": "0.0.5",
   "private": true,
   "dependencies": {
