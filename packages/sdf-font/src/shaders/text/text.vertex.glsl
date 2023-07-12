@@ -47,7 +47,7 @@ void main(){
     vec2 pos = mix(gb.xy, gb.zw, position);
     
     pos = (vec4(pos, 0., 1.) * uProjectionMatrix).xy;
-    pos.x += vertexAlignOffset;
+   // pos.x += vertexAlignOffset;
     
     
 

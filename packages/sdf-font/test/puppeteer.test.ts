@@ -27,10 +27,8 @@ const port = process.argv[portIndex + 1];
     const sdfTexture = createSDFTexture(textureApi.gl, chars, '/fonts/Roboto/Roboto-Regular.ttf')
 
     // render text
-    renderText(textApi.gl, chars, sdfTexture)
-    
-    
-    
+    renderText(textApi.gl, chars, sdfTexture)    
     
     //await browser.close();
-  })();
+
+})();

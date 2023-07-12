@@ -5,3 +5,6 @@ node_modules
 Roboto
 lerna-debug.log
 lib
+.DS_Store
+*.png
+*.json

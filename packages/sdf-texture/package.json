@@ -2,8 +2,13 @@
   "name": "@webglify/sdf-texture",
   "version": "0.0.5",
   "private": true,
-  "dependencies": {
-    "bidi-js": "^1.0.2"
+  "directories": {
+    "lib": "lib",
+    "test": "browser"
   },
-  "main": "index.ts"
+  "dependencies": {
+    "@webglify/chain": "^0.0.6",
+    "bidi-js": "^1.0.2",
+    "jszip": "^3.10.1"
+  }
 }

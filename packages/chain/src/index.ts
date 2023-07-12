@@ -2,7 +2,7 @@
 type UniformSignature = (gl:WebGL2RenderingContext, prog: WebGLProgram) => () => void
 type DrawData = {drawData: any, buffer: WebGLBuffer}
 
-type WebGLFactoryPops = {
+export type WebGLFactoryPops = {
   vertexShader: string;
   fragmentShader: string;
   canvasWidth?: number;
@@ -37,12 +37,12 @@ type ChainDrawProps = {
   programs: ProgramsMapType
 }
 
-const MOUSE_COORDS = {
+
+export const MOUSE_COORDS = {
   x: 0,
   y: 0,
   z: 0,
 }
-
 
 export default (
   gl: WebGL2RenderingContext,
@@ -63,32 +63,12 @@ export default (
     const name = props.name || `program_${index}`
    
   
-    const specifyCanvasSize = () => {
-      if (!props.canvasWidth || !props.canvasHeight) return
-      const width = props.canvasWidth;
-      const height = props.canvasHeight;
-      const canvas = gl.canvas as HTMLCanvasElement;
-      canvas.style.width = width.toString();
-      canvas.style.height = height.toString();
-      canvas.width = width * devicePixelRatio;
-      canvas.height = height * devicePixelRatio;
-  
+    if(props.canvasHeight && props.canvasWidth) {
+      gl.canvas.width = props.canvasWidth * devicePixelRatio;
+      gl.canvas.height = props.canvasHeight * devicePixelRatio;
+
       gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-    };
-  
-    specifyCanvasSize();
-  
-  
-    const listenToMouseMove = (ev: MouseEvent)=> {
-  
-      const {top, bottom, left} =  (gl.canvas as HTMLCanvasElement).getBoundingClientRect()
-      const height = bottom - top;
-      const fromTop = ev.clientY - top;
-      MOUSE_COORDS.x = (left - ev.clientX) * devicePixelRatio
-      MOUSE_COORDS.y = (fromTop - height) * devicePixelRatio
-      
     }
-  
   
     const prog = createProgramm(gl, {vertexShader, fragmentShader})
   
@@ -226,10 +206,7 @@ export default (
       
     }
   
-    // listeners
-    window.addEventListener("resize", specifyCanvasSize, false);
-    window.addEventListener("mousemove", listenToMouseMove, false)
-  
+    
     return {
       nextDrawCall,
       nextDataDrawCall,
@@ -290,25 +267,30 @@ function loadImage(url: string, callback: (i:HTMLImageElement) => void) {
 }
 
 
-function createTexture(gl: WebGL2RenderingContext, image: TexImageSource, settings?: (gl:WebGL2RenderingContext, image: TexImageSource) => void) {
+export function createTexture(gl: WebGL2RenderingContext, image: TexImageSource): WebGLTexture {
   
   const texture = gl.createTexture();
+  if(texture === null) {
+    throw new Error('can not create texture')
+  }
 
   gl.bindTexture(gl.TEXTURE_2D, texture);
 
-  settings && settings(gl, image) || (() => {
-  
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
-    // Set texture parameters
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
   
-  })()
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+
+  // Set texture parameters
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+
+  
+  
+
   
   gl.bindTexture(gl.TEXTURE_2D, null)
 
@@ -328,6 +310,8 @@ export const createFramebuffer = (gl:WebGL2RenderingContext, { width, height} : 
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+
+
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
     
     
@@ -372,8 +356,15 @@ export const createProgramm = (gl: WebGL2RenderingContext, {vertexShader, fragme
 }
 
 
+export interface ChainTexture {
+  texture: WebGLTexture,
+  height: number,
+  width: number
+}
 
-export const loadTexture = (gl: WebGL2RenderingContext, url: string) => new Promise((res, _) => loadImage(url, image => res(createTexture(gl, image))));
+
+export const loadTexture = (gl: WebGL2RenderingContext, url: string): Promise<ChainTexture> => new Promise((res, _) => loadImage(url, image => res({texture: createTexture(gl, image), width:image.width, height: image.height})));
+
 
 export const loadSVGTexture = (gl: WebGL2RenderingContext, svgString: string) => {
   const svgDataUrl = 'data:image/svg+xml;base64,' + btoa(svgString);
@@ -386,6 +377,8 @@ export const convertCanvasTexture = (gl: WebGL2RenderingContext, canvas: HTMLCan
 
   return createTexture(gl, canvas);
 }
+
+
 
 
 

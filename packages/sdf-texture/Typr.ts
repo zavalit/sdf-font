@@ -1,7 +1,7 @@
 
 
 
-
+const WINDOW = typeof window !== 'undefined' && window || {}
 
 
 const Typr = {
@@ -97,7 +97,7 @@ const Typr = {
 			}
 			return s;
 		},
-		_tdec : window["TextDecoder"] ? new window["TextDecoder"]() : null,
+		_tdec : WINDOW["TextDecoder"] ? new WINDOW["TextDecoder"]() : null,
 		readUTF8 : function(buff, p, l) {
 			var tdec = Typr["B"]._tdec;
 			if(tdec && p==0 && l==buff.length) return tdec["decode"](buff);
@@ -1442,7 +1442,7 @@ const Typr = {
 			var path = { cmds:[], crds:[] };
 			
 			
-			var SVG = font["SVG"], CFF = font["CFF"], COLR=font["COLR"], CBLC=font["CBLC"], CBDT=font["CBDT"], sbix=font["sbix"], upng=window["UPNG"];
+			var SVG = font["SVG"], CFF = font["CFF"], COLR=font["COLR"], CBLC=font["CBLC"], CBDT=font["CBDT"], sbix=font["sbix"], upng=WINDOW["UPNG"];
 			var U = Typr["U"];
 			
 			var strike = null;
@@ -1665,7 +1665,7 @@ const Typr = {
 						c+=4;
 					}
 					else if(cmd[0]=="d") {
-						var upng=window["UPNG"];
+						var upng=WINDOW["UPNG"];
 						var x0 = crds[c], y0=crds[c+1], x1=crds[c+2], y1=crds[c+3], x2=crds[c+4], y2=crds[c+5], x3=crds[c+6], y3=crds[c+7];  c+=8;
 						//y0+=400;  y1+=400;  y1+=600;
 						if(upng==null) {
@@ -2447,8 +2447,8 @@ const Typr = {
 							font = exp["hb_font_create"](face)
 							__lastFnt = fn;
 						}
-						if(window["TextEncoder"]==null) {  alert("Your browser is too old. Please, update it.");  return;  }
-						if(te==null) te = new window["TextEncoder"]("utf8");
+						if(WINDOW["TextEncoder"]==null) {  alert("Your browser is too old. Please, update it.");  return;  }
+						if(te==null) te = new WINDOW["TextEncoder"]("utf8");
 						
 						var buffer = exp["hb_buffer_create"]();
 						var bytes = te["encode"](str);

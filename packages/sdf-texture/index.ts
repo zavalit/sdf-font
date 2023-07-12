@@ -758,12 +758,9 @@ export function handleLoadedFont (fontObj, {
     
 }
 
-export const params = {
-    sdfGlyphSize: 64,
-    sdfMargin: 0
-}
 
-export function addGlyphInfo (glyphSpec, {sdfGlyphSize, sdfMargin} = params) {
+
+export function addGlyphInfo (glyphSpec, {sdfGlyphSize, sdfMargin}) {
     const {glyphIds, glyphPositions, fontSize, unitsPerEm, timings} = glyphSpec
 
     const glyphBounds = new Float32Array(glyphIds.length * 4)

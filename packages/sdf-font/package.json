@@ -14,7 +14,7 @@
     "typescript": "^5.0.4"
   },
   "dependencies": {
-    "@webglify/chain": "^0.0.2",
+    "@webglify/chain": "^0.0.5",
     "@webglify/sdf-texture": "^0.0.5"
   },
   "scripts": {
