@@ -8,6 +8,8 @@ in vec2 vViewBox;
 
 uniform float uMaxDistance;
 uniform float uExponent;
+uniform float uAscender;
+uniform float uDescender;
 
 float absDistToSegment(vec2 p, vec2 a, vec2 b) {
   vec2 ba = b - a;
@@ -18,12 +20,18 @@ float absDistToSegment(vec2 p, vec2 a, vec2 b) {
 }
 
 void main() {
+    float maxHeight = uAscender - uDescender;
 
     vec4 seg = vLineSegments;
+    
+    
     vec2 p = vViewBox;
+    // p -= maxHeight * .05;
+    // p *= 1.5;
+    
     float lineDist = absDistToSegment(p, seg.xy, seg.zw);
     
-    float val = pow(1.0 - clamp(lineDist / uMaxDistance, 0.0, 1.0), uExponent) * 0.5;
+    float val = pow(1.0 - clamp(lineDist / maxHeight, 0.0, 1.0), uExponent) * 0.5;
 
 
     bool crossing = (seg.y > p.y != seg.w > p.y) && (p.x < (seg.z - seg.x) * (p.y - seg.y) / (seg.w - seg.y) + seg.x);
@@ -31,5 +39,7 @@ void main() {
     
 
     fragColor = vec4(crossingUp ? 1.0 / 255.0 : 0.0, crossing && !crossingUp ? 1.0 / 255. : 0.0, 0.0, val);
-  
+
+    //fragColor.xy = p/maxHeight;
+    
 }

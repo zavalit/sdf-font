@@ -1,5 +1,5 @@
 #version 300 es
-layout(location=0) in vec2 position;
+layout(location=0) in vec2 aPositions;
 layout(location=1) in vec4 glyphBounds;
 layout(location=2) in float glyphIndex;
 
@@ -8,9 +8,11 @@ uniform mat4 uProjectionMatrix;
 uniform float uAspectRatio;
 uniform vec2 uResolution;
 uniform float uSDFGlyphSize;
-
+uniform float uAscender;
+uniform float uDescender;
 
 out vec2 vGlyphUV;
+out vec2 vUV;
 
 
 
@@ -35,19 +37,36 @@ void main(){
     float maxY = uSDFTextureSize.y;
     float column = mod(glyphIndex, texColumnCount);
     float row = floor(glyphIndex / texRowCount);
-    vec4 glyphClip = vec4(
-        (uSDFGlyphSize * (column))/maxX, uSDFGlyphSize * row/maxY, // top left corner
-        (uSDFGlyphSize * (column + 1.))/maxX, uSDFGlyphSize * (row + 1.)/maxY // bottom right corner 
-    );
-    vec2 glyphUV = mix(glyphClip.xy, glyphClip.zw, position);
-
-
+    
+    float maxHeight = uAscender - uDescender;
     vec4 gb = glyphBounds;
 
-    vec2 pos = mix(gb.xy, gb.zw, position);
+    float width = gb.z - gb.x;
+    float height = gb.w - gb.y;
+    
+    vec4 glyphClip = vec4(
+        (uSDFGlyphSize * (column))/maxX,                // x0
+        uSDFGlyphSize * (row + gb.y)/maxY,                       // y0
+        (uSDFGlyphSize * (column + width))/maxX,        // x1
+        uSDFGlyphSize * (row + gb.w)/maxY             // y1
+    );
+
+    vec2 box = aPositions;
+    
+    box.y -= (uDescender/maxHeight);
+
+    vec2 pos = aPositions;
+    vec2 glyphUV = mix(glyphClip.xy, glyphClip.zw, box);
+    
+    
+    
+
+
+    pos = mix(gb.xy, gb.zw, pos);
+    
     
     pos = (vec4(pos, 0., 1.) * uProjectionMatrix).xy;
-   // pos.x += vertexAlignOffset;
+    pos.x += vertexAlignOffset;
     
     
 
@@ -55,6 +74,7 @@ void main(){
 
     
     vGlyphUV = glyphUV;
+    vUV = aPositions;
 
 }
 

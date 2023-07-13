@@ -1,6 +1,6 @@
 import textVertexShader from './shaders/text/text.vertex.glsl';
 import textFragmentShader from './shaders/text/text.fragment.glsl';
-import chain, {ChainTexture} from '@webglify/chain'
+import chain, {convertCanvasTexture} from '@webglify/chain'
 
 export interface SDFParams {sdfGlyphSize: number, sdfMargin: number,  sdfExponent: number}
 
@@ -25,7 +25,14 @@ export interface TextCharMeta {
 
 
 
-export type RenderTextProps = { charCodes: number[]; glyphBounds: Float32Array; sdfGlyphSize: number; }
+export type RenderTextProps = { charCodes: number[]; glyphBounds: Float32Array; sdfGlyphSize: number; fontMeta: {
+    unitsPerEm: number
+    ascender: number
+    descender: number
+    capHeight: number
+    xHeight: number
+    lineGap: number
+  } }
 
 
 type TextMetaType ={
@@ -49,73 +56,6 @@ type TextMetaType ={
 
 
 
-class TextData {
-    renderableGlyphCount: number;
-    charsMap: Map<number, TextCharMeta>
-    charCodes: number[];
-    meta: TextMetaType;
-    
-    // This regex (instead of /\s/) allows us to select all whitespace EXCEPT for non-breaking white spaces
-    static lineBreakingWhiteSpace = `[^\\S\\u00A0]`
-    
-    constructor (meta: TextMetaType, charCodes: number[]) {
-        this.renderableGlyphCount = 0;
-        this.charsMap = new Map()
-        this.charCodes = charCodes
-        this.meta = meta
- 
-
-        charCodes.forEach((charCode: number, index:number) => {
-        
-            return this.add(charCode, index)        
-       
-        })
-    }
-
-    add (charCode: number, index:number) {
-
-
-      if(this.charsMap.get(charCode)) return
-        
-    
-        // Find extents - Glyf gives this in metadata but not CFF, and Typr doesn't
-        // normalize the two, so it's simplest just to iterate ourselves.
-      const [xMin, yMin, xMax, yMax, advanceWidth] = this.meta.sizesMap[charCode]
-
-      // Margin around path edges in SDF, based on a percentage of the glyph's max dimension.
-      // Note we add an extra 0.5 px over the configured value because the outer 0.5 doesn't contain
-      // useful interpolated values and will be ignored anyway.
-      const {sdfGlyphSize, sdfMargin } = this.meta.sdfParams
-      const fontUnitsMargin = Math.max(xMax - xMin, yMax - yMin)
-      / sdfGlyphSize * (sdfMargin * sdfGlyphSize + 0.5)
-
-      
-      const sdfViewBox = [
-          xMin - fontUnitsMargin,
-          yMin - fontUnitsMargin,
-          xMax + fontUnitsMargin,
-          yMax + fontUnitsMargin,
-      ]
-      
-          
-        this.charsMap.set(charCode, {
-        
-          advanceWidth,
-          xMin,
-          yMin,
-          xMax,
-          yMax,
-          sdfViewBox,
-          fontUnitsMargin,                          
-      })
-       
-    }
-
-   
-    get(charCode: number){
-        return this.charsMap.get(charCode)
-    }
-}
 
 
 export const getTextMetaData = (meta: TextMetaType): RenderTextProps  => {
@@ -128,9 +68,9 @@ export const getTextMetaData = (meta: TextMetaType): RenderTextProps  => {
       return text.codePointAt(i) as number
     })
     
-    const glyphsData = new TextData(meta, charCodes)
+    console.log('meta', meta)
     
-    const { charsMap } = glyphsData
+    const charsMap = meta.sizesMap
 
     const fontSizeMult = fontSize / fontMeta.unitsPerEm
       
@@ -150,10 +90,10 @@ export const getTextMetaData = (meta: TextMetaType): RenderTextProps  => {
     const glyphPositions: {xProgress: number, x:number, y:number}[] = []    
     
     charCodes.forEach((charCode: number, i: number) => {
-      const data = charsMap.get(charCode)
+      const data = charsMap[charCode]
         if(!data) return
         
-        const {advanceWidth} = data
+        const [xMin, yMin, xMax, yMax, advanceWidth] = data
         const x = glyphPositions[i-1]?.xProgress || 0
         const letterSpace = advanceWidth * fontSizeMult
         const xProgress = x + letterSpace - letterSpace * (1. - letterSpacing || 0.)
@@ -168,25 +108,33 @@ export const getTextMetaData = (meta: TextMetaType): RenderTextProps  => {
     const glyphBounds = new Float32Array(charCodes.length * 4)
     
     let boundsIdx = 0
+    const d = 0;//fontMeta.unitsPerEm / sdfGlyphSize * (meta.sdfParams.sdfMargin * sdfGlyphSize + .5)
     charCodes.forEach((charCode: number, i: number) => {
-        const data = charsMap.get(charCode)
+        const data = charsMap[charCode]
         if(!data) return
-        const {sdfViewBox} = data
+        const [xMin, yMin, xMax, yMax] = data
+        
+        const xMinD = xMin - d;
+        const yMinD = yMin - d;
+        const xMaxD = xMax + d;
+        const yMaxD = yMax + d;
         
         // Determine final glyph position and add to glyphPositions array
         const posX = glyphPositions[i].x
         const posY = glyphPositions[i].y
-        glyphBounds[boundsIdx++] = posX + sdfViewBox[0] * fontSizeMult
-        glyphBounds[boundsIdx++] = posY + sdfViewBox[1] * fontSizeMult
-        glyphBounds[boundsIdx++] = posX + sdfViewBox[2] * fontSizeMult
-        glyphBounds[boundsIdx++] = posY + sdfViewBox[3] * fontSizeMult
+        
+        glyphBounds[boundsIdx++] = posX + xMinD * fontSizeMult
+        glyphBounds[boundsIdx++] = posY + yMinD * fontSizeMult
+        glyphBounds[boundsIdx++] = posX + xMaxD * fontSizeMult
+        glyphBounds[boundsIdx++] = posY + yMaxD * fontSizeMult
     })
 
 
     return {
         glyphBounds,        
         charCodes,
-        sdfGlyphSize
+        sdfGlyphSize,
+        fontMeta
     }
 
 } 
@@ -209,17 +157,17 @@ export type ColorType = {
 }
 const BlackColor = {r:0, g:0, b:0}
 
-export const renderText = (gl: WebGL2RenderingContext, sdfTexture: ChainTexture, meta: TextMetaType, viewport:ViewportType, color?: ColorType ) => {
+export const renderText = (gl: WebGL2RenderingContext, sdfTexture: {texture: HTMLCanvasElement}, meta: TextMetaType, viewport:ViewportType, color?: ColorType ) => {
   
 
-    const {charCodes, sdfGlyphSize, glyphBounds} = getTextMetaData(meta)
-    
-    console.log('sdfTexture', sdfTexture)
+    const {charCodes, sdfGlyphSize, glyphBounds, fontMeta} = getTextMetaData(meta)
+    const letterMap = convertCanvasTexture(gl, sdfTexture.texture)
+
     const {renderFrame} = chain(gl, [
       {
         vertexShader: textVertexShader,
         fragmentShader: textFragmentShader,
-        textures: [sdfTexture.texture!],
+        textures: [letterMap!],
         addVertexData(gl){
           
           const vao = gl.createVertexArray()!
@@ -245,6 +193,8 @@ export const renderText = (gl: WebGL2RenderingContext, sdfTexture: ChainTexture,
           //
           // GlyphBounds
           //          
+
+          console.log('glyphBounds', glyphBounds)
           const buf2 = gl.createBuffer()
           gl.bindBuffer(gl.ARRAY_BUFFER, buf2)
           gl.bufferData(gl.ARRAY_BUFFER, glyphBounds, gl.STATIC_DRAW)          
@@ -261,7 +211,6 @@ export const renderText = (gl: WebGL2RenderingContext, sdfTexture: ChainTexture,
           gl.bindBuffer(gl.ARRAY_BUFFER, buf3)                     
           gl.bufferData(gl.ARRAY_BUFFER, new Uint16Array(charCodes), gl.STATIC_DRAW)
           
-          console.log('charCodes', charCodes)
 
           gl.vertexAttribPointer(2, 1, gl.UNSIGNED_SHORT, false, 2, 0);
           gl.enableVertexAttribArray(2)
@@ -283,6 +232,11 @@ export const renderText = (gl: WebGL2RenderingContext, sdfTexture: ChainTexture,
             const u3 = gl.getUniformLocation(prog, 'uProjectionMatrix')    
             
             const u4 = gl.getUniformLocation(prog, 'uSDFGlyphSize')    
+
+            const u5 = gl.getUniformLocation(prog, 'uAscender')
+            const u6 = gl.getUniformLocation(prog, 'uDescender')
+    
+           
             
             console.log('texture.width, texture.height', sdfTexture.width, sdfTexture.height)
             return () => {
@@ -290,6 +244,8 @@ export const renderText = (gl: WebGL2RenderingContext, sdfTexture: ChainTexture,
               gl.uniform3fv(u2, [uColor.r + 1,uColor.g,uColor.b])    
               gl.uniformMatrix4fv(u3, false, projectionMatrix);
               gl.uniform1f(u4, sdfGlyphSize);
+              gl.uniform1f(u5, fontMeta.ascender)
+              gl.uniform1f(u6, fontMeta.descender)
             }
 
 

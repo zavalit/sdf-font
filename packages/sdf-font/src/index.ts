@@ -4,7 +4,7 @@ import { FontDataType} from '@webglify/sdf-texture'
 
 
 export interface SDFParams {sdfGlyphSize: number, sdfMargin: number,  sdfExponent: number}
-export interface ParamsProps extends SDFParams {
+export interface ParamsProps extends SDFParams {
   text: string,
   fontSize: number, 
   letterSpacing: number

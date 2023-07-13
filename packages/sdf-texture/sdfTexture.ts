@@ -47,7 +47,7 @@ const addVertexData  = (gl: WebGL2RenderingContext) => {
 
 }
 
-const renderGpyphSpriteTexture = (gl: WebGL2RenderingContext, charsMeta: CharMeta[], {sdfGlyphSize, sdfExponent}: SDFParams): Promise<WebGL2RenderingContext> => {
+const renderGpyphSpriteTexture = (gl: WebGL2RenderingContext, charsMeta: CharMeta[], {sdfGlyphSize, sdfExponent, sdfMargin}: SDFParams, fontMeta: FontMetaType): Promise<WebGL2RenderingContext> => {
   const dpr = 2.
   const columnCount = 8
   
@@ -57,8 +57,7 @@ const renderGpyphSpriteTexture = (gl: WebGL2RenderingContext, charsMeta: CharMet
   const canvasWidth = width / dpr
   const canvasHeight = height / dpr
   
-  const STATE: {maxDistance?: number, sdfViewBox?: number[]} = {
-    maxDistance: undefined,
+  const STATE: {sdfViewBox?: number[]} = {
     sdfViewBox: undefined
   }
 
@@ -72,14 +71,22 @@ const renderGpyphSpriteTexture = (gl: WebGL2RenderingContext, charsMeta: CharMet
       fragmentShader: segmentsFragment,
       addVertexData,
       addUniformData (gl, prog) {
-        const mLoc = gl.getUniformLocation(prog, 'uMaxDistance')        
         const vLoc = gl.getUniformLocation(prog, 'uGlyphBounds')        
         const eLoc = gl.getUniformLocation(prog, 'uExponent')
+        const u3 = gl.getUniformLocation(prog, 'uMargin')
+        const u4 = gl.getUniformLocation(prog, 'uAscender')
+        const u5 = gl.getUniformLocation(prog, 'uDescender')
+        const u6 = gl.getUniformLocation(prog, 'uUnitsPerEm')
 
         return () => {
-          gl.uniform1f(mLoc, STATE.maxDistance!)
           gl.uniform4fv(vLoc, STATE.sdfViewBox!)
           gl.uniform1f(eLoc, sdfExponent)
+          gl.uniform1f(u3, sdfMargin)
+          gl.uniform1f(u4, fontMeta.ascender)
+          gl.uniform1f(u5, fontMeta.descender)
+          gl.uniform1f(u6, fontMeta.unitsPerEm)
+
+
         }
       
       },
@@ -126,7 +133,6 @@ const renderGpyphSpriteTexture = (gl: WebGL2RenderingContext, charsMeta: CharMet
       }
     }
   ])
-
 
   const segNextDataDrawCall = programs['segments'].nextDataDrawCall
   const sidesNextDataDrawCall = programs['sides'].nextDataDrawCall
@@ -181,14 +187,17 @@ const renderGpyphSpriteTexture = (gl: WebGL2RenderingContext, charsMeta: CharMet
 interface CharMeta {
   maxDistance: number
   lineSegments: number[]
+  path: string
   sdfViewBox: number[]
+  advanceWidth: number
 }
 
 class CharsData {
   renderableGlyphCount: number;
   charsMap: Map<number, CharMeta>
   charCodes: number[];
-  fontMeta;
+  fontApi;
+  fontMeta: FontDataType
   sdfMeta: {sdfGlyphSize: number, sdfMargin: number}
   
   // This regex (instead of /\s/) allows us to select all whitespace EXCEPT for non-breaking white spaces
@@ -201,13 +210,24 @@ class CharsData {
       Z: 0
   }
 
-  constructor (fontMeta, sdfMeta, charCodes: number[]) {
+  constructor (fontApi, sdfMeta, charCodes: number[]) {
       this.renderableGlyphCount = 0;
       this.charsMap = new Map()
       this.charCodes = charCodes
-      this.fontMeta = fontMeta
+      this.fontApi = fontApi
       this.sdfMeta = sdfMeta
 
+      const os2 = fontApi['OS/2']
+    
+      this.fontMeta = {
+        unitsPerEm: fontApi.head.unitsPerEm,
+        ascender: os2.sTypoAscender,
+        descender: os2.sTypoDescender,
+        capHeight: os2.sCapHeight,
+        xHeight: os2.sxHeight,
+        lineGap: os2.sTypoLineGap,
+      };   
+        
       charCodes.forEach((charCode: number, index:number) => {
       
           return this.add(charCode, index)        
@@ -217,14 +237,14 @@ class CharsData {
 
   add (charCode: number, index:number) {
       
-      const glyphId = codeToGlyph(this.fontMeta, charCode)
+      const glyphId = codeToGlyph(this.fontApi, charCode)
       const char = String.fromCharCode(charCode)
       const isWhitespace = !!char && new RegExp(CharsData.lineBreakingWhiteSpace).test(char)
 
       !isWhitespace && this.renderableGlyphCount++
       
       if(!this.charsMap.get(charCode)) {
-          const {cmds, crds} = glyphToPath(this.fontMeta, glyphId)
+          const {cmds, crds} = glyphToPath(this.fontApi, glyphId)
            // Build path string
            let path = ''
            let crdsIdx = 0
@@ -235,6 +255,8 @@ class CharsData {
                path += (j > 1 ? ',' : '') + crds[crdsIdx++]
              }
            }
+
+           
 
            // Find extents - Glyf gives this in metadata but not CFF, and Typr doesn't
            // normalize the two, so it's simplest just to iterate ourselves.
@@ -258,25 +280,46 @@ class CharsData {
           // Note we add an extra 0.5 px over the configured value because the outer 0.5 doesn't contain
           // useful interpolated values and will be ignored anyway.
           const {sdfGlyphSize, sdfMargin } = this.sdfMeta
-          const fontUnitsMargin = Math.max(xMax - xMin, yMax - yMin)
-          / sdfGlyphSize * (sdfMargin * sdfGlyphSize + 0.5)
+          const fontUnitsMargin = 0;//this.fontMeta.unitsPerEm / sdfGlyphSize * (sdfMargin * sdfGlyphSize + .5)
 
           
-          const sdfViewBox = [
-              xMin - fontUnitsMargin,
-              yMin - fontUnitsMargin,
-              xMax + fontUnitsMargin,
-              yMax + fontUnitsMargin,
-          ]
           
-          const maxDistance =  Math.max(sdfViewBox[2] - sdfViewBox[0], sdfViewBox[3] - sdfViewBox[1])
 
           const lineSegments = getSegements(path)
+
+          const edgePoints = lineSegments.reduce((acc, n, i) => {
+              
+            if(i%2 ==1) {
+              let {minY, maxY} = acc    
+                maxY = maxY < n ? n : maxY
+                minY = minY > n ? n : minY
+
+                return {...acc, maxY, minY}
+            }else {
+              let {minX, maxX} = acc    
+              maxX = maxX < n ? n : maxX
+              minX = minX > n ? n : minX
+
+              return {...acc, maxX, minX}
+            }
+              
+          }, {minX:0, minY:0, maxX: 0, maxY: 0})
+
+          const sdfViewBox = [ 
+            edgePoints.minX,
+            edgePoints.minY,
+            edgePoints.maxX,
+            edgePoints.maxY,
+          ]
+
+          const advanceWidth = this.fontApi.hmtx.aWidth[glyphId]
+
           
           this.charsMap.set(charCode, {
+              advanceWidth,
               sdfViewBox,             
-              maxDistance,
-              lineSegments
+              lineSegments,
+              path
             })
           }
       
@@ -307,9 +350,9 @@ const getCharsMap = (fontData: FontDataType, {sdfGlyphSize, sdfMargin}: SDFParam
 
   const glyphsData = new CharsData(fontData, {sdfGlyphSize, sdfMargin}, charCodes)
   
-  const {charsMap} = glyphsData
+  const {charsMap, fontMeta} = glyphsData
 
-  return charsMap
+  return {charsMap, fontMeta}
   
 }
 
@@ -317,14 +360,25 @@ const getCharsMap = (fontData: FontDataType, {sdfGlyphSize, sdfMargin}: SDFParam
 
 export type TextureType = {
   texture: HTMLCanvasElement
+  charsMap: any
 }
 
 
 
-const createSDFTexture = async (gl: WebGL2RenderingContext, fontData: FontDataType, params: SDFParams, chars: string): Promise<TextureType> => {
+const createSDFTexture = async (canvas: HTMLCanvasElement | OffscreenCanvas, fontUrl: string, params: SDFParams, charCodes: number[]): Promise<TextureType> => {
 
+
+  const fontData = await initFont(fontUrl)
+  const chars = charCodes.map(c => String.fromCodePoint(c)).join('')
+  console.log('chars', chars)
+
+  const gl = canvas.getContext('webgl2', {premultipliedAlpha: false})!;
+
+
+  const os2 = fontData['OS/2']
     
-  const charsMap = getCharsMap(fontData, params, chars)
+
+  const {charsMap, fontMeta} = getCharsMap(fontData, params, chars)
   
   const occ: CharMeta[] = [];
   
@@ -332,10 +386,15 @@ const createSDFTexture = async (gl: WebGL2RenderingContext, fontData: FontDataTy
     occ[k] = v
   });
  
- const rgl = await renderGpyphSpriteTexture(gl, occ, params)
+
+ const rgl = await renderGpyphSpriteTexture(gl, occ, params, fontMeta)
+
+ const sizesMap = occ.reduce((acc, v, i) => ({...acc,[i]:[...v.sdfViewBox, v.advanceWidth] }), {})
 
   return {
-      texture: rgl.canvas as HTMLCanvasElement
+      texture: rgl.canvas as HTMLCanvasElement,
+      sizesMap,
+      fontMeta,
   }
 }
 

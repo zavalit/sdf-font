@@ -1,4 +1,4 @@
-import createSDFTexture, {initFont, SDFParams, FontMetaType, calculateTextureSize} from "@webglify/sdf-texture/sdfTexture";
+import createSDFTexture, {SDFParams, FontMetaType} from "@webglify/sdf-texture/sdfTexture";
 import {codeToGlyph, glyphToPath} from '@webglify/sdf-texture/index'
 
 
@@ -11,8 +11,10 @@ self.onmessage = async function(event) {
   const {fontUrl, sdfParams, dpr} = data;
 
   console.log('fontUrl, sdfParams',fontUrl, sdfParams)
+  const canvas = new OffscreenCanvas(0, 0)
 
-  const {texture, ...rest} = await getTexture(fontUrl, sdfParams, dpr)
+  const charCodes = data.charCodes || _256
+  const {texture, ...rest} = await getTexture(canvas, fontUrl, sdfParams, charCodes)
 
   const imageBitmap = await createImageBitmap(texture);
 
@@ -28,30 +30,33 @@ type TextureResultType = {
   sizesMap: any
 }
 
-export const getTexture = async (fontUrl: string, sdfParams: SDFParams, dpr: number) : Promise<TextureResultType> => {
+const _256 = [...Array(256).keys()]
 
-  const fontData = await initFont(fontUrl)
-  const {chars, ...rest} = preparePayload(fontData)
 
-  const columnCount = 8
-  //const textureSize = calculateTextureSize(columnCount, sdfParams.sdfGlyphSize, chars.length, dpr)
-  const canvas = new OffscreenCanvas(0, 0)
+export const getTexture = async (canvas: HTMLCanvasElement | OffscreenCanvas, fontUrl: string, sdfParams: SDFParams, charCodes: number[]) : Promise<TextureResultType> => {
+
+  //const fontData = await initFont(fontUrl)
+  // const {chars, ...rest} = preparePayload(fontData, charCodes)
+
+  // console.log('chars', chars)
+
+  // const gl = canvas.getContext('webgl2', {premultipliedAlpha: false})!;
+
   
-  const gl = canvas.getContext('webgl2', {premultipliedAlpha: false})!;
 
-  const os2 = fontData['OS/2']
+  // const os2 = fontData['OS/2']
     
-  const fontMeta = {
-    unitsPerEm: fontData.head.unitsPerEm,
-    ascender: os2.sTypoAscender,
-    descender: os2.sTypoDescender,
-    capHeight: os2.sCapHeight,
-    xHeight: os2.sxHeight,
-    lineGap: os2.sTypoLineGap,
-  };    
+  // const fontMeta = {
+  //   unitsPerEm: fontData.head.unitsPerEm,
+  //   ascender: os2.sTypoAscender,
+  //   descender: os2.sTypoDescender,
+  //   capHeight: os2.sCapHeight,
+  //   xHeight: os2.sxHeight,
+  //   lineGap: os2.sTypoLineGap,
+  // };    
   
-  const sdfTexture = await createSDFTexture(gl, fontData, sdfParams, chars)
-  return {...sdfTexture, fontMeta, ...rest}
+  const sdfTextureData = await createSDFTexture(canvas, fontUrl, sdfParams, charCodes);
+  return sdfTextureData;
 }
 
 
@@ -61,9 +66,9 @@ export const getTexture = async (fontUrl: string, sdfParams: SDFParams, dpr: num
 
 
 
-const preparePayload = (fontMeta) => {
-  const _256 = [...Array(256).keys()]
-  return (_256).reduce((acc, charCode) => {
+const preparePayload = (fontMeta, charCodes) => {
+  console.log('charCodes', charCodes)
+  return charCodes.reduce((acc, charCode) => {
     const char = String.fromCodePoint(charCode)
     const chars = acc.chars.concat(char)
             

@@ -1,49 +1,19 @@
 <!DOCTYPE html>
 <head>
   <style>
-    * {
-        padding: 0;
-        margin: 0;        
+    svg {
+      transform: scale(.7, -.7);
     }
-        
-    body {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      
-      font-family: Arial, sans-serif;
-    }
-
-    form {
-      display: flex;
-      align-items: center;
-    }
-
-    input[type="text"] {
-      padding: 5px;
-      font-size: 16px;
-      margin-right: 10px;
-    }
-    input#sdf-glyph-size {
-      width: 3em;
-    }
-    button {
-      padding: 5px 10px;
-      font-size: 16px;
-    }
-
-    </style>
+  </style>
 </head>
 <body>
 
-  <form id="sdf-texture">
+  <!--<form id="sdf-texture">
     <input type="text" id="font-url" name="font-url" placeholder="Enter font url">
     <input type="text" id="sdf-glyph-size" name="sdf-glyph-size" placeholder="Enter sprite item size" value="64">
     <button type="submit">Submit</button>
-  </form>
-  <canvas id="canvas"></canvas>
+  </form>-->
   <a id="download">download</a>
   <script src="./index.ts" type="module"></script>
-
+  
 </body>
