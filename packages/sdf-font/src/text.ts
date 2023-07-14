@@ -25,7 +25,7 @@ export interface TextCharMeta {
 
 
 
-export type RenderTextProps = { charCodes: number[]; glyphBounds: Float32Array; sdfGlyphSize: number; fontMeta: {
+export type RenderTextProps = { charCodes: number[]; glyphBounds: Float32Array; sdfGlyphSize: number; sdfZoom: number, fontMeta: {
     unitsPerEm: number
     ascender: number
     descender: number
@@ -41,7 +41,7 @@ type TextMetaType ={
   letterSpacing: number
   sdfParams: {
     sdfGlyphSize: number,
-    sdfMargin: number
+    sdfZoom: number
   },
   sizesMap: {[key: number]: [number, number, number, number, number]}
   fontMeta: {
@@ -60,7 +60,7 @@ type TextMetaType ={
 
 export const getTextMetaData = (meta: TextMetaType): RenderTextProps  => {
   
-    const {text, fontSize, letterSpacing, fontMeta, sdfParams: {sdfGlyphSize}} = meta
+    const {text, fontSize, letterSpacing, fontMeta, sdfParams: {sdfGlyphSize, sdfZoom}} = meta
     if(typeof text !== 'string'){
       throw new Error(`text value is wrong: "${text}"`)
     }
@@ -72,7 +72,7 @@ export const getTextMetaData = (meta: TextMetaType): RenderTextProps  => {
     
     const charsMap = meta.sizesMap
 
-    const fontSizeMult = fontSize / fontMeta.unitsPerEm
+    const fontSizeMult = 1. / fontMeta.unitsPerEm
       
     let lineHeight = (fontMeta.ascender - fontMeta.descender + fontMeta.lineGap) / fontMeta.unitsPerEm
     
@@ -134,6 +134,7 @@ export const getTextMetaData = (meta: TextMetaType): RenderTextProps  => {
         glyphBounds,        
         charCodes,
         sdfGlyphSize,
+        sdfZoom,
         fontMeta
     }
 
@@ -160,7 +161,7 @@ const BlackColor = {r:0, g:0, b:0}
 export const renderText = (gl: WebGL2RenderingContext, sdfTexture: {texture: HTMLCanvasElement}, meta: TextMetaType, viewport:ViewportType, color?: ColorType ) => {
   
 
-    const {charCodes, sdfGlyphSize, glyphBounds, fontMeta} = getTextMetaData(meta)
+    const {charCodes, sdfGlyphSize, sdfZoom, glyphBounds, fontMeta} = getTextMetaData(meta)
     const letterMap = convertCanvasTexture(gl, sdfTexture.texture)
 
     const {renderFrame} = chain(gl, [
@@ -179,9 +180,9 @@ export const renderText = (gl: WebGL2RenderingContext, sdfTexture: {texture: HTM
           const buf1 = gl.createBuffer();
           gl.bindBuffer(gl.ARRAY_BUFFER, buf1);
           gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([    
-            0, 0, 
-            0, 1, 
-            1, 0,
+            -.3, -.3, 
+            -.3, 1, 
+            1, -.3,
             1, 1, 
           ]), gl.STATIC_DRAW)
            
@@ -235,6 +236,7 @@ export const renderText = (gl: WebGL2RenderingContext, sdfTexture: {texture: HTM
 
             const u5 = gl.getUniformLocation(prog, 'uAscender')
             const u6 = gl.getUniformLocation(prog, 'uDescender')
+            const u7 = gl.getUniformLocation(prog, 'uZoom')
     
            
             
@@ -246,6 +248,7 @@ export const renderText = (gl: WebGL2RenderingContext, sdfTexture: {texture: HTM
               gl.uniform1f(u4, sdfGlyphSize);
               gl.uniform1f(u5, fontMeta.ascender)
               gl.uniform1f(u6, fontMeta.descender)
+              gl.uniform1f(u7, sdfZoom)
             }
 
 

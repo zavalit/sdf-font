@@ -10,6 +10,7 @@ uniform vec2 uResolution;
 uniform float uSDFGlyphSize;
 uniform float uAscender;
 uniform float uDescender;
+uniform float uZoom;
 
 out vec2 vGlyphUV;
 out vec2 vUV;
@@ -30,6 +31,7 @@ float remap (float value, float inMin, float inMax, float outMin, float outMax) 
     return mix(outMin, outMax, lerpValue);
 }
 
+float margin = 0.01;
 void main(){
 
     
@@ -38,34 +40,46 @@ void main(){
     float column = mod(glyphIndex, texColumnCount);
     float row = floor(glyphIndex / texRowCount);
     
-    float maxHeight = uAscender - uDescender;
-    vec4 gb = glyphBounds;
+    vec4 gb = glyphBounds * 1.
+;
 
     float width = gb.z - gb.x;
     float height = gb.w - gb.y;
+    float centerShiftX = width * .5;
+    float centerShiftY = height * .5;
     
     vec4 glyphClip = vec4(
-        (uSDFGlyphSize * (column))/maxX,                // x0
-        uSDFGlyphSize * (row + gb.y)/maxY,                       // y0
-        (uSDFGlyphSize * (column + width))/maxX,        // x1
-        uSDFGlyphSize * (row + gb.w)/maxY             // y1
+        (uSDFGlyphSize * (column + centerShiftX ))/maxX,                // x0
+        uSDFGlyphSize * (row + gb.y + centerShiftY )/maxY,                       // y0
+        (uSDFGlyphSize * (column + width + centerShiftX ))/maxX,        // x1
+        uSDFGlyphSize * (row + gb.w + centerShiftY)/maxY             // y1
     );
 
+    glyphClip += 4./(uAscender - uDescender);
+    
+    
+    
     vec2 box = aPositions;
-    
-    box.y -= (uDescender/maxHeight);
+        
 
-    vec2 pos = aPositions;
-    vec2 glyphUV = mix(glyphClip.xy, glyphClip.zw, box);
+    vec2 glyphUV = mix(glyphClip.xy, glyphClip.zw, box * uZoom);
+
     
+    vec2 pos = mix(vec2(-0.), vec2(1.), aPositions);
     
     
 
 
     pos = mix(gb.xy, gb.zw, pos);
     
+;
     
-    pos = (vec4(pos, 0., 1.) * uProjectionMatrix).xy;
+
+    
+    
+    vec4 position = vec4(pos, 0., 1.);
+    
+    pos = (position * uProjectionMatrix).xy;
     pos.x += vertexAlignOffset;
     
     
@@ -73,7 +87,7 @@ void main(){
     gl_Position = vec4(pos, 0., 1.);
 
     
-    vGlyphUV = glyphUV;
+    vGlyphUV = glyphUV ;
     vUV = aPositions;
 
 }

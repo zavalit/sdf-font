@@ -8,32 +8,32 @@ uniform float uMaxDistance;
 uniform float uAscender;
 uniform float uDescender;
 uniform float uUnitsPerEm;
-uniform float uMargin;
+uniform float uZoom;
 
 out vec4 vLineSegments;
 out vec2 vViewBox;
+out vec2 vUv;
+out float vMaxDistance;
+
+
 
 void main() {
 
-    float maxHeight = uAscender - uDescender;
-    maxHeight = uUnitsPerEm;
+    float maxHeight = uUnitsPerEm;
+    
     
     vec2 from = uGlyphBounds.xy/maxHeight;
     
     vec2 to = uGlyphBounds.zw/maxHeight;
+
+    float width = (uGlyphBounds.z - uGlyphBounds.x)/maxHeight;
+    float toRight = (maxHeight - uGlyphBounds.z)/maxHeight;
     
-    float height = (uGlyphBounds.w - uGlyphBounds.y)/maxHeight;
-    float width = (uGlyphBounds.w - uGlyphBounds.y)/maxHeight;
-
-    float aspectRatio = height/width;
-
-    vec2 gplyphCenter = (to - from) * .5;
-
     vec2 map = aPosition;
-    map.y -= uDescender/maxHeight;
-    
     
     vec2 box = mix(from, to, map);
+    
+    
     
     vec2 pos = mix(vec2(-1.), vec2(1.), box);
     
@@ -41,7 +41,16 @@ void main() {
 
     vLineSegments = aLineSegments;
 
+    
+    vec2 uv = aPosition;
+    
+    uv.y -= .5;
+    uv.x -= .5;
+    
+    uv /= uZoom;
 
-
-    vViewBox = mix(uGlyphBounds.xy, uGlyphBounds.zw, aPosition);
+    vViewBox = mix(uGlyphBounds.xy, uGlyphBounds.zw, uv);
+    vMaxDistance = maxHeight;
+    
+    vUv = aPosition;
 }

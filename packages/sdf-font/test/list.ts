@@ -16,10 +16,10 @@ console.log(chars);
 
 
 
-  const sdfGlyphSize = 32
+  const sdfGlyphSize = 128
   const sdfParams = {
     sdfGlyphSize,
-    sdfMargin: .1,
+    sdfZoom: .5,
     sdfExponent: 10.
   }
   
@@ -41,8 +41,8 @@ document.body.appendChild(texture)
 // map text to sdf
 // a. create canvas for rendering text
 const dpr = Math.min(2, window.devicePixelRatio)
-const textWidth = 500
-const textHeight = 150
+const textWidth = 900
+const textHeight = 160
 const viewport = {x: 0, y: 0, width: textWidth * dpr, height: textHeight * dpr}
 
 const textCanvas = document.createElement('canvas')!

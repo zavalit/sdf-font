@@ -151,7 +151,7 @@ class CharsData {
   charsMap: Map<number, CharMeta>
   charCodes: number[];
   fontMeta;
-  sdfMeta: {sdfGlyphSize: number, sdfMargin: number}
+  sdfMeta: {sdfGlyphSize: number, sdfZoom: number}
   
   // This regex (instead of /\s/) allows us to select all whitespace EXCEPT for non-breaking white spaces
   static lineBreakingWhiteSpace = `[^\\S\\u00A0]`
@@ -219,9 +219,9 @@ class CharsData {
           // Margin around path edges in SDF, based on a percentage of the glyph's max dimension.
           // Note we add an extra 0.5 px over the configured value because the outer 0.5 doesn't contain
           // useful interpolated values and will be ignored anyway.
-          const {sdfGlyphSize, sdfMargin } = this.sdfMeta
+          const {sdfGlyphSize, sdfZoom } = this.sdfMeta
           const fontUnitsMargin = Math.max(xMax - xMin, yMax - yMin)
-          / sdfGlyphSize * (sdfMargin * sdfGlyphSize + 0.5)
+          / sdfGlyphSize * (sdfZoom * sdfGlyphSize + 0.5)
 
           
           const sdfViewBox = [
@@ -263,11 +263,11 @@ export const initFont = async (fontUrl: string) => {
   
   
 }
-const getCharsMap = (fontData: FontDataType, {sdfGlyphSize, sdfMargin}: SDFParams, chars: string) => {
+const getCharsMap = (fontData: FontDataType, {sdfGlyphSize, sdfZoom}: SDFParams, chars: string) => {
         
   const charCodes = [...chars].map((_, i) => chars.codePointAt(i))
 
-  const glyphsData = new CharsData(fontData, {sdfGlyphSize, sdfMargin}, charCodes)
+  const glyphsData = new CharsData(fontData, {sdfGlyphSize, sdfZoom}, charCodes)
   
   const {charsMap} = glyphsData
 

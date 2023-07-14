@@ -18,7 +18,7 @@ export type FontMetaType = {
   xHeight: number
   lineGap: number
 }
-export interface SDFParams {sdfGlyphSize: number, sdfMargin: number,  sdfExponent: number}
+export interface SDFParams {sdfGlyphSize: number, sdfZoom: number,  sdfExponent: number}
 
 
 
@@ -35,8 +35,8 @@ const addVertexData  = (gl: WebGL2RenderingContext) => {
   gl.bindBuffer(gl.ARRAY_BUFFER, pb);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
     0,0,
-    2,0,
-    0,2
+    4,0,
+    0,4
   ]), gl.STATIC_DRAW)
   
   
@@ -47,7 +47,7 @@ const addVertexData  = (gl: WebGL2RenderingContext) => {
 
 }
 
-const renderGpyphSpriteTexture = (gl: WebGL2RenderingContext, charsMeta: CharMeta[], {sdfGlyphSize, sdfExponent, sdfMargin}: SDFParams, fontMeta: FontMetaType): Promise<WebGL2RenderingContext> => {
+const renderGpyphSpriteTexture = (gl: WebGL2RenderingContext, charsMeta: CharMeta[], {sdfGlyphSize, sdfExponent, sdfZoom}: SDFParams, fontMeta: FontMetaType): Promise<WebGL2RenderingContext> => {
   const dpr = 2.
   const columnCount = 8
   
@@ -73,7 +73,7 @@ const renderGpyphSpriteTexture = (gl: WebGL2RenderingContext, charsMeta: CharMet
       addUniformData (gl, prog) {
         const vLoc = gl.getUniformLocation(prog, 'uGlyphBounds')        
         const eLoc = gl.getUniformLocation(prog, 'uExponent')
-        const u3 = gl.getUniformLocation(prog, 'uMargin')
+        const u3 = gl.getUniformLocation(prog, 'uZoom')
         const u4 = gl.getUniformLocation(prog, 'uAscender')
         const u5 = gl.getUniformLocation(prog, 'uDescender')
         const u6 = gl.getUniformLocation(prog, 'uUnitsPerEm')
@@ -81,7 +81,7 @@ const renderGpyphSpriteTexture = (gl: WebGL2RenderingContext, charsMeta: CharMet
         return () => {
           gl.uniform4fv(vLoc, STATE.sdfViewBox!)
           gl.uniform1f(eLoc, sdfExponent)
-          gl.uniform1f(u3, sdfMargin)
+          gl.uniform1f(u3, sdfZoom)
           gl.uniform1f(u4, fontMeta.ascender)
           gl.uniform1f(u5, fontMeta.descender)
           gl.uniform1f(u6, fontMeta.unitsPerEm)
@@ -198,7 +198,7 @@ class CharsData {
   charCodes: number[];
   fontApi;
   fontMeta: FontDataType
-  sdfMeta: {sdfGlyphSize: number, sdfMargin: number}
+  sdfMeta: {sdfGlyphSize: number, sdfZoom: number}
   
   // This regex (instead of /\s/) allows us to select all whitespace EXCEPT for non-breaking white spaces
   static lineBreakingWhiteSpace = `[^\\S\\u00A0]`
@@ -279,8 +279,8 @@ class CharsData {
           // Margin around path edges in SDF, based on a percentage of the glyph's max dimension.
           // Note we add an extra 0.5 px over the configured value because the outer 0.5 doesn't contain
           // useful interpolated values and will be ignored anyway.
-          const {sdfGlyphSize, sdfMargin } = this.sdfMeta
-          const fontUnitsMargin = 0;//this.fontMeta.unitsPerEm / sdfGlyphSize * (sdfMargin * sdfGlyphSize + .5)
+          const {sdfGlyphSize, sdfZoom } = this.sdfMeta
+          const fontUnitsMargin = 0;//this.fontMeta.unitsPerEm / sdfGlyphSize * (sdfZoom * sdfGlyphSize + .5)
 
           
           
@@ -344,11 +344,11 @@ export const initFont = async (fontUrl: string) => {
   
   
 }
-const getCharsMap = (fontData: FontDataType, {sdfGlyphSize, sdfMargin}: SDFParams, chars: string) => {
+const getCharsMap = (fontData: FontDataType, {sdfGlyphSize, sdfZoom}: SDFParams, chars: string) => {
         
   const charCodes = [...chars].map((_, i) => chars.codePointAt(i))
 
-  const glyphsData = new CharsData(fontData, {sdfGlyphSize, sdfMargin}, charCodes)
+  const glyphsData = new CharsData(fontData, {sdfGlyphSize, sdfZoom}, charCodes)
   
   const {charsMap, fontMeta} = glyphsData
 

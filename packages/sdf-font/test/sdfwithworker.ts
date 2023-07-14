@@ -17,8 +17,8 @@ const worker = new Worker(
   {type: 'module'}
 );
 
-const sampleData = [{"m":"createShader"}, {"m":"@A:;tsdp","a":{"0":35633},"o":{}},{"m":"shaderSource","a":{"0":{},"1":"#version 300 es\n#define GLSLIFY 1\n\nlayout(location=0) in vec2 aPosition;\n\nvoid main () {\n\n  gl_Position = vec4(aPosition, 0., 1.);\n\n}"}},{"m":"compileShader","a":{"0":{}}},{"m":"getShaderParameter","a":{"0":{},"1":35713},"o":true},{"m":"createShader","a":{"0":35632},"o":{}},{"m":"shaderSource","a":{"0":{},"1":"#version 300 es\n\nprecision mediump float;\n#define GLSLIFY 1\n\nout vec4 fragColor;\n\nvoid main () {\n  fragColor = vec4(1., 0., 1., 1.);\n}"}},{"m":"compileShader","a":{"0":{}}},{"m":"getShaderParameter","a":{"0":{},"1":35713},"o":true},{"m":"createProgram","a":{},"o":{}},{"m":"attachShader","a":{"0":{},"1":{}}},{"m":"attachShader","a":{"0":{},"1":{}}},{"m":"linkProgram","a":{"0":{}}},{"m":"getProgramParameter","a":{"0":{},"1":35714},"o":true},{"m":"createBuffer","a":{},"o":{}},{"m":"bindBuffer","a":{"0":34962,"1":{}}},{"m":"bufferData","a":{"0":34962,"1":{"0":0,"1":0,"2":1,"3":1},"2":35044}},{"m":"enableVertexAttribArray","a":{"0":0}},{"m":"vertexAttribPointer","a":{"0":0,"1":2,"2":5126,"3":false,"4":0,"5":0}},{"m":"useProgram","a":{"0":{}}},{"m":"drawArrays","a":{"0":1,"1":0,"2":2},"s":{"programId":1}}]
-const textBlocks = sampleData.map(({m}) => m).splice(0., 1.);
+const sampleData = [{"m":"A"}, {"m":"createShader"}, {"m":"@A:;tsdp","a":{"0":35633},"o":{}},{"m":"shaderSource","a":{"0":{},"1":"#version 300 es\n#define GLSLIFY 1\n\nlayout(location=0) in vec2 aPosition;\n\nvoid main () {\n\n  gl_Position = vec4(aPosition, 0., 1.);\n\n}"}},{"m":"compileShader","a":{"0":{}}},{"m":"getShaderParameter","a":{"0":{},"1":35713},"o":true},{"m":"createShader","a":{"0":35632},"o":{}},{"m":"shaderSource","a":{"0":{},"1":"#version 300 es\n\nprecision mediump float;\n#define GLSLIFY 1\n\nout vec4 fragColor;\n\nvoid main () {\n  fragColor = vec4(1., 0., 1., 1.);\n}"}},{"m":"compileShader","a":{"0":{}}},{"m":"getShaderParameter","a":{"0":{},"1":35713},"o":true},{"m":"createProgram","a":{},"o":{}},{"m":"attachShader","a":{"0":{},"1":{}}},{"m":"attachShader","a":{"0":{},"1":{}}},{"m":"linkProgram","a":{"0":{}}},{"m":"getProgramParameter","a":{"0":{},"1":35714},"o":true},{"m":"createBuffer","a":{},"o":{}},{"m":"bindBuffer","a":{"0":34962,"1":{}}},{"m":"bufferData","a":{"0":34962,"1":{"0":0,"1":0,"2":1,"3":1},"2":35044}},{"m":"enableVertexAttribArray","a":{"0":0}},{"m":"vertexAttribPointer","a":{"0":0,"1":2,"2":5126,"3":false,"4":0,"5":0}},{"m":"useProgram","a":{"0":{}}},{"m":"drawArrays","a":{"0":1,"1":0,"2":2},"s":{"programId":1}}]
+const textBlocks = sampleData.map(({m}) => m).splice(2., 3.);
 const chars = textBlocks.reduce((acc, ch) => acc.concat(ch), "");
 const _256CharCodes = [...Array(256).keys()]
 const textBlocksCharCodes = chars.split('').map(c => c.charCodeAt(0))
@@ -30,15 +30,16 @@ console.log(chars);
 
 
 
-  const sdfGlyphSize = 64 
+  const sdfGlyphSize = 128;
   const sdfParams = {
     sdfGlyphSize,
-    sdfMargin: 0.1,
+    sdfZoom: .5,
     sdfExponent: 10
+    
   }
   
   const fontParams = {
-    fontSize: 1.,
+    fontSize: 2.,
     letterSpacing: 1.
   }
 const canvas = document.createElement('canvas')
@@ -46,7 +47,7 @@ const canvas = document.createElement('canvas')
 // Record the time before posting the message
 const startTime = performance.now();
 
-worker.postMessage({fontUrl, sdfParams, charCodes: textBlocksCharCodes, dpr: 1.});
+worker.postMessage({fontUrl, sdfParams, charCodes: _256CharCodes, dpr: 1.});
 
 worker.onmessage = function(event) {
 
@@ -73,7 +74,7 @@ worker.onmessage = function(event) {
   // map text to sdf
   // a. create canvas for rendering text
   const dpr = Math.min(2, window.devicePixelRatio)
-  const textWidth = 500
+  const textWidth = 700
   const textHeight = 100
   const viewport = {x: 0, y: 0, width: textWidth * dpr, height: textHeight * dpr}
 

@@ -78,7 +78,7 @@ const sdfSize = 64;
     const sdfGlyphSize = 64
     const sdfParams = {
     sdfGlyphSize,
-    sdfMargin: 1/sdfGlyphSize,
+    sdfZoom: 1/sdfGlyphSize,
     sdfExponent: 9
     }
 

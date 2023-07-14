@@ -3,7 +3,7 @@ import {getTextMetaData, renderText, ViewportType} from "./text"
 import { FontDataType} from '@webglify/sdf-texture'
 
 
-export interface SDFParams {sdfGlyphSize: number, sdfMargin: number,  sdfExponent: number}
+export interface SDFParams {sdfGlyphSize: number, sdfZoom: number,  sdfExponent: number}
 export interface ParamsProps extends SDFParams {
   text: string,
   fontSize: number, 

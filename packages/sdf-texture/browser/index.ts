@@ -9,7 +9,7 @@ const _256 = [...Array(256).keys()]
 const sdfGlyphSize = 64 * 4
 const sdfParams = {
   sdfGlyphSize,
-  sdfMargin: .1,
+  sdfZoom: .5,
   sdfExponent: 10.
 }
 

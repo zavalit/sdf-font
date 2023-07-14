@@ -760,7 +760,7 @@ export function handleLoadedFont (fontObj, {
 
 
 
-export function addGlyphInfo (glyphSpec, {sdfGlyphSize, sdfMargin}) {
+export function addGlyphInfo (glyphSpec, {sdfGlyphSize, sdfZoom}) {
     const {glyphIds, glyphPositions, fontSize, unitsPerEm, timings} = glyphSpec
 
     const glyphBounds = new Float32Array(glyphIds.length * 4)
@@ -777,7 +777,7 @@ export function addGlyphInfo (glyphSpec, {sdfGlyphSize, sdfMargin}) {
         // useful interpolated values and will be ignored anyway.
         
         const fontUnitsMargin = Math.max(pathBounds[2] - pathBounds[0], pathBounds[3] - pathBounds[1])
-          / sdfGlyphSize * (sdfMargin * sdfGlyphSize + 0.5)
+          / sdfGlyphSize * (sdfZoom * sdfGlyphSize + 0.5)
 
         
         const sdfViewBox = [
