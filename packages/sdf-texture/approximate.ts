@@ -49,7 +49,32 @@ export function forEachPathCommand(pathString, commandCallback) {
       }
     }
   }
+
+const cmdArgLengths = {
+    M: 2,
+    L: 2,
+    Q: 4,
+    C: 6,
+    Z: 0
+}
+
+export function cmdsToPath (cmds, crds) {
+
   
+  // Build path string
+  let path = ''
+  let crdsIdx = 0
+  for (let i = 0, len = cmds.length; i < len; i++) {
+    const numArgs = cmdArgLengths[cmds[i]]
+    path += cmds[i]
+    for (let j = 1; j <= numArgs; j++) {
+      path += (j > 1 ? ',' : '') + crds[crdsIdx++]
+    }
+  }
+
+  return path;
+
+}
 
 export function pathToLineSegments (pathString, segmentCallback, curvePoints = 16) {
     const tempPoint = { x: 0, y: 0 }

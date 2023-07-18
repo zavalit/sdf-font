@@ -9,8 +9,8 @@ const _256 = [...Array(256).keys()]
 const sdfGlyphSize = 64 * 4
 const sdfParams = {
   sdfGlyphSize,
-  sdfZoom: .5,
-  sdfExponent: 10.
+  sdfExponent: 20.,
+  
 }
 
 const fontParams = {
@@ -62,9 +62,9 @@ const svg = ({sdfViewBox, path}) => {
 
   const canvas = document.createElement('canvas')
 
-  const charCodes ='@A'.split('').map(c => c.charCodeAt(0))
+  const charCodes ='@ABCDEF'.split('').map(c => c.charCodeAt(0))
   
-  const {texture, charsMap,fontMeta} = await getTexture(canvas, fontUrl, sdfParams, charCodes)
+  const {texture,fontMeta} = await getTexture(canvas, fontUrl, sdfParams, charCodes)
 
   document.body.appendChild(texture)
   

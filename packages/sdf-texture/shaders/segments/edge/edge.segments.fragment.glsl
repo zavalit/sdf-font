@@ -3,7 +3,7 @@ precision highp float;
 
 out vec4 fragColor;
 
-in vec4 vLineSegments;
+in vec4 vSegmentsCoord;
 in vec2 vViewBox;
 in vec2 vUv;
 in float vMaxDistance;
@@ -27,7 +27,7 @@ void main() {
     
     float maxHeight = vMaxDistance;
     
-    vec4 seg = vLineSegments;
+    vec4 seg = vSegmentsCoord;
     
     
     vec2 p = vViewBox;
@@ -40,8 +40,9 @@ void main() {
     bool crossing = (seg.y > p.y != seg.w > p.y) && (p.x < (seg.z - seg.x) * (p.y - seg.y) / (seg.w - seg.y) + seg.x);
     bool crossingUp = crossing && seg.y < seg.w;
     
+    float channelMax = 255.;
 
-    fragColor = vec4(crossingUp ? 1.0 / 255.0 : 0.0, crossing && !crossingUp ? 1.0 / 255. : 0.0, 0.0, val);
+    fragColor = vec4(crossingUp ? 1.0 / channelMax : 0.0, crossing && !crossingUp ? 1.0 / channelMax  : 0.0, 0.0, val);
 
     //fragColor = vec4(p.xy, 0., 1.);
 

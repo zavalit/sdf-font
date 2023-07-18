@@ -9,13 +9,10 @@ in vec2 vUV;
 
 uniform vec2 uResolution;
 uniform sampler2D uTexture0;
-uniform sampler2D uTexture1;
 uniform vec3 uColor;
 
 
-
 out vec4 fragColor;
-
 
 void main() {
 

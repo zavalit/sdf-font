@@ -1,5 +1,5 @@
 import {getTexture} from '../src'
-import {renderText, getTextMetaData} from  '../src/text'
+import {renderText, getTextMetaData} from  '../src'
 import fontUrl from 'url:./Roboto/Roboto-Regular.ttf'
 
 
@@ -78,7 +78,6 @@ const sdfSize = 64;
     const sdfGlyphSize = 64
     const sdfParams = {
     sdfGlyphSize,
-    sdfZoom: 1/sdfGlyphSize,
     sdfExponent: 9
     }
 
