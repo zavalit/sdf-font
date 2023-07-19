@@ -1,6 +1,6 @@
 
 import { getSegements } from "../index";
-import {renderIconSpriteTexture} from '../sdfTexture'
+import {renderIconSpriteTexture, renderIconDistanceSpriteTexture} from '../sdfTexture'
 
 
 
@@ -52,16 +52,8 @@ const sdfParams = {
 
     const d = pathElements[i].getAttribute("d"); // Logs the 'd' attribute of each path
     const segmentsCoord = getSegements(d)
-    let distance = 0;
-    const segmentsDist = []
-    for(let j=0; j < segmentsCoord.length; j+=4) {
-      const[x0, y0, x1, y1] = segmentsCoord.slice(j, j+4)
-      const dist = Math.hypot(x1-x0, y1-y0)
-
-      segmentsDist.push(distance)      
-      distance += dist;
-    }
-    const t = {segmentsCoord, segmentsDist, viewBox, distance}
+    
+    const t = {segmentsCoord, viewBox}
 
     
     occ.push(t)
@@ -83,6 +75,14 @@ const sdfParams = {
   const rgl = await renderIconSpriteTexture(gl, occ, sdfParams, 26)
 
   document.body.appendChild(rgl.canvas)
+
+
+
+  const canvas2 = document.createElement('canvas')!
+  const gl2 = canvas2.getContext('webgl2')!
+  const rgl2 = await renderIconDistanceSpriteTexture(gl2, occ, sdfParams, 26)
+
+  document.body.appendChild(rgl2.canvas)
 
 })()
 

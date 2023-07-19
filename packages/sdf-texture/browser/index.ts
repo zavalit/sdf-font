@@ -1,4 +1,4 @@
-import createSDFTexture, {initFont, SDFParams, FontMetaType, calculateTextureSize} from "@webglify/sdf-texture/sdfTexture";
+import createSDFTextures, {initFont, SDFParams, FontMetaType, calculateTextureSize} from "@webglify/sdf-texture/sdfTexture";
 import {codeToGlyph, glyphToPath} from '@webglify/sdf-texture/index'
 import fontUrl from 'url:./fonts/Roboto/Roboto-Regular.ttf'
 
@@ -21,7 +21,7 @@ const fontParams = {
   
 
 type TextureResultType = {
-  texture: HTMLCanvasElement,
+  textures: HTMLCanvasElement,
   fontMeta: FontMetaType,
   sizesMap: any
 }
@@ -29,11 +29,11 @@ type TextureResultType = {
 
 
 
-export const getTexture = async (canvas: HTMLCanvasElement | OffscreenCanvas, fontUrl: string, sdfParams: SDFParams, charCodes: number[]) : Promise<TextureResultType> => {
+export const getTextures = async (canvas: HTMLCanvasElement | OffscreenCanvas, fontUrl: string, sdfParams: SDFParams, charCodes: number[]) : Promise<TextureResultType> => {
 
   
-  const sdfTexture = await createSDFTexture(canvas, fontUrl, sdfParams, charCodes)
-  return sdfTexture
+  const textures = await createSDFTextures(canvas, fontUrl, sdfParams, charCodes, ['EDGE', 'DISTANCE'])
+  return textures
 }
 
 
@@ -60,13 +60,19 @@ const svg = ({sdfViewBox, path}) => {
 (async () => {
   
 
-  const canvas = document.createElement('canvas')
+  const edgeCanvas = document.createElement('canvas')
+  const distanceCanvas = document.createElement('canvas')
 
-  const charCodes ='@ABCDEF'.split('').map(c => c.charCodeAt(0))
+  const charCodes = '`a'.split('').map(c => c.charCodeAt(0))
   
-  const {texture,fontMeta} = await getTexture(canvas, fontUrl, sdfParams, charCodes)
+  
+  const {textures,fontMeta} = await getTextures({'EDGE': edgeCanvas, 'DISTANCE': distanceCanvas}, fontUrl, sdfParams, charCodes)
 
-  document.body.appendChild(texture)
+  const edge = textures['EDGE']
+  document.body.appendChild(edge)
+  
+  const dist = textures['DISTANCE']
+  document.body.appendChild(dist)
   
   // Array.from(charsMap.values()).forEach(c => {
   //   console.log('c', c)

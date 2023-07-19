@@ -3,9 +3,18 @@ import edgeSegmentsFragment from './shaders/segments/edge/edge.segments.fragment
 import edgeGroupVertex from  './shaders/segments/edge/edge.group.vertex.glsl'
 import edgeGroupFragment from './shaders/segments/edge/edge.group.fragment.glsl'
 
+
+import distanceSegmentsVertex from './shaders/segments/distance/distance.segments.vertex.glsl'
+import distanceSegmentsFragment from './shaders/segments/distance/distance.segments.fragment.glsl'
+import distanceGroupVertex from  './shaders/segments/distance/distance.group.vertex.glsl'
+import distanceGroupFragment from './shaders/segments/distance/distance.group.fragment.glsl'
+
+
 import FontSvgApi, {getSegements, codeToGlyph, glyphToPath, cmdsToPath, FontDataType} from '@webglify/sdf-texture'
 import chain, {createFramebuffer} from '@webglify/chain'
 
+
+type W2 = WebGL2RenderingContext
 
 
 export type FontMetaType = {
@@ -19,8 +28,23 @@ export type FontMetaType = {
 export interface SDFParams {sdfGlyphSize: number, sdfExponent: number, isCentered: boolean, mirrorInside: boolean}
 
 
+const getTargetsWithDistance = (targets: Target[]) => {
+  return targets.map(t => {
+    let distance = 0;
+    const segmentsDist = []
+    for(let j=0; j < t.segmentsCoord.length; j+=4) {
+      const[x0, y0, x1, y1] = t.segmentsCoord.slice(j, j+4)
+      const dist = Math.hypot(x1-x0, y1-y0)
+  
+      segmentsDist.push(distance)      
+      distance += dist;
+    }
 
-const addVertexData  = (gl: WebGL2RenderingContext) => {
+    return {...t, segmentsDist, distance}
+  })
+}
+
+const addVertexData  = (gl: W2) => {
 
   const vao = gl.createVertexArray()!;
   gl.bindVertexArray(vao);
@@ -47,40 +71,111 @@ type RenderParams = {
   flipTextureY: boolean
 }
 
-export const renderGlyphSpriteTexture = (gl: WebGL2RenderingContext, targets: Target[], sdfParams, unitsPerEm: number): Promise<WebGL2RenderingContext> => {
+export const renderGlyphSpriteTexture = (gl: W2, targets: Target[], sdfParams, unitsPerEm: number): Promise<WebGL2RenderingContext> => {
   
   const renderParams = {
     isCentered: true,
     mirrorInside: true,
     flipTextureY: false
   }
-  return renderSpriteTexture(gl, targets, sdfParams, renderParams, unitsPerEm)
+
+  const shaders = {
+    vertexShader: edgeSegmentsVertex,
+    fragmentShader: edgeSegmentsFragment,
+    groupVertexShader: edgeGroupVertex,
+    groupFragmentShader: edgeGroupFragment
+  }
+
+  const blendSegmentsCb = (gl: W2) => {
+    gl.enable(gl.BLEND)
+    gl.blendFunc(gl.ONE, gl.ONE)
+    gl.blendEquationSeparate(gl.FUNC_ADD, gl.MAX)
+  }
+
+  return renderSpriteTexture(gl, targets, sdfParams, renderParams, shaders, blendSegmentsCb, unitsPerEm)
 }
 
-export const renderIconSpriteTexture = (gl: WebGL2RenderingContext, targets: Target[], sdfParams, unitsPerEm: number): Promise<WebGL2RenderingContext> => {
+export const renderIconSpriteTexture = (gl: W2, targets: Target[], sdfParams, unitsPerEm: number): Promise<WebGL2RenderingContext> => {
   
   const renderParams = {
     isCentered: false,
     mirrorInside: false,
     flipTextureY: true,
   }
-  return renderSpriteTexture(gl, targets, sdfParams, renderParams, unitsPerEm)
+  const shaders = {
+    vertexShader: edgeSegmentsVertex,
+    fragmentShader: edgeSegmentsFragment,
+    groupVertexShader: edgeGroupVertex,
+    groupFragmentShader: edgeGroupFragment
+  }
+  const blendSegmentsCb = (gl: W2) => {
+    gl.enable(gl.BLEND)
+    gl.blendFunc(gl.ONE, gl.ONE)
+    gl.blendEquationSeparate(gl.FUNC_ADD, gl.MAX)
+  }
+
+  return renderSpriteTexture(gl, targets, sdfParams, renderParams, shaders, blendSegmentsCb, unitsPerEm)
 }
 
-export const renderIconDistanceSpriteTexture = (gl: WebGL2RenderingContext, targets: Target[], sdfParams, unitsPerEm: number): Promise<WebGL2RenderingContext> => {
+export const renderIconDistanceSpriteTexture = (gl: W2, targets: Target[], sdfParams, unitsPerEm: number): Promise<WebGL2RenderingContext> => {
   
   const renderParams = {
     isCentered: false,
     mirrorInside: false,
     flipTextureY: true,
   }
-  return renderSpriteTexture(gl, targets, sdfParams, renderParams, unitsPerEm)
+  const shaders = {
+    vertexShader: distanceSegmentsVertex,
+    fragmentShader: distanceSegmentsFragment,
+    groupVertexShader: distanceGroupVertex,
+    groupFragmentShader: distanceGroupFragment
+  }
+  
+  const blendSegmentsCb = (gl: W2) => {
+    gl.enable(gl.BLEND)
+    gl.blendFunc(gl.ONE, gl.ONE)
+    gl.blendEquation(gl.MAX) 
+  }
+
+  const targetsWithDistance = getTargetsWithDistance(targets)
+  
+
+  return renderSpriteTexture(gl, targetsWithDistance, sdfParams, renderParams,shaders, blendSegmentsCb, unitsPerEm)
+}
+
+export const renderGlyphDistanceSpriteTexture = (gl: W2, targets: Target[], sdfParams, unitsPerEm: number): Promise<WebGL2RenderingContext> => {
+  
+  const renderParams = {
+    isCentered: true,
+    mirrorInside: false,
+    flipTextureY: false
+  }
+
+  const shaders = {
+    vertexShader: distanceSegmentsVertex,
+    fragmentShader: distanceSegmentsFragment,
+    groupVertexShader: distanceGroupVertex,
+    groupFragmentShader: distanceGroupFragment
+  }
+  
+  const blendSegmentsCb = (gl: W2) => {
+    gl.enable(gl.BLEND)
+    gl.blendFunc(gl.ONE, gl.ONE)
+    gl.blendEquation(gl.MAX) 
+  }
+  const targetsWithDistance = getTargetsWithDistance(targets)
+
+  return renderSpriteTexture(gl, targetsWithDistance, sdfParams, renderParams,shaders, blendSegmentsCb, unitsPerEm)
 }
 
 
-const renderSpriteTexture = (gl: WebGL2RenderingContext, targets: Target[], {sdfGlyphSize, sdfExponent}: SDFParams, {isCentered, mirrorInside, flipTextureY}: RenderParams, unitsPerEm: number): Promise<WebGL2RenderingContext> => {
+const renderSpriteTexture = (gl: W2, targets: Target[], {sdfGlyphSize, sdfExponent}: SDFParams, {isCentered, mirrorInside, flipTextureY}: RenderParams, shaders, segmentsBlendCb: (gl: W2)=> void,  unitsPerEm: number): Promise<WebGL2RenderingContext> => {
   const dpr = 2.
   const columnCount = 8
+
+  const {
+    vertexShader, fragmentShader, groupVertexShader, groupFragmentShader
+  } = shaders
   
   
   const width = columnCount * sdfGlyphSize
@@ -99,9 +194,8 @@ const renderSpriteTexture = (gl: WebGL2RenderingContext, targets: Target[], {sdf
     // single sdf target
     {
       name: 'segments',
-      vertexShader: edgeSegmentsVertex,
-      fragmentShader: edgeSegmentsFragment,
-      //fragmentShader: segmentsDistanceFragment,
+      vertexShader,
+      fragmentShader,
       addVertexData,
       addUniformData (gl, prog) {
         const u1 = gl.getUniformLocation(prog, 'uGlyphBounds')        
@@ -128,11 +222,7 @@ const renderSpriteTexture = (gl: WebGL2RenderingContext, targets: Target[], {sdf
         gl.bindFramebuffer(gl.FRAMEBUFFER, segmentsFBO.framebuffer)
 
 
-        gl.enable(gl.BLEND)
-        gl.blendFunc(gl.ONE, gl.ONE)
-        //gl.blendEquation(gl.MAX)
-        gl.blendEquationSeparate(gl.FUNC_ADD, gl.MAX)
-
+        segmentsBlendCb(gl);
         const composedData = [];
         for(let i =0, j=0; i < drawData.segmentsCoord.length; i+=4, j++){
           const dist = drawData.segmentsDist && drawData.segmentsDist[j]
@@ -166,8 +256,8 @@ const renderSpriteTexture = (gl: WebGL2RenderingContext, targets: Target[], {sdf
       name: 'sides',
       canvasWidth,
       canvasHeight,
-      vertexShader: edgeGroupVertex,
-      fragmentShader: edgeGroupFragment,
+      vertexShader: groupVertexShader,
+      fragmentShader: groupFragmentShader,
       addVertexData,
       addUniformData (gl, prog) {
         const u1 = gl.getUniformLocation(prog, 'uMirrorInside')
@@ -201,9 +291,7 @@ const renderSpriteTexture = (gl: WebGL2RenderingContext, targets: Target[], {sdf
 
     STATE.viewBox = t.viewBox
     STATE.distance = t.distance
-    
-    console.log(STATE)
-    
+        
     gl.viewport(0, 0, sdfGlyphSize, sdfGlyphSize)
     segNextDataDrawCall(0, {drawData: t, buffer})
 
@@ -355,22 +443,23 @@ const getCharsMap = (fontData: FontDataType, {sdfGlyphSize}: SDFParams, chars: s
 }
 
 
+type TexturesDict = {[key in TextureFormat]: (HTMLCanvasElement | OffscreenCanvas)} 
 
-export type TextureType = {
-  texture: HTMLCanvasElement
+export type TexturesType = {
+  textures: TexturesDict
   sizesMap: {[key: string]: number[]}
   fontMeta: FontMetaType
 }
 
+type TextureFormat = 'EDGE' | 'DISTANCE'
+  
 
-
-const createSDFTexture = async (canvas: HTMLCanvasElement | OffscreenCanvas, fontUrl: string, sdfParams: SDFParams, charCodes: number[]): Promise<TextureType> => {
+const createSDFTexture = async (texturesDict: TexturesDict, fontUrl: string, sdfParams: SDFParams, charCodes: number[]): Promise<TexturesType> => {
 
 
   const fontData = await initFont(fontUrl)
   const chars = charCodes.map(c => String.fromCodePoint(c)).join('')
 
-  const gl = canvas.getContext('webgl2', {premultipliedAlpha: false})!;
 
   const {charsMap, fontMeta} = getCharsMap(fontData, sdfParams, chars)
   
@@ -380,13 +469,22 @@ const createSDFTexture = async (canvas: HTMLCanvasElement | OffscreenCanvas, fon
     occ[k] = v
   });
  
+  const glE = texturesDict['EDGE'].getContext('webgl2', {premultipliedAlpha: false})!;
+  await renderGlyphSpriteTexture(glE, occ, sdfParams, fontMeta.unitsPerEm)
+  
+  const glD = texturesDict['DISTANCE'].getContext('webgl2', {premultipliedAlpha: false})!;
+  await renderGlyphDistanceSpriteTexture(glD, occ, sdfParams, fontMeta.unitsPerEm)
 
- const rgl = await renderGlyphSpriteTexture(gl, occ, sdfParams, fontMeta.unitsPerEm)
+  const textures = {
+    'EDGE': glE.canvas,
+    'DISTANCE': glD.canvas
+  }
+  
+  const sizesMap = occ.reduce((acc, v, i) => ({...acc,[i]:[...v.viewBox, v.advanceWidth] }), {})
 
- const sizesMap = occ.reduce((acc, v, i) => ({...acc,[i]:[...v.viewBox, v.advanceWidth] }), {})
-
+  console.log('textures', textures)
   return {
-      texture: rgl.canvas as HTMLCanvasElement,
+      textures,
       sizesMap,
       fontMeta,
   }
