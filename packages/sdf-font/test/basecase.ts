@@ -75,9 +75,9 @@ const sdfSize = 64;
     
     const  chars = alphabet.toString()
     
-    const sdfGlyphSize = 64
+    const sdfItemSize = 64
     const sdfParams = {
-    sdfGlyphSize,
+    sdfItemSize,
     sdfExponent: 9
     }
 

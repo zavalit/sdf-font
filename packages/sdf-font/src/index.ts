@@ -2,7 +2,7 @@ import textVertexShader from './shaders/text/text.vertex.glsl';
 import textFragmentShader from './shaders/text/text.fragment.glsl';
 import chain, {convertCanvasTexture} from '@webglify/chain'
 
-export interface SDFParams {sdfGlyphSize: number, sdfMargin: number,  sdfExponent: number}
+export interface SDFParams {sdfItemSize: number, sdfMargin: number,  sdfExponent: number}
 
 export interface ParamsProps{
   text: string,
@@ -25,7 +25,7 @@ export interface TextCharMeta {
 
 
 
-export type RenderTextProps = { charCodes: number[]; glyphBounds: Float32Array; sdfGlyphSize: number; fontMeta: {
+export type RenderTextProps = { charCodes: number[]; glyphBounds: Float32Array; sdfItemSize: number; fontMeta: {
     unitsPerEm: number
     ascender: number
     descender: number
@@ -40,7 +40,7 @@ type TextMetaType ={
   fontSize: number
   letterSpacing: number
   sdfParams: {
-    sdfGlyphSize: number,
+    sdfItemSize: number,
   },
   sizesMap: {[key: number]: [number, number, number, number, number]}
   fontMeta: {
@@ -59,7 +59,7 @@ type TextMetaType ={
 
 export const getTextMetaData = (meta: TextMetaType): RenderTextProps  => {
   
-    const {text, fontSize, letterSpacing, fontMeta, sdfParams: {sdfGlyphSize}} = meta
+    const {text, fontSize, letterSpacing, fontMeta, sdfParams: {sdfItemSize}} = meta
     if(typeof text !== 'string'){
       throw new Error(`text value is wrong: "${text}"`)
     }
@@ -107,7 +107,7 @@ export const getTextMetaData = (meta: TextMetaType): RenderTextProps  => {
     const glyphBounds = new Float32Array(charCodes.length * 4)
     
     let boundsIdx = 0
-    const d = 0;//fontMeta.unitsPerEm / sdfGlyphSize * (meta.sdfParams.sdfMargin * sdfGlyphSize + .5)
+    const d = 0;//fontMeta.unitsPerEm / sdfItemSize * (meta.sdfParams.sdfMargin * sdfItemSize + .5)
     charCodes.forEach((charCode: number, i: number) => {
         const data = charsMap[charCode]
         if(!data) return
@@ -134,7 +134,7 @@ export const getTextMetaData = (meta: TextMetaType): RenderTextProps  => {
     return {
         glyphBounds,        
         charCodes,
-        sdfGlyphSize,
+        sdfItemSize,
         fontMeta
     }
 
@@ -161,7 +161,7 @@ const BlackColor = {r:0, g:0, b:0}
 export const renderText = (gl: WebGL2RenderingContext, sdfTexture: {texture: HTMLCanvasElement}, meta: TextMetaType, viewport:ViewportType, color?: ColorType ) => {
   
 
-    const {charCodes, sdfGlyphSize, glyphBounds, fontMeta} = getTextMetaData(meta)
+    const {charCodes, sdfItemSize, glyphBounds, fontMeta} = getTextMetaData(meta)
     const letterMap = convertCanvasTexture(gl, sdfTexture.texture)
 
     const {renderFrame} = chain(gl, [
@@ -232,7 +232,7 @@ export const renderText = (gl: WebGL2RenderingContext, sdfTexture: {texture: HTM
             const projectionMatrix = createProjectionMatrix(viewport.width, viewport.height)            
             const u3 = gl.getUniformLocation(prog, 'uProjectionMatrix')    
             
-            const u4 = gl.getUniformLocation(prog, 'uSDFGlyphSize')    
+            const u4 = gl.getUniformLocation(prog, 'usdfItemSize')    
 
             const u5 = gl.getUniformLocation(prog, 'uAscender')
             const u6 = gl.getUniformLocation(prog, 'uDescender')
@@ -244,7 +244,7 @@ export const renderText = (gl: WebGL2RenderingContext, sdfTexture: {texture: HTM
               gl.uniform2fv(u1, [sdfTexture.width, sdfTexture.height])
               gl.uniform3fv(u2, [uColor.r + 1,uColor.g,uColor.b])    
               gl.uniformMatrix4fv(u3, false, projectionMatrix);
-              gl.uniform1f(u4, sdfGlyphSize);
+              gl.uniform1f(u4, sdfItemSize);
               gl.uniform1f(u5, fontMeta.ascender)
               gl.uniform1f(u6, fontMeta.descender)
             }

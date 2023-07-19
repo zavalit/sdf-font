@@ -30,9 +30,9 @@ console.log(chars);
 
 
 
-  const sdfGlyphSize = 64 * 1.;
+  const sdfItemSize = 64 * 1.;
   const sdfParams = {
-    sdfGlyphSize,
+    sdfItemSize,
     sdfExponent: 10.
     
   }

@@ -1,4 +1,4 @@
-import createSDFTexture, {TextureFormat, FontMetaType} from "@webglify/sdf-texture/sdfTexture";
+import {TextureFormat, createGlyphTexture} from "@webglify/sdf-texture/sdfTexture";
 import fontUrl from 'url:./Roboto/Roboto-Regular.ttf'
 
 import {  renderText } from "../src"
@@ -18,9 +18,9 @@ console.log(chars);
 
 
 
-  const sdfGlyphSize = 64 * 1.
+  const sdfItemSize = 64 * 1.
   const sdfParams = {
-    sdfGlyphSize,
+    sdfItemSize,
     sdfExponent: 10.
   }
   
@@ -32,7 +32,7 @@ const canvas = document.createElement('canvas')
 const canvas2 = document.createElement('canvas')
 
 
-const {textures, fontMeta, sizesMap} = await createSDFTexture({
+const {textures, fontMeta, sizesMap} = await createGlyphTexture({
   [TextureFormat.EDGE]: canvas,
   [TextureFormat.DISTANCE]: canvas2,
 }, fontUrl, sdfParams, _256CharCodes)

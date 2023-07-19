@@ -6,7 +6,7 @@ layout(location = 2) in float glyphIndex;
 uniform vec2 uSDFTextureSize;
 uniform mat4 uProjectionMatrix;
 uniform vec2 uResolution;
-uniform float uSDFGlyphSize;
+uniform float usdfItemSize;
 uniform float uZoom;
 
 out vec2 vGlyphUV;
@@ -31,10 +31,10 @@ void main() {
     float centerShiftY = -min(gb.y, 0.0) * height + 0.5 - height * 0.5;
 
     vec4 glyphClip = vec4(
-        (uSDFGlyphSize * (column + centerShiftX)) / maxX,            // x0
-        uSDFGlyphSize * (row + gb.y + centerShiftY) / maxY,          // y0
-        (uSDFGlyphSize * (column + width + centerShiftX)) / maxX,    // x1
-        uSDFGlyphSize * (row + gb.w + centerShiftY) / maxY           // y1
+        (usdfItemSize * (column + centerShiftX)) / maxX,            // x0
+        usdfItemSize * (row + gb.y + centerShiftY) / maxY,          // y0
+        (usdfItemSize * (column + width + centerShiftX)) / maxX,    // x1
+        usdfItemSize * (row + gb.w + centerShiftY) / maxY           // y1
     );
 
     glyphClip.yw -= 0.5 / uResolution.y;

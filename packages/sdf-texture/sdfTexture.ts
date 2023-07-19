@@ -26,7 +26,7 @@ export type FontMetaType = {
   lineGap: number
 }
 export interface SDFParams {
-  sdfGlyphSize: number
+  sdfItemSize: number
   sdfExponent: number
 }
 
@@ -172,7 +172,7 @@ export const renderGlyphDistanceSpriteTexture = (gl: W2, targets: Target[], sdfP
 }
 
 
-const renderSpriteTexture = (gl: W2, targets: Target[], {sdfGlyphSize, sdfExponent}: SDFParams, {isCentered, mirrorInside, flipTextureY}: RenderParams, shaders, segmentsBlendCb: (gl: W2)=> void,  unitsPerEm: number): Promise<WebGL2RenderingContext> => {
+const renderSpriteTexture = (gl: W2, targets: Target[], {sdfItemSize, sdfExponent}: SDFParams, {isCentered, mirrorInside, flipTextureY}: RenderParams, shaders, segmentsBlendCb: (gl: W2)=> void,  unitsPerEm: number): Promise<WebGL2RenderingContext> => {
   const dpr = 2.
   const columnCount = 8
 
@@ -181,8 +181,8 @@ const renderSpriteTexture = (gl: W2, targets: Target[], {sdfGlyphSize, sdfExpone
   } = shaders
   
   
-  const width = columnCount * sdfGlyphSize
-  const height = Math.ceil( targets.length / columnCount) * sdfGlyphSize
+  const width = columnCount * sdfItemSize
+  const height = Math.ceil( targets.length / columnCount) * sdfItemSize
   const canvasWidth = width / dpr
   const canvasHeight = height / dpr
   
@@ -191,7 +191,7 @@ const renderSpriteTexture = (gl: W2, targets: Target[], {sdfGlyphSize, sdfExpone
     distance: undefined,
   }
 
-  const segmentsFBO = createFramebuffer(gl, {width: sdfGlyphSize, height: sdfGlyphSize})
+  const segmentsFBO = createFramebuffer(gl, {width: sdfItemSize, height: sdfItemSize})
 
   const {programs} = chain(gl, [
     // single sdf target
@@ -295,13 +295,13 @@ const renderSpriteTexture = (gl: W2, targets: Target[], {sdfGlyphSize, sdfExpone
     STATE.viewBox = t.viewBox
     STATE.distance = t.distance
         
-    gl.viewport(0, 0, sdfGlyphSize, sdfGlyphSize)
+    gl.viewport(0, 0, sdfItemSize, sdfItemSize)
     segNextDataDrawCall(0, {drawData: t, buffer})
 
-    const x = sdfGlyphSize * column;
-    const y = sdfGlyphSize * row
+    const x = sdfItemSize * column;
+    const y = sdfItemSize * row
     
-    gl.viewport(x, y, sdfGlyphSize, sdfGlyphSize)
+    gl.viewport(x, y, sdfItemSize, sdfItemSize)
     sidesNextDataDrawCall(0)
 
   })
@@ -331,7 +331,7 @@ class CharsData {
   charCodes: number[];
   fontApi;
   fontMeta: FontDataType
-  sdfMeta: {sdfGlyphSize: number}
+  sdfMeta: {sdfItemSize: number}
   
   // This regex (instead of /\s/) allows us to select all whitespace EXCEPT for non-breaking white spaces
   static lineBreakingWhiteSpace = `[^\\S\\u00A0]`
@@ -433,11 +433,11 @@ export const initFont = async (fontUrl: string) => {
   
   
 }
-const getCharsMap = (fontData: FontDataType, {sdfGlyphSize}: SDFParams, chars: string) => {
+const getCharsMap = (fontData: FontDataType, {sdfItemSize}: SDFParams, chars: string) => {
         
   const charCodes = [...chars].map((_, i) => chars.codePointAt(i))
 
-  const glyphsData = new CharsData(fontData, {sdfGlyphSize}, charCodes)
+  const glyphsData = new CharsData(fontData, {sdfItemSize}, charCodes)
   
   const {charsMap, fontMeta} = glyphsData
 
@@ -450,9 +450,12 @@ type TexturesDict = {[key in TextureFormat]: (HTMLCanvasElement | OffscreenCanva
 
 export type TexturesType = {
   textures: TexturesDict
+}
+export type GlyphTexturesType = {
   sizesMap: {[key: string]: number[]}
   fontMeta: FontMetaType
-}
+} & TexturesType
+
 
 export enum TextureFormat {
   EDGE = 'EDGE',
@@ -460,7 +463,7 @@ export enum TextureFormat {
 }
   
 
-const createSDFTexture = async (texturesDict: TexturesDict, fontUrl: string, sdfParams: SDFParams, charCodes: number[]): Promise<TexturesType> => {
+export const createGlyphTexture = async (texturesDict: TexturesDict, fontUrl: string, sdfParams: SDFParams, charCodes: number[]): Promise<GlyphTexturesType> => {
 
 
   const fontData = await initFont(fontUrl)
@@ -491,9 +494,7 @@ const createSDFTexture = async (texturesDict: TexturesDict, fontUrl: string, sdf
     textures['DISTANCE'] = distCanvas  
   }
 
-  
-  
-  
+    
   const sizesMap = occ.reduce((acc, v, i) => ({...acc,[i]:[...v.viewBox, v.advanceWidth] }), {})
 
   return {
@@ -503,4 +504,52 @@ const createSDFTexture = async (texturesDict: TexturesDict, fontUrl: string, sdf
   }
 }
 
-export default createSDFTexture;
+export const createIconTexture = async (texturesDict: TexturesDict, svgIcon: SVGElement ,sdfParams: SDFParams ): Promise<TexturesType> => { {
+
+  const pathElements = svgIcon.getElementsByTagName("path");
+  const [minX, minY, svgWidth, svgHeight] = svgIcon.getAttribute('viewBox').split(/\s+/).map(v => parseInt(v))
+  const viewBox = [ 
+    minX,
+    minY, 
+    minX + svgWidth,
+    minY + svgHeight
+  ]
+  const occ = []
+  for (let i = 0; i < pathElements.length; i++) {
+
+
+    const d = pathElements[i].getAttribute("d"); // Logs the 'd' attribute of each path
+    const segmentsCoord = getSegements(d)
+    
+    const t = {segmentsCoord, viewBox}
+
+    
+    occ.push(t)
+
+  }
+
+  const unitsPerEm = Math.max(svgWidth, svgHeight)
+
+  const textures = {}
+  const edgeCanvas = texturesDict['EDGE']
+  if(edgeCanvas){
+    const glE = edgeCanvas.getContext('webgl2', {premultipliedAlpha: false})!;
+    await renderIconSpriteTexture(glE, occ, sdfParams, unitsPerEm)
+    textures['EDGE'] = edgeCanvas  
+  }
+  
+  const distCanvas = texturesDict['DISTANCE']
+  if(distCanvas){
+    const glD = distCanvas.getContext('webgl2', {premultipliedAlpha: false})!;
+    await renderIconDistanceSpriteTexture(glD, occ, sdfParams, unitsPerEm)
+    textures['DISTANCE'] = distCanvas  
+  }
+
+
+  return {
+      textures
+  }
+  
+  
+
+}

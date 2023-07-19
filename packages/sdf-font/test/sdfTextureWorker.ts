@@ -1,4 +1,4 @@
-import createSDFTexture, {TextureFormat, FontMetaType} from "@webglify/sdf-texture/sdfTexture";
+import {createGlyphTexture, TextureFormat, FontMetaType} from "@webglify/sdf-texture/sdfTexture";
 
 
 
@@ -7,13 +7,13 @@ self.onmessage = async function(event) {
 
   const data = event.data;
 
-  const {fontUrl, sdfParams, dpr} = data;
+  const {fontUrl, sdfParams} = data;
 
-  console.log('fontUrl, sdfParams',fontUrl, sdfParams)
+  
   const canvas = new OffscreenCanvas(0, 0)
 
   const charCodes = data.charCodes || _256
-  const {textures, ...rest} = await createSDFTexture({[TextureFormat.EDGE]:canvas}, fontUrl, sdfParams, charCodes);
+  const {textures, ...rest} = await createGlyphTexture({[TextureFormat.EDGE]:canvas}, fontUrl, sdfParams, charCodes);
   
 
   const imageBitmap = await createImageBitmap(canvas);
