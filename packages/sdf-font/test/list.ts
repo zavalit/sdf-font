@@ -1,4 +1,4 @@
-import { getTexture }  from "./sdfTextureWorker"
+import createSDFTexture, {TextureFormat, FontMetaType} from "@webglify/sdf-texture/sdfTexture";
 import fontUrl from 'url:./Roboto/Roboto-Regular.ttf'
 
 import {  renderText } from "../src"
@@ -29,10 +29,14 @@ console.log(chars);
     letterSpacing: 1.
   }
 const canvas = document.createElement('canvas')
+const canvas2 = document.createElement('canvas')
 
 
-const {texture, fontMeta, sizesMap} = await getTexture(canvas, fontUrl, sdfParams, _256CharCodes)
-//document.body.appendChild(texture)
+const {textures, fontMeta, sizesMap} = await createSDFTexture({
+  [TextureFormat.EDGE]: canvas,
+  [TextureFormat.DISTANCE]: canvas2,
+}, fontUrl, sdfParams, _256CharCodes)
+document.body.appendChild(canvas2)
 
 
 
@@ -64,35 +68,11 @@ textBlocks.forEach((text, i) => {
 
  // const meta = getTextMetaData(sdfTexture.fontData, {...params, text})
   viewport.y = 80 * i
-  console.log('viewport', viewport)
-  renderText(textGL, {texture, width: texture.width, height: texture.height}, textMeta, viewport)
+  renderText(textGL, {texture:canvas, width: canvas.width, height: canvas.height}, textMeta, viewport)
   
 })
 
 
-
-// try to encode json into texture
-
-// Your JSON object
-var data = {"unitsPerEm":2048,"ascender":1536,"descender":-512,"capHeight":1456,"xHeight":1082,"lineGap":102};
-
-// Convert the JSON object to an array of numbers
-var numbers = Object.values(data);
-
-// Create an array to hold the color data
-var colors = new Uint8Array(numbers.length * 4);
-
-
-// Convert each number to a color and store it in the colors array
-for (var i = 0; i < numbers.length; i++) {
-  var number = numbers[i];
-  colors[i * 4 + 0] = (number >> 24) & 0xFF; // Red
-  colors[i * 4 + 1] = (number >> 16) & 0xFF; // Green
-  colors[i * 4 + 2] = (number >> 8) & 0xFF; // Blue
-  colors[i * 4 + 3] = number & 0xFF; // Alpha
-}
-
-console.log('numbers', numbers, colors)
 
 })()
 

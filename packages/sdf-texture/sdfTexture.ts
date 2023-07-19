@@ -25,7 +25,10 @@ export type FontMetaType = {
   xHeight: number
   lineGap: number
 }
-export interface SDFParams {sdfGlyphSize: number, sdfExponent: number, isCentered: boolean, mirrorInside: boolean}
+export interface SDFParams {
+  sdfGlyphSize: number
+  sdfExponent: number
+}
 
 
 const getTargetsWithDistance = (targets: Target[]) => {
@@ -443,7 +446,7 @@ const getCharsMap = (fontData: FontDataType, {sdfGlyphSize}: SDFParams, chars: s
 }
 
 
-type TexturesDict = {[key in TextureFormat]: (HTMLCanvasElement | OffscreenCanvas)} 
+type TexturesDict = {[key in TextureFormat]: (HTMLCanvasElement | OffscreenCanvas)} | {}
 
 export type TexturesType = {
   textures: TexturesDict
@@ -451,7 +454,10 @@ export type TexturesType = {
   fontMeta: FontMetaType
 }
 
-type TextureFormat = 'EDGE' | 'DISTANCE'
+export enum TextureFormat {
+  EDGE = 'EDGE',
+  DISTANCE = 'DISTANCE'
+}
   
 
 const createSDFTexture = async (texturesDict: TexturesDict, fontUrl: string, sdfParams: SDFParams, charCodes: number[]): Promise<TexturesType> => {
@@ -468,21 +474,28 @@ const createSDFTexture = async (texturesDict: TexturesDict, fontUrl: string, sdf
   charsMap.forEach((v, k) => {    
     occ[k] = v
   });
- 
-  const glE = texturesDict['EDGE'].getContext('webgl2', {premultipliedAlpha: false})!;
-  await renderGlyphSpriteTexture(glE, occ, sdfParams, fontMeta.unitsPerEm)
-  
-  const glD = texturesDict['DISTANCE'].getContext('webgl2', {premultipliedAlpha: false})!;
-  await renderGlyphDistanceSpriteTexture(glD, occ, sdfParams, fontMeta.unitsPerEm)
 
-  const textures = {
-    'EDGE': glE.canvas,
-    'DISTANCE': glD.canvas
+  
+  const textures = {}
+  const edgeCanvas = texturesDict['EDGE']
+  if(edgeCanvas){
+    const glE = edgeCanvas.getContext('webgl2', {premultipliedAlpha: false})!;
+    await renderGlyphSpriteTexture(glE, occ, sdfParams, fontMeta.unitsPerEm)
+    textures['EDGE'] = edgeCanvas  
   }
+  
+  const distCanvas = texturesDict['DISTANCE']
+  if(distCanvas){
+    const glD = distCanvas.getContext('webgl2', {premultipliedAlpha: false})!;
+    await renderGlyphDistanceSpriteTexture(glD, occ, sdfParams, fontMeta.unitsPerEm)
+    textures['DISTANCE'] = distCanvas  
+  }
+
+  
+  
   
   const sizesMap = occ.reduce((acc, v, i) => ({...acc,[i]:[...v.viewBox, v.advanceWidth] }), {})
 
-  console.log('textures', textures)
   return {
       textures,
       sizesMap,

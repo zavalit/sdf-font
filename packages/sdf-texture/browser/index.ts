@@ -1,5 +1,4 @@
-import createSDFTextures, {initFont, SDFParams, FontMetaType, calculateTextureSize} from "@webglify/sdf-texture/sdfTexture";
-import {codeToGlyph, glyphToPath} from '@webglify/sdf-texture/index'
+import createSDFTextures, {SDFParams, FontMetaType} from "@webglify/sdf-texture/sdfTexture";
 import fontUrl from 'url:./fonts/Roboto/Roboto-Regular.ttf'
 
 
@@ -29,7 +28,7 @@ type TextureResultType = {
 
 
 
-export const getTextures = async (canvas: HTMLCanvasElement | OffscreenCanvas, fontUrl: string, sdfParams: SDFParams, charCodes: number[]) : Promise<TextureResultType> => {
+export const  getTextures = async (canvas: HTMLCanvasElement | OffscreenCanvas, fontUrl: string, sdfParams: SDFParams, charCodes: number[]) : Promise<TextureResultType> => {
 
   
   const textures = await createSDFTextures(canvas, fontUrl, sdfParams, charCodes, ['EDGE', 'DISTANCE'])
@@ -65,8 +64,7 @@ const svg = ({sdfViewBox, path}) => {
 
   const charCodes = '`a'.split('').map(c => c.charCodeAt(0))
   
-  
-  const {textures,fontMeta} = await getTextures({'EDGE': edgeCanvas, 'DISTANCE': distanceCanvas}, fontUrl, sdfParams, charCodes)
+  const {textures,fontMeta} = await createSDFTextures({'EDGE': edgeCanvas, 'DISTANCE': distanceCanvas}, fontUrl, sdfParams, charCodes)
 
   const edge = textures['EDGE']
   document.body.appendChild(edge)
