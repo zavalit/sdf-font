@@ -180,9 +180,9 @@ export const renderText = (gl: WebGL2RenderingContext, sdfTexture: {texture: HTM
           const buf1 = gl.createBuffer();
           gl.bindBuffer(gl.ARRAY_BUFFER, buf1);
           gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([    
-            0, 0, 
-            0, 1, 
-            1, 0,
+            -.2, -.2, 
+            -.2, 1, 
+            1, -.2,
             1, 1, 
           ]), gl.STATIC_DRAW)
            

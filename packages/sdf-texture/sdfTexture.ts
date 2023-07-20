@@ -120,7 +120,7 @@ export const renderIconSpriteTexture = (gl: W2, targets: Target[], sdfParams, un
   return renderSpriteTexture(gl, targets, sdfParams, renderParams, shaders, blendSegmentsCb, unitsPerEm)
 }
 
-export const renderIconDistanceSpriteTexture = (gl: W2, targets: Target[], sdfParams, unitsPerEm: number): Promise<WebGL2RenderingContext> => {
+export const renderIconDistanceSpriteTexture = async (gl: W2, targets: Target[], sdfParams, unitsPerEm: number): Promise<WebGL2RenderingContext> => {
   
   const renderParams = {
     isCentered: false,
@@ -143,7 +143,10 @@ export const renderIconDistanceSpriteTexture = (gl: W2, targets: Target[], sdfPa
   const targetsWithDistance = getTargetsWithDistance(targets)
   
 
-  return renderSpriteTexture(gl, targetsWithDistance, sdfParams, renderParams,shaders, blendSegmentsCb, unitsPerEm)
+  const r = await renderSpriteTexture(gl, targetsWithDistance, sdfParams, renderParams,shaders, blendSegmentsCb, unitsPerEm);
+  console.log(gl.getParameter(gl.VIEWPORT))
+
+  return r
 }
 
 export const renderGlyphDistanceSpriteTexture = (gl: W2, targets: Target[], sdfParams, unitsPerEm: number): Promise<WebGL2RenderingContext> => {
@@ -192,7 +195,7 @@ const renderSpriteTexture = (gl: W2, targets: Target[], {sdfItemSize, sdfExponen
   }
 
   const segmentsFBO = createFramebuffer(gl, {width: sdfItemSize, height: sdfItemSize})
-
+  
   const {programs} = chain(gl, [
     // single sdf target
     {
@@ -449,11 +452,16 @@ const getCharsMap = (fontData: FontDataType, {sdfItemSize}: SDFParams, chars: st
 type TexturesDict = {[key in TextureFormat]: (HTMLCanvasElement | OffscreenCanvas)} | {}
 
 export type TexturesType = {
-  textures: TexturesDict
+  textures: TexturesDict,
+  sdfParams: SDFParams
 }
 export type GlyphTexturesType = {
   sizesMap: {[key: string]: number[]}
   fontMeta: FontMetaType
+} & TexturesType
+
+export type IconTexturesType = {
+  itemsCount: number
 } & TexturesType
 
 
@@ -501,10 +509,11 @@ export const createGlyphTexture = async (texturesDict: TexturesDict, fontUrl: st
       textures,
       sizesMap,
       fontMeta,
+      sdfParams
   }
 }
 
-export const createIconTexture = async (texturesDict: TexturesDict, svgIcon: SVGElement ,sdfParams: SDFParams ): Promise<TexturesType> => { {
+export const createIconTexture = async (texturesDict: TexturesDict, svgIcon: SVGElement ,sdfParams: SDFParams ): Promise<IconTexturesType> => {
 
   const pathElements = svgIcon.getElementsByTagName("path");
   const [minX, minY, svgWidth, svgHeight] = svgIcon.getAttribute('viewBox').split(/\s+/).map(v => parseInt(v))
@@ -515,7 +524,8 @@ export const createIconTexture = async (texturesDict: TexturesDict, svgIcon: SVG
     minY + svgHeight
   ]
   const occ = []
-  for (let i = 0; i < pathElements.length; i++) {
+  const itemsCount = pathElements.length
+  for (let i = 0; i < itemsCount; i++) {
 
 
     const d = pathElements[i].getAttribute("d"); // Logs the 'd' attribute of each path
@@ -547,9 +557,10 @@ export const createIconTexture = async (texturesDict: TexturesDict, svgIcon: SVG
 
 
   return {
-      textures
-  }
-  
-  
+      textures,
+      sdfParams,
+      itemsCount
+
+  }  
 
 }

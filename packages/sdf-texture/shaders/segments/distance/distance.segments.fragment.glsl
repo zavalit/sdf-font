@@ -25,10 +25,9 @@ float drawLine (vec2 p, vec2 a, vec2 b, vec2 range) {
     
     vec2 line = a + k*ba;
 
-    float border = .02 * uUnitsPerEm;
-    float bk = border * .2;
+    float border = .05 * uUnitsPerEm;
     float d = distance(p, line);
-    d = smoothstep(border - bk, border + bk, d);
+    d = step(border, d);
     
     float _k = remap(k, 0., 1., range.x, range.y);
     float gr = max(d, _k);

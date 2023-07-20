@@ -8,6 +8,8 @@ uniform mat4 uProjectionMatrix;
 uniform vec2 uResolution;
 uniform float usdfItemSize;
 uniform float uZoom;
+uniform float uAscender;
+uniform float uDescender;
 
 out vec2 vGlyphUV;
 out vec2 vUV;
@@ -37,9 +39,14 @@ void main() {
         usdfItemSize * (row + gb.w + centerShiftY) / maxY           // y1
     );
 
-    glyphClip.yw -= 0.5 / uResolution.y;
-    glyphClip.xz -= 4.0 / uResolution.x;
+
+    glyphClip += 5./(uAscender - uDescender);
+
+
+    // glyphClip.yw -= 0.5 / uResolution.y;
+    // glyphClip.xz -= 4.0 / uResolution.x;
     vec2 box = aPositions * 1.25;
+    box = aPositions;
 
     vec2 glyphUV = mix(glyphClip.xy, glyphClip.zw, box);
 

@@ -1,6 +1,10 @@
 
-type UniformSignature = (gl:WebGL2RenderingContext, prog: WebGLProgram) => () => void
+
+type W2 = WebGL2RenderingContext
+type UniformSignature = (gl:W2, prog: WebGLProgram) => () => void
 type DrawData = {drawData: any, buffer: WebGLBuffer}
+
+
 
 export type WebGLFactoryPops = {
   vertexShader: string;
@@ -12,12 +16,12 @@ export type WebGLFactoryPops = {
   vertices?: Float32Array
   indices?: Uint16Array,
   name?: string,
-  addVertexData?: (gl:WebGL2RenderingContext) => WebGLVertexArrayObject
-  addBlend?: (gl:WebGL2RenderingContext) => void
+  addVertexData?: (gl:W2) => WebGLVertexArrayObject
+  addBlend?: (gl:W2) => void
   addUniformData?: UniformSignature
-  addUniformBufferObjects?:(gl:WebGL2RenderingContext, prog: WebGLProgram) => () => void
-  addFramebuffer?: (gl:WebGL2RenderingContext) => [WebGLFramebuffer, WebGLTexture]
-  drawCall?: (gl:WebGL2RenderingContext, data?: DrawData) => void
+  addUniformBufferObjects?:(gl:W2, prog: WebGLProgram) => () => void
+  addFramebuffer?: (gl:W2) => [WebGLFramebuffer, WebGLTexture]
+  drawCall?: (gl:W2, data?: DrawData) => void
 };
 
 type ProgramsMapType = {
@@ -45,7 +49,7 @@ export const MOUSE_COORDS = {
 }
 
 export default (
-  gl: WebGL2RenderingContext,
+  gl: W2,
   callsProps: WebGLFactoryPops[]
 ) => {
 
@@ -267,7 +271,7 @@ function loadImage(url: string, callback: (i:HTMLImageElement) => void) {
 }
 
 
-export function createTexture(gl: WebGL2RenderingContext, image: TexImageSource): WebGLTexture {
+export function createTexture(gl: W2, image: TexImageSource, parameterCb?: (gl: W2) => void): WebGLTexture {
   
   const texture = gl.createTexture();
   if(texture === null) {
@@ -286,6 +290,9 @@ export function createTexture(gl: WebGL2RenderingContext, image: TexImageSource)
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
+  // overwrite with optional custom parameter
+  parameterCb && parameterCb(gl)
+
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 
   
@@ -298,7 +305,7 @@ export function createTexture(gl: WebGL2RenderingContext, image: TexImageSource)
 
 }
 
-export const createFramebuffer = (gl:WebGL2RenderingContext, { width, height} : {width: number, height: number}) => {
+export const createFramebuffer = (gl:W2, { width, height} : {width: number, height: number}) => {
     // Create a framebuffer
     const framebuffer = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
@@ -333,7 +340,7 @@ export const createFramebuffer = (gl:WebGL2RenderingContext, { width, height} : 
 }
 
 
-export const createProgramm = (gl: WebGL2RenderingContext, {vertexShader, fragmentShader}: {vertexShader: string, fragmentShader: string}): WebGLProgram => {
+export const createProgramm = (gl: W2, {vertexShader, fragmentShader}: {vertexShader: string, fragmentShader: string}): WebGLProgram => {
    // initiaize program and attach shaders
    const prog = gl.createProgram()!;
 
@@ -364,26 +371,26 @@ export interface ChainTexture {
 }
 
 
-export const loadTexture = (gl: WebGL2RenderingContext, url: string): Promise<ChainTexture> => new Promise((res, _) => loadImage(url, image => res({texture: createTexture(gl, image), width:image.width, height: image.height})));
+export const loadTexture = (gl: W2, url: string): Promise<ChainTexture> => new Promise((res, _) => loadImage(url, image => res({texture: createTexture(gl, image), width:image.width, height: image.height})));
 
 
-export const loadSVGTexture = (gl: WebGL2RenderingContext, svgString: string) => {
+export const loadSVGTexture = (gl: W2, svgString: string) => {
   const svgDataUrl = 'data:image/svg+xml;base64,' + btoa(svgString);
   return loadTexture(gl, svgDataUrl);
 }
 
-export const convertCanvasTexture = (gl: WebGL2RenderingContext, canvas: HTMLCanvasElement) => {
+export const convertCanvasTexture = (gl: W2, canvas: HTMLCanvasElement,  parameterCb?: (gl: W2) => void) => {
   // TODO
   // check safari and eventauly fix with context.getImageData(0, 0, context.canvas.width, context.canvas.height);
 
-  return createTexture(gl, canvas);
+  return createTexture(gl, canvas, parameterCb);
 }
 
 
 
 
 
-const addDefaultVertexData = (gl: WebGL2RenderingContext) => {
+const addDefaultVertexData = (gl: W2) => {
 
     const vao = gl.createVertexArray()
     gl.bindVertexArray(vao)
@@ -406,13 +413,13 @@ const addDefaultVertexData = (gl: WebGL2RenderingContext) => {
 
 }
 
-const drawDefaultCall = (gl: WebGL2RenderingContext) => {
+const drawDefaultCall = (gl: W2) => {
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     
 }
 
-const addIndices = (gl: WebGL2RenderingContext, indices: Uint16Array) => {
+const addIndices = (gl: W2, indices: Uint16Array) => {
 
   // Create the element buffer and load the tree indices
   const indexBuffer = gl.createBuffer();
