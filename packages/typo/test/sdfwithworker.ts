@@ -46,12 +46,11 @@ const canvas = document.createElement('canvas')
 // Record the time before posting the message
 const startTime = performance.now();
 
-worker.postMessage({fontUrl, sdfParams, charCodes: _256CharCodes, dpr: 1.});
+worker.postMessage({fontUrl, sdfParams, charCodes: _256CharCodes});
 
 worker.onmessage = function(event) {
 
   const data= event.data
-  console.log(data)
   const {fontMeta,sizesMap} = data
 
   // Record the time when the response is received
@@ -92,7 +91,7 @@ worker.onmessage = function(event) {
 
   textBlocks.splice(0.,1).forEach((text, i) => {
     
-    const textMeta = {fontMeta,sizesMap, sdfParams, text, ...fontParams}
+    const textMeta = {fontMeta,sizesMap, sdfParams, text, textMeta: fontParams}
 
   // const meta = getTextMetaData(sdfTexture.fontData, {...params, text})
     viewport.y = 80 * i

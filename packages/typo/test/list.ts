@@ -64,7 +64,7 @@ document.body.appendChild(textCanvas)
 
 textBlocks.forEach((text, i) => {
   
-  const textMeta = {fontMeta,sizesMap, sdfParams, text, ...fontParams}
+  const textMeta = {fontMeta,sizesMap, sdfParams, text, textMeta: fontParams}
 
  // const meta = getTextMetaData(sdfTexture.fontData, {...params, text})
   viewport.y = 80 * i

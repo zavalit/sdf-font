@@ -1,9 +1,10 @@
 import {Typr, parseFont, FontDataType} from './Typr'
+
 //import woff2otf from './woff2otf'
 //import bidiFactory from 'bidi-js'
 //const bidi  = bidiFactory()
 
-class Api {
+export class FontSvgApi {
 
     fontBuffer: ArrayBuffer
 
@@ -24,7 +25,7 @@ class Api {
             .then(response => response.arrayBuffer())
 
         //const fontBuffer = src.match(/\.woff$/) && Api.woff2OTF(buffer) || buffer
-        return new Api(buffer)
+        return new FontSvgApi(buffer)
     }
 
     // static fontTag(buffer: ArrayBuffer) {
@@ -48,8 +49,9 @@ class Api {
 }
 
 
-export default Api;
 
+
+export {createGlyphTexture, TextureFormat} from './sdfTexture'
 export {getSegements, cmdsToPath} from './approximate'
 
 
