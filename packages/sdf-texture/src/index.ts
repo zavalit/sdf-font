@@ -1,4 +1,4 @@
-import {Typr, parseFont, FontDataType} from './Typr'
+import {Typr, parseFont} from './Typr'
 
 //import woff2otf from './woff2otf'
 //import bidiFactory from 'bidi-js'
@@ -20,7 +20,7 @@ export class FontSvgApi {
     
     
 
-    static async asyncInit(src: string): Promise<Api> {
+    static async asyncInit(src: string): Promise<FontSvgApi> {
         const buffer = await fetch(src)
             .then(response => response.arrayBuffer())
 
@@ -51,6 +51,28 @@ export class FontSvgApi {
 
 
 
+export type FontDataType = {
+	cmap:any
+	head:any
+	hhea:any
+	maxp:any
+	hmtx:any
+	name:any
+	'OS/2':any
+	post:any
+	loca:any
+	kern:any
+	glyf:any
+	CFF :any
+	CBLC:any
+	CBDT:any
+	SVG :any
+	COLR:any
+	CPAL:any
+	sbix:any
+}
+	
+
 export {createGlyphTexture, TextureFormat} from './sdfTexture'
 export {getSegements, cmdsToPath} from './approximate'
 
@@ -58,6 +80,3 @@ export {getSegements, cmdsToPath} from './approximate'
 export const codeToGlyph = (fontData: FontDataType, charCode: number) => Typr.U.codeToGlyph(fontData, charCode)
 export const glyphToPath =  (fontData: FontDataType, glyphId: number) => Typr.U.glyphToPath(fontData, glyphId)
 
-export {
-  FontDataType
-} 

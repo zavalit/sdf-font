@@ -1437,7 +1437,8 @@ const Typr = {
 			return ctg;
 		}(),
 	
-		"glyphToPath" : function(font: FontDataType, gid: number, noColor?: boolean)
+		//"glyphToPath" : function(font: FontDataType, gid: number, noColor?: boolean)
+		"glyphToPath" : function(font, gid, noColor)
 		{
 			var path = { cmds:[], crds:[] };
 			
@@ -2566,7 +2567,7 @@ const Typr = {
 
 
 
-function findTable (data: any, tab: string, foff: number) {
+function findTable (data, tab, foff) {
 	var bin = Typr.B;
 	var numTables = bin.readUshort(data, foff+4);
 	var offset = foff+12;
@@ -2584,29 +2585,7 @@ function findTable (data: any, tab: string, foff: number) {
 
 
 
-export type FontDataType = {
-	cmap:any
-	head:any
-	hhea:any
-	maxp:any
-	hmtx:any
-	name:any
-	'OS/2':any
-	post:any
-	loca:any
-	kern:any
-	glyf:any
-	CFF :any
-	CBLC:any
-	CBDT:any
-	SVG :any
-	COLR:any
-	CPAL:any
-	sbix:any
-}
-	
-
-function readFont (data: any, idx: any, offset: number,tmap: any[]): FontDataType {
+function readFont (data, idx, offset,tmap) {
 	var bin = Typr.B;
 	
 	var T = Typr.T;
@@ -2649,7 +2628,7 @@ function readFont (data: any, idx: any, offset: number,tmap: any[]): FontDataTyp
 }
 
 
-export const parseFont = (buff: ArrayBuffer): FontDataType[] => {
+export const parseFont = (buff) => {
 	const bin = Typr.B;
 	const data = new Uint8Array(buff);
 	

@@ -1,6 +1,6 @@
 
 
-import {createIconTexture} from '../sdfTexture'
+import {createIconTexture} from '../src/sdfTexture'
 
 
 

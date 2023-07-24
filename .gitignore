@@ -9,3 +9,4 @@ lib
 *.png
 *.json
 *.backup.*
+types.d.ts.map

@@ -10,7 +10,7 @@ import distanceGroupVertex from  './shaders/segments/distance/distance.group.ver
 import distanceGroupFragment from './shaders/segments/distance/distance.group.fragment.glsl'
 
 
-import {FontSvgApi, getSegements, codeToGlyph, glyphToPath, cmdsToPath, FontDataType} from '@webglify/sdf-texture'
+import {FontSvgApi, getSegements, codeToGlyph, glyphToPath, cmdsToPath, FontDataType} from '.'
 import chain, {createFramebuffer} from '@webglify/chain'
 
 

@@ -2,9 +2,14 @@
   "name": "@webglify/sdf-texture",
   "version": "0.0.5",
   "private": true,
+  "source": "src/index.ts",
+  "main": "lib/main.js",
+  "types": "./types.d.ts",
   "directories": {
-    "lib": "lib",
-    "test": "browser"
+    "lib": "lib"
+  },
+  "scripts": {
+    "build": "parcel build"
   },
   "dependencies": {
     "@webglify/chain": "^0.0.6",
