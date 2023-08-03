@@ -1,9 +1,9 @@
-import {WebGLFactoryPops, MOUSE_COORDS} from '.'
+import {ChainPassPops, MOUSE_COORDS} from '.'
 
 
 type W2 = WebGL2RenderingContext
 
-const specifyCanvasSize = (gl: W2, props: WebGLFactoryPops) => {
+const specifyCanvasSize = (gl: W2, props: ChainPassPops) => {
   if (!props.canvasWidth || !props.canvasHeight) return
   const width = props.canvasWidth;
   const height = props.canvasHeight;
@@ -34,8 +34,8 @@ const listenToMouseMove = (gl: W2, ev: MouseEvent)=> {
 
 // listeners
 
-export default (gl: WebGL2RenderingContext) => ({
-  resize: (props: WebGLFactoryPops) => {window.addEventListener("resize", () => specifyCanvasSize(gl, props), false);},
+export default (gl: W2) => ({
+  resize: (props: ChainPassPops) => {window.addEventListener("resize", () => specifyCanvasSize(gl, props), false);},
   mousemove: () => window.addEventListener("mousemove", (e) => listenToMouseMove(gl, e), false)
   
 })

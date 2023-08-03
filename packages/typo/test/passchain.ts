@@ -8,7 +8,7 @@ import {obtainPassChain} from '../src/passchain'
 
 
 const width = 700
-const height = 200
+const height = 30
 
 const dpr = Math.min(2, window.devicePixelRatio)
 
@@ -26,12 +26,13 @@ document.body.appendChild(canvas);
 
 
 (async () => {
-  const pass = await obtainPassChain(gl, {
+  const {pass} = await obtainPassChain(gl, {
     fragmentShader: textFragment,
     text: 'Source',
     fontUrl,
-    viewport: {width, height: height*2.},
-    sdfParams: {sdfItemSize: 128, sdfExponent: 10}
+    viewport: {width, height: height},
+    sdfParams: {sdfItemSize: 64, sdfExponent: 5},
+    toFramebuffer: false
   })
 
   const {renderFrame} = chain(gl, [pass])
@@ -42,6 +43,7 @@ document.body.appendChild(canvas);
   }
   
   animate(0)
+
   
 })()
 

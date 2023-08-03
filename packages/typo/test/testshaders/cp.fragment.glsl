@@ -35,6 +35,7 @@ void main() {
     vec4 rgba = texture(uTexture0, vGlyphUV);
 
     float d = noise(vec2(rgba.a * 1., uTime * .001));
+    d = fwidth(rgba.a);
     float b = .5;
     float beta = smoothstep(b - d, b + d, rgba.a);
 
@@ -42,6 +43,8 @@ void main() {
     vec3 color;
 
     color = mix(color, uColor, beta);
+
+    //color = vec3(rgba.a);
   
     fragColor = vec4(color, beta);
   

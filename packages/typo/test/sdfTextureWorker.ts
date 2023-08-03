@@ -1,4 +1,4 @@
-import {createGlyphTexture, TextureFormat, FontMetaType} from "@webglify/sdf-texture/sdfTexture";
+import {createGlyphTexture, TextureFormat, FontMetaType} from "@webglify/sdf-texture";
 
 
 

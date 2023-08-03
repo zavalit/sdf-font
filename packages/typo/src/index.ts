@@ -1,8 +1,9 @@
 import textVertexShader from './shaders/text/text.vertex.glsl';
 import textFragmentShader from './shaders/text/text.fragment.glsl';
-import chain, {convertCanvasTexture} from '@webglify/chain'
+import chain, {convertCanvasTexture, ChainPassPops} from '@webglify/chain'
 
 export interface SDFParams {sdfItemSize: number, sdfMargin: number,  sdfExponent: number}
+type W2 = WebGL2RenderingContext
 
 export interface ParamsProps{
   text: string,
@@ -162,14 +163,14 @@ export type ColorType = {
 }
 const BlackColor = {r:0, g:0, b:0}
 
-export const passItem = ({glyphMapTexture, glyphBounds, charCodes, viewport, sdfTexture, sdfItemSize, fontMeta, shaders = {}}) => {
+export const passItem = ({glyphMapTexture, framebuffer, glyphBounds, charCodes, viewport, sdfTexture, sdfItemSize, fontMeta, shaders = {}}): ChainPassPops => {
   
   const fragmentShader = shaders.fragmentShader || textFragmentShader
   return {
     vertexShader: textVertexShader,
     fragmentShader,
     textures: [glyphMapTexture!],
-    addVertexData(gl){
+    addVertexData(gl: W2){
       
       const vao = gl.createVertexArray()!
       gl.bindVertexArray(vao)
@@ -221,7 +222,7 @@ export const passItem = ({glyphMapTexture, glyphBounds, charCodes, viewport, sdf
       return vao;
 
     },
-    addUniformData(gl, prog){
+    addUniformData(gl: W2, prog: WebGLProgram){
 
         const u1 = gl.getUniformLocation(prog, 'uSDFTextureSize')    
         
@@ -238,7 +239,7 @@ export const passItem = ({glyphMapTexture, glyphBounds, charCodes, viewport, sdf
         const u6 = gl.getUniformLocation(prog, 'uDescender')
 
        
-                return () => {
+        return () => {
           gl.uniform2fv(u1, [sdfTexture.width, sdfTexture.height])
           gl.uniform3fv(u2, [uColor.r,uColor.g,uColor.b])    
           gl.uniformMatrix4fv(u3, false, projectionMatrix);
@@ -249,13 +250,20 @@ export const passItem = ({glyphMapTexture, glyphBounds, charCodes, viewport, sdf
 
 
     },
-    drawCall(gl){
+    drawCall(gl: W2){
+
+      gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer)
+      
       gl.enable(gl.BLEND)
       gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
       const {x, y, width, height} = viewport
-      gl.viewport.call(gl, x, y, width, height);
+      gl.viewport.call(gl, x, y, width * 2, height * 2);
+
+      gl.clear(gl.COLOR_BUFFER_BIT)
 
       gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0., 4, charCodes.length)
+
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null)
 
     }
 
@@ -308,3 +316,7 @@ export const renderText = (gl: WebGL2RenderingContext, sdfTexture: {texture: HTM
     return orthographic(left, right, bottom, top, -1, 1);
   
   }
+
+
+
+  export {obtainPassChain} from './passchain'

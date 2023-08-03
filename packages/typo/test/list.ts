@@ -1,4 +1,4 @@
-import {TextureFormat, createGlyphTexture} from "@webglify/sdf-texture/sdfTexture";
+import {TextureFormat, createGlyphTexture} from "@webglify/sdf-texture";
 import fontUrl from 'url:./Roboto/Roboto-Regular.ttf'
 
 import {  renderText } from "../src"

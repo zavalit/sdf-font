@@ -4,23 +4,26 @@ type W2 = WebGL2RenderingContext
 type UniformSignature = (gl:W2, prog: WebGLProgram) => () => void
 type DrawData = {drawData: any, buffer: WebGLBuffer}
 
+export const MOUSE_COORDS = {
+  x: 0,
+  y: 0,
+  z: 0,
+}
 
 
-export type WebGLFactoryPops = {
+export type ChainPassPops = {
   vertexShader: string;
   fragmentShader: string;
+  name?: string,
   canvasWidth?: number;
   canvasHeight?: number;
   devicePixelRatio?: number;
   textures?: WebGLTexture[]
-  vertices?: Float32Array
-  indices?: Uint16Array,
-  name?: string,
-  addVertexData?: (gl:W2) => WebGLVertexArrayObject
-  addBlend?: (gl:W2) => void
-  addUniformData?: UniformSignature
-  addUniformBufferObjects?:(gl:W2, prog: WebGLProgram) => () => void
-  addFramebuffer?: (gl:W2) => [WebGLFramebuffer, WebGLTexture]
+  framebuffer?: WebGLFramebuffer
+  vertexArrayObject?: (gl:W2) => WebGLVertexArrayObject
+  uniforms?: UniformSignature
+  uniformBufferObjects?:(gl:W2, prog: WebGLProgram) => () => void
+  
   drawCall?: (gl:W2, data?: DrawData) => void
 };
 
@@ -42,16 +45,11 @@ type ChainDrawProps = {
 }
 
 
-export const MOUSE_COORDS = {
-  x: 0,
-  y: 0,
-  z: 0,
-}
 
 export default (
-  gl: W2,
-  callsProps: WebGLFactoryPops[]
-) => {
+  gl: WebGL2RenderingContext,
+  callsProps: ChainPassPops[]
+): ChainDrawProps => {
 
 
   // Check for the extension support
@@ -80,13 +78,11 @@ export default (
   
   
     // provide attributes and uniforms
-    const vao = props.addVertexData 
-    ? props.addVertexData(gl) 
-    : addDefaultVertexData(gl)
+    const vao = props.vertexArrayObject 
+    ? props.vertexArrayObject(gl) 
+    : addDefaultVertexArrayObject (gl)
 
     
-    props.indices && addIndices(gl, props.indices)
-  
     const u1 = gl.getUniformLocation(prog, "uResolution");
     gl.uniform2fv(u1, [gl.drawingBufferWidth, gl.drawingBufferHeight]);
     const u2 = gl.getUniformLocation(prog, "uTime");
@@ -97,12 +93,12 @@ export default (
     gl.uniform1f(u4, devicePixelRatio);
   
     
-    const applyUniform = props.addUniformData 
-    ? props.addUniformData(gl, prog)
+    const applyUniforms = props.uniforms 
+    ? props.uniforms(gl, prog)
     : () => undefined
 
-    const applyUniformBufferObjects = props.addUniformBufferObjects
-    ? props.addUniformBufferObjects(gl, prog)
+    const applyUniformBufferObjects = props.uniformBufferObjects
+    ? props.uniformBufferObjects(gl, prog)
     : () => undefined
     
     // Textures
@@ -130,7 +126,6 @@ export default (
       gl.useProgram(prog)
       gl.bindVertexArray(vao)
       
-      props.addBlend && props.addBlend(gl)
 
       textures.forEach(t => t())
       
@@ -139,7 +134,7 @@ export default (
       gl.uniform2fv(u3, [MOUSE_COORDS.x, MOUSE_COORDS.y]);
   
 
-      applyUniform()
+      applyUniforms()
       applyUniformBufferObjects()
     }
     
@@ -166,10 +161,10 @@ export default (
           const available = gl.getQueryParameter(query!, gl.QUERY_RESULT_AVAILABLE);
           const disjoint = gl.getParameter(ext.GPU_DISJOINT_EXT);
         
-          if (available && !disjoint) {
+          if (query && available && !disjoint) {
             // Get the elapsed time in nanoseconds
             const timeElapsed = gl.getQueryParameter(query!, gl.QUERY_RESULT);
-            const ms = timeElapsed / 1000000;
+            const ms = timeElapsed / 1e6;
             const last_60 =  [...chainDraw.performance[index].last_60.slice(-59), ms]
             const {sum, max} = last_60.reduce((a, b) => ({
               sum: a.sum + b, 
@@ -317,7 +312,7 @@ export const createFramebuffer = (gl:W2, { width, height} : {width: number, heig
 
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
 
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
@@ -390,7 +385,7 @@ export const convertCanvasTexture = (gl: W2, canvas: HTMLCanvasElement,  paramet
 
 
 
-const addDefaultVertexData = (gl: W2) => {
+const addDefaultVertexArrayObject = (gl: W2) => {
 
     const vao = gl.createVertexArray()
     gl.bindVertexArray(vao)
@@ -417,12 +412,4 @@ const drawDefaultCall = (gl: W2) => {
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     
-}
-
-const addIndices = (gl: W2, indices: Uint16Array) => {
-
-  // Create the element buffer and load the tree indices
-  const indexBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
 }

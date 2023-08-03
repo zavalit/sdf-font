@@ -1,3 +1,21 @@
+import { ChainPassPops } from "@webglify/chain";
+type W2 = WebGL2RenderingContext;
+type TextPassProps = {
+    text: string;
+    fontUrl: string;
+    viewport: {
+        width: number;
+        height: number;
+    };
+    sdfParams?: typeof defaultSdfParams;
+    textMeta?: typeof defaultTextMeta;
+    fragmentShader?: string;
+};
+type PassChainRepo = {
+    pass: ChainPassPops;
+    texture: WebGLTexture | null;
+};
+export const obtainPassChain: (gl: W2, { text, fontUrl, viewport, ...passParams }: TextPassProps) => Promise<PassChainRepo>;
 export interface SDFParams {
     sdfItemSize: number;
     sdfMargin: number;
@@ -67,8 +85,9 @@ export type ColorType = {
     g: number;
     b: number;
 };
-export const passItem: ({ glyphMapTexture, glyphBounds, charCodes, viewport, sdfTexture, sdfItemSize, fontMeta, shaders }: {
+export const passItem: ({ glyphMapTexture, framebuffer, glyphBounds, charCodes, viewport, sdfTexture, sdfItemSize, fontMeta, shaders }: {
     glyphMapTexture: any;
+    framebuffer: any;
     glyphBounds: any;
     charCodes: any;
     viewport: any;
@@ -76,22 +95,9 @@ export const passItem: ({ glyphMapTexture, glyphBounds, charCodes, viewport, sdf
     sdfItemSize: any;
     fontMeta: any;
     shaders?: {} | undefined;
-}) => {
-    vertexShader: any;
-    fragmentShader: any;
-    textures: any[];
-    addVertexData(gl: any): any;
-    addUniformData(gl: any, prog: any): () => void;
-    drawCall(gl: any): void;
-};
+}) => ChainPassPops;
 export const renderText: (gl: WebGL2RenderingContext, sdfTexture: {
     texture: HTMLCanvasElement;
 }, meta: TextMetaType, viewport: ViewportType, color?: ColorType) => void;
 
 //# sourceMappingURL=types.d.ts.map
-
-
-declare module "*.glsl" {
-    const m: string
-    export default m
-}
