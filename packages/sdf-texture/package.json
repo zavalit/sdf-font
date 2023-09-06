@@ -12,8 +12,11 @@
     "build": "parcel build"
   },
   "dependencies": {
-    "@webglify/chain": "^0.0.6",
+    "@webglify/chain": "^0.0.37",
     "bidi-js": "^1.0.2",
     "jszip": "^3.10.1"
+  },
+  "devDependencies": {
+    "@parcel/transformer-glsl": "2.8.3"
   }
 }

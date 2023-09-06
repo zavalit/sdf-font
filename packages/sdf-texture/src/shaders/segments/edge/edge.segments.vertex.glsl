@@ -3,6 +3,7 @@
 layout(location=0) in vec2 aPosition;
 layout(location=1) in vec4 aSegmentsCoord;
 layout(location=2) in float aSegmentsDist;
+layout(location=3) in vec3 aGlyphBounds;
 
 uniform vec4 uGlyphBounds;
 uniform float uUnitsPerEm;
@@ -17,11 +18,12 @@ out float vMaxDistance;
 
 vec2 moveToCenter(vec2 uv) {
     
-    float width = (uGlyphBounds.z - uGlyphBounds.x)/uUnitsPerEm;
-    float height = (uGlyphBounds.w - uGlyphBounds.y)/uUnitsPerEm;
+    vec4 gb = uGlyphBounds;
+    float width = (gb.z - gb.x)/uUnitsPerEm;
+    float height = (gb.w - gb.y)/uUnitsPerEm;
     
     
-    uv.y += min(0.,uGlyphBounds.y)/uUnitsPerEm;
+    uv.y += min(0.,gb.y)/uUnitsPerEm;
     uv.y -= 1./height * .5 - .5;
     uv.x -= 1./width * .5 - .5;
 
@@ -33,8 +35,10 @@ vec2 moveToCenter(vec2 uv) {
 
 void main() {
     
-    vec2 from = uGlyphBounds.xy/uUnitsPerEm;    
-    vec2 to = uGlyphBounds.zw/uUnitsPerEm;
+    vec4 gb = uGlyphBounds;
+
+    vec2 from = gb.xy/uUnitsPerEm;    
+    vec2 to = gb.zw/uUnitsPerEm;
 
         
     vec2 pos = aPosition;
@@ -51,8 +55,8 @@ void main() {
 
     uv = uIsCentered ? moveToCenter(uv) : uv;
     
-    vViewBox = mix(uGlyphBounds.xy, uGlyphBounds.zw, uv);
-    vViewBox.x -= uGlyphBounds.x;
+    vViewBox = mix(gb.xy, gb.zw, uv);
+   //vViewBox.x -= gb.x;
     
     
     vMaxDistance = uUnitsPerEm;

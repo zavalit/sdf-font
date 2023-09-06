@@ -1,4 +1,4 @@
-import {createGlyphTexture, FontMetaType} from "@webglify/sdf-texture/sdfTexture";
+import {createGlyphTexture, FontMetaType} from "../src/sdfTexture";
 import fontUrl from 'url:./fonts/Roboto/Roboto-Regular.ttf'
 
 
@@ -38,15 +38,17 @@ const svg = ({sdfViewBox, path}) => {
   const edgeCanvas = document.createElement('canvas')
   const distanceCanvas = document.createElement('canvas')
 
-  const charCodes = '`a'.split('').map(c => c.charCodeAt(0))
+  const charCodes = '!'.split('').map(c => c.charCodeAt(0))
   
-  const {textures,fontMeta} = await createGlyphTexture({'EDGE': edgeCanvas, 'DISTANCE': distanceCanvas}, fontUrl, sdfParams, charCodes)
+  console.log('charCodes', charCodes)
+  //const {textures,fontMeta} = await createGlyphTexture({'EDGE': edgeCanvas, 'DISTANCE': distanceCanvas}, fontUrl, sdfParams, charCodes, 8)
+  const {textures,fontMeta} = await createGlyphTexture({'EDGE': edgeCanvas}, fontUrl, sdfParams, charCodes, 8)
 
   const edge = textures['EDGE']
   document.body.appendChild(edge)
   
-  const dist = textures['DISTANCE']
-  document.body.appendChild(dist)
+  // const dist = textures['DISTANCE']
+  // document.body.appendChild(dist)
   
   // Array.from(charsMap.values()).forEach(c => {
   //   console.log('c', c)

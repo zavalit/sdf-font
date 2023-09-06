@@ -1,261 +1,186 @@
+// Type Definitions
+type W2 = WebGL2RenderingContext;
 
+// Imports
+import {
+    ChainPassPops, ChainDrawProps, ChainPlugin, DrawData,
+    VAOBufferMap, BufferMap, UnirformLocationsMap, DrawCallProps
+} from "./index.types";
 
-type W2 = WebGL2RenderingContext
-type UniformSignature = (gl:W2, prog: WebGLProgram) => () => void
-type DrawData = {drawData: any, buffer: WebGLBuffer}
-
-export const MOUSE_COORDS = {
-  x: 0,
-  y: 0,
-  z: 0,
-}
-
-
-export type ChainPassPops = {
-  vertexShader: string;
-  fragmentShader: string;
-  name?: string,
-  canvasWidth?: number;
-  canvasHeight?: number;
-  devicePixelRatio?: number;
-  textures?: WebGLTexture[]
-  framebuffer?: WebGLFramebuffer
-  vertexArrayObject?: (gl:W2) => WebGLVertexArrayObject
-  uniforms?: UniformSignature
-  uniformBufferObjects?:(gl:W2, prog: WebGLProgram) => () => void
-  
-  drawCall?: (gl:W2, data?: DrawData) => void
+// Exported Types
+export type {
+    ChainPassPops, ChainDrawProps, ChainPlugin, DrawData,
+    VAOBufferMap, BufferMap
 };
-
-type ProgramsMapType = {
-  [name: string]: {
-    prog: WebGLProgram,
-    nextDataDrawCall: (time: number, data?: DrawData) => void
-  }
-}
-
-type ChainDrawProps = {
-  performance: {
-    last_60: number [],
-    avg: number,
-    max?: number
-  }[]
-  renderFrame: (time: number) => void
-  programs: ProgramsMapType
-}
-
-
+export * from './plugins'
 
 export default (
   gl: WebGL2RenderingContext,
-  callsProps: ChainPassPops[]
+  callsProps: ChainPassPops[],
+  plugins: ChainPlugin[] = []
 ): ChainDrawProps => {
 
-
-  // Check for the extension support
-  const ext = gl.getExtension('EXT_disjoint_timer_query_webgl2');
-  if (!ext) {
-    // The extension is not supported
-    console.warn('EXT_disjoint_timer_query_webgl2 extension is not supported.');
-  }
-  
+  const vaoMap: VAOBufferMap = new Map()
+    
   const calls = callsProps.map(({ vertexShader, fragmentShader, devicePixelRatio=2, ...props }, index:number) => {
 
 
-    const name = props.name || `program_${index}`
-   
+    const passId = props.passId || `${index}`
+     
+    const [width, height] = props.resolution || [gl.drawingBufferWidth, gl.drawingBufferHeight]
+    
+    const program = createProgramm(gl, {vertexShader, fragmentShader})
   
-    if(props.canvasHeight && props.canvasWidth) {
-      gl.canvas.width = props.canvasWidth * devicePixelRatio;
-      gl.canvas.height = props.canvasHeight * devicePixelRatio;
 
-      gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-    }
-  
-    const prog = createProgramm(gl, {vertexShader, fragmentShader})
-  
-    gl.useProgram(prog);
-  
-  
     // provide attributes and uniforms
     const vao = props.vertexArrayObject 
-    ? props.vertexArrayObject(gl) 
-    : addDefaultVertexArrayObject (gl)
-
-    
-    const u1 = gl.getUniformLocation(prog, "uResolution");
-    gl.uniform2fv(u1, [gl.drawingBufferWidth, gl.drawingBufferHeight]);
-    const u2 = gl.getUniformLocation(prog, "uTime");
-    gl.uniform1f(u2, 0);
-    const u3 = gl.getUniformLocation(prog, "uMouse");
-    gl.uniform2fv(u3, [MOUSE_COORDS.x, MOUSE_COORDS.y]);
-    const u4 = gl.getUniformLocation(prog, "uDpr");
-    gl.uniform1f(u4, devicePixelRatio);
+    ? props.vertexArrayObject(gl, vaoMap) 
+    : addDefaultVertexArrayObject (gl)    
+   
+   
+    gl.useProgram(program);
   
+  
+    const numUniforms = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
     
-    const applyUniforms = props.uniforms 
-    ? props.uniforms(gl, prog)
-    : () => undefined
+    const uniformLocations: UnirformLocationsMap = Array.from({ length: numUniforms }).reduce((acc:UnirformLocationsMap, _, i) => {
+        const uniformInfo = gl.getActiveUniform(program, i);
+        const location = uniformInfo && gl.getUniformLocation(program, uniformInfo.name);
+        if (uniformInfo && location) {
+            acc[uniformInfo.name] = location;
+        }
+        return acc;
+    }, {});
 
-    const applyUniformBufferObjects = props.uniformBufferObjects
-    ? props.uniformBufferObjects(gl, prog)
-    : () => undefined
+    
     
     // Textures
     const textures: any[] = []
-    props.textures && props.textures.forEach((texture: WebGLTexture, i: number) => {
+    props.textures && props.textures.forEach((texture: (WebGLTexture | {(): WebGLTexture}), i: number) => {
       const name =  `uTexture${i}`
-      const textureLocation = gl.getUniformLocation(prog, name);
-      
-      
-      textures.push(() => {
-        gl.uniform1i(textureLocation, i);  
-        gl.activeTexture(gl.TEXTURE0 + i);  
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-
+      const textureLocation = gl.getUniformLocation(program, name);
+          
+      textures.push({
+        activate(){
+          const tex = typeof texture === 'function' ? texture() : texture
+          gl.uniform1i(textureLocation, i);  
+          gl.activeTexture(gl.TEXTURE0 + i);  
+          gl.bindTexture(gl.TEXTURE_2D, tex);
+        },
+        deactivate(){
+          gl.activeTexture(gl.TEXTURE0 + i);  
+          gl.bindTexture(gl.TEXTURE_2D, null);
+        }
       })
       
     })
 
-    const prepareDrawCall = (time: number, query?: WebGLQuery) => {
-      if(query) {
-        // Start the timer query
-        gl.beginQuery(ext.TIME_ELAPSED_EXT, query);
+    const startFramebuffer = () => {
+      const {framebuffer} = props
+      if(!framebuffer) return
+
+      if(framebuffer.length > 0 && (framebuffer[0]) instanceof WebGLFramebuffer) {
+          gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer[0])
       }
-      
-      gl.useProgram(prog)
-      gl.bindVertexArray(vao)
-      
-
-      textures.forEach(t => t())
-      
-      
-      gl.uniform1f(u2, time);
-      gl.uniform2fv(u3, [MOUSE_COORDS.x, MOUSE_COORDS.y]);
-  
-
-      applyUniforms()
-      applyUniformBufferObjects()
     }
+
+    const endFramebuffer = () => {
+      const {framebuffer} = props
+      if(!framebuffer) return
+
+      if(framebuffer.length == 2 && framebuffer[1] === null) {
+          gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+      }
+    }
+
+
+    const beforeDrawCall = () => {
+      
+      startFramebuffer()
+      
+      gl.useProgram(program)
+      gl.bindVertexArray(vao)
+      gl.viewport(0, 0, width, height);
+      
+      textures.forEach(t => t.activate())      
+      
+      props.uniforms &&  props.uniforms(gl, uniformLocations)
+    
+      
+
+      
+    }
+
+    const afterDrawCall = () => {
+
+      gl.bindVertexArray(null)
+      textures.forEach(t => t.deactivate())
+      endFramebuffer()
+    }
+
     
   
-    const nextDrawCall = (time: number, query?: WebGLQuery) => {
+    const chainDrawCall = (time: number, drawCallCb?: (gl: W2, props: DrawCallProps) => void) => {
 
-      prepareDrawCall(time, query)
-  
-      props.drawCall 
-      ? props.drawCall(gl)
-      : drawDefaultCall(gl)
-  
+
+      beforeDrawCall()
+
+      plugins.forEach(plugin => plugin.beforeDrawCall({passId, time, program}))
+
+      const drawProps = {buffers: vaoMap.get(vao), uniformLocations};
       
-      if(query) {
-        //End the timer query
-        gl.endQuery(ext.TIME_ELAPSED_EXT);
+      props.drawCall 
+      ? props.drawCall(gl, drawProps)
+      : drawCallCb
+        ? drawCallCb(gl, drawProps)
+        : drawDefaultCall(gl)
 
-        // Wait for the query to become available
-        //gl.finish();
+      
+      // Call the function to start checking for the query result asynchronously
+      plugins.forEach(plugin => plugin.afterDrawCall({passId, time, program}))
+      
 
-        // Get the query result
-        function checkQueryResult() {
-          // Check if the query result is available
-          const available = gl.getQueryParameter(query!, gl.QUERY_RESULT_AVAILABLE);
-          const disjoint = gl.getParameter(ext.GPU_DISJOINT_EXT);
-        
-          if (query && available && !disjoint) {
-            // Get the elapsed time in nanoseconds
-            const timeElapsed = gl.getQueryParameter(query!, gl.QUERY_RESULT);
-            const ms = timeElapsed / 1e6;
-            const last_60 =  [...chainDraw.performance[index].last_60.slice(-59), ms]
-            const {sum, max} = last_60.reduce((a, b) => ({
-              sum: a.sum + b, 
-              max: b > a.max ? b : a.max
-            }), {sum:0, max:0});
-            const avg = (sum / last_60.length) || 0;
+      afterDrawCall()
 
-            chainDraw.performance[index] = {
-              last_60,
-              avg,
-              max  
-            }
-          } else {
-            // The query result is not available or the GPU is disjointed
-           // console.log('draw pass', index, 'Query result is not available or the GPU is disjointed.');
-        
-            // Check again in the next frame
-            requestAnimationFrame(checkQueryResult);
-          }
-        }
-        
-        // Call the function to start checking for the query result asynchronously
-        checkQueryResult();
-      }
+      
       
     };
 
-    const nextDataDrawCall = (time: number, data: DrawData) => {
-      
-
-      if(!props.drawCall) {
-        console.warn('define own drawCall, since you are using custom draw data')
-        return
-      } 
-      
-      prepareDrawCall(time)
-      props.drawCall(gl, data)
-      
-    }
-  
+   
     
     return {
-      nextDrawCall,
-      nextDataDrawCall,
-      program: {name, prog}
+      chainDrawCall,
+      program: {passId, program}
     };
   });
 
-
-
-
-  let currentPerformanceIndex = 0
   const chainDraw: ChainDrawProps = {
-    performance: calls.map(_ => ({
-      last_60: [],
-      avg: 0
-    })),
-    programs: calls.reduce((acc, {nextDataDrawCall, program: {name, prog}}) => {
-        return {...acc, [name]: {
-          nextDataDrawCall, prog
+    programs: calls.reduce((acc, {chainDrawCall, program: {passId, program}}) => {
+        return {...acc, [passId]: {
+          chainDrawCall, program
         }}
     }, {}),
     renderFrame: function (time: number){
 
       
-      const query = gl.createQuery()!;
-      
-      calls.forEach((c, index) => {
-     
-        // Perform the draw call 
-        c.nextDrawCall(time, index === currentPerformanceIndex && query);   
+      calls.forEach((c) => {
 
-      
+        // Perform the draw call 
+        c.chainDrawCall(time);         
+
       })      
-      currentPerformanceIndex = (currentPerformanceIndex + 1) % calls.length
 
     }
-    
-
-    
+      
   }
 
-  return chainDraw
+  // init plugins
+  plugins.forEach(p => p.onInit && p.onInit(chainDraw.programs))
 
+  return chainDraw
 }
 
 
-
-
-
- 
 
 
 function loadImage(url: string, callback: (i:HTMLImageElement) => void) {
@@ -300,7 +225,7 @@ export function createTexture(gl: W2, image: TexImageSource, parameterCb?: (gl: 
 
 }
 
-export const createFramebuffer = (gl:W2, { width, height} : {width: number, height: number}) => {
+export const createFramebufferTexture = (gl:W2, { width, height} : {width: number, height: number}) => {
     // Create a framebuffer
     const framebuffer = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
@@ -312,8 +237,8 @@ export const createFramebuffer = (gl:W2, { width, height} : {width: number, heig
 
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
     
@@ -359,14 +284,7 @@ export const createProgramm = (gl: W2, {vertexShader, fragmentShader}: {vertexSh
 }
 
 
-export interface ChainTexture {
-  texture: WebGLTexture,
-  height: number,
-  width: number
-}
-
-
-export const loadTexture = (gl: W2, url: string): Promise<ChainTexture> => new Promise((res, _) => loadImage(url, image => res({texture: createTexture(gl, image), width:image.width, height: image.height})));
+export const loadTexture = (gl: W2, url: string): Promise<WebGLTexture> => new Promise((res, _) => loadImage(url, image => res(createTexture(gl, image))));
 
 
 export const loadSVGTexture = (gl: W2, svgString: string) => {
@@ -385,9 +303,9 @@ export const convertCanvasTexture = (gl: W2, canvas: HTMLCanvasElement,  paramet
 
 
 
-const addDefaultVertexArrayObject = (gl: W2) => {
+const addDefaultVertexArrayObject = (gl: W2): WebGLVertexArrayObject => {
 
-    const vao = gl.createVertexArray()
+    const vao = gl.createVertexArray()!
     gl.bindVertexArray(vao)
     // Create the buffer and load the tree vertices
     const vertexBuffer = gl.createBuffer();

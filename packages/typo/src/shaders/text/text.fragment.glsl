@@ -36,6 +36,8 @@ void main() {
     //fragColor = vec4(vec3(rgba.rgb), 1.);
 
     // fragColor.xy = vGlyphUV;
-    // fragColor.w = 1.;
+    fragColor.w = 1.;
+
+    fragColor.xy = vUV;
 
 }

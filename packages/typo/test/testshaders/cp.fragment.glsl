@@ -34,7 +34,7 @@ void main() {
 
     vec4 rgba = texture(uTexture0, vGlyphUV);
 
-    float d = noise(vec2(rgba.a * 1., uTime * .001));
+    float d = noise(vec2(fwidth(rgba.a) * .000000001, uTime * .01)) * .2;
     d = fwidth(rgba.a);
     float b = .5;
     float beta = smoothstep(b - d, b + d, rgba.a);

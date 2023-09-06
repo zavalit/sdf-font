@@ -1,7 +1,9 @@
 import textVertexShader from './shaders/text/text.vertex.glsl';
 import textFragmentShader from './shaders/text/text.fragment.glsl';
-import chain, {convertCanvasTexture, ChainPassPops} from '@webglify/chain'
+import chain, {convertCanvasTexture} from '@webglify/chain'
+import {WindowPlugin} from '@webglify/chain'
 
+console.log('chain', chain)
 export interface SDFParams {sdfItemSize: number, sdfMargin: number,  sdfExponent: number}
 type W2 = WebGL2RenderingContext
 
@@ -24,7 +26,7 @@ export interface TextCharMeta {
 }
 
 
-export type RenderTextProps = { charCodes: number[]; glyphBounds: Float32Array; sdfItemSize: number; fontMeta: {
+export type RenderTextProps = { charCodes: number[]; glyphBounds: Float32Array; sdfItemSize: number; fontSize: number, fontMeta: {
     unitsPerEm: number
     ascender: number
     descender: number
@@ -43,7 +45,7 @@ export const defaultTextMeta = {
   fontSize: 1.,
   letterSpacing: 1.
 }
-type TextMetaType ={
+type TextMetaType = {
   text: string
   textMeta: typeof defaultTextMeta
   sdfParams: typeof defaultSdfParams,
@@ -140,7 +142,8 @@ export const getTextMetaData = (meta: TextMetaType): RenderTextProps  => {
         glyphBounds,        
         charCodes,
         sdfItemSize,
-        fontMeta
+        fontMeta,
+        fontSize
     }
 
 } 
@@ -162,12 +165,14 @@ export type ColorType = {
   b: number
 }
 const BlackColor = {r:0, g:0, b:0}
+const uColor = BlackColor
 
-export const passItem = ({glyphMapTexture, framebuffer, glyphBounds, charCodes, viewport, sdfTexture, sdfItemSize, fontMeta, shaders = {}}): ChainPassPops => {
+export const passItem = ({glyphMapTexture, framebuffer, glyphBounds, fontSize, charCodes, sdfTexture, sdfItemSize, fontMeta, atlasColumnCount, shaders}) => {
   
-  const fragmentShader = shaders.fragmentShader || textFragmentShader
+  const fragmentShader = shaders?.fragmentShader || textFragmentShader
+  const vertexShader = shaders?.vertexShader || textVertexShader
   return {
-    vertexShader: textVertexShader,
+    vertexShader,
     fragmentShader,
     textures: [glyphMapTexture!],
     addVertexData(gl: W2){
@@ -181,9 +186,9 @@ export const passItem = ({glyphMapTexture, framebuffer, glyphBounds, charCodes, 
       const buf1 = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, buf1);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([    
-        -.2, -.2, 
-        -.2, 1, 
-        1, -.2,
+        0., 0., 
+        0., 1, 
+        1, 0.,
         1, 1, 
       ]), gl.STATIC_DRAW)
        
@@ -196,6 +201,8 @@ export const passItem = ({glyphMapTexture, framebuffer, glyphBounds, charCodes, 
       // GlyphBounds
       //          
 
+
+      console.log('glyphBounds', glyphBounds)
       
       const buf2 = gl.createBuffer()
       gl.bindBuffer(gl.ARRAY_BUFFER, buf2)
@@ -210,56 +217,54 @@ export const passItem = ({glyphMapTexture, framebuffer, glyphBounds, charCodes, 
       // Letter Position
       //          
       const buf3 = gl.createBuffer()
-      gl.bindBuffer(gl.ARRAY_BUFFER, buf3)                     
-      gl.bufferData(gl.ARRAY_BUFFER, new Uint16Array(charCodes), gl.STATIC_DRAW)
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf3)       
+      const indexes = new Uint16Array(charCodes)
+      gl.bufferData(gl.ARRAY_BUFFER, indexes, gl.STATIC_DRAW)
       
 
       gl.vertexAttribPointer(2, 1, gl.UNSIGNED_SHORT, false, 2, 0);
       gl.enableVertexAttribArray(2)
       gl.vertexAttribDivisor(2, 1)
   
+      //
+      // Letter Order
+      //          
+      const buf4 = gl.createBuffer()
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf4)       
+      const order = new Uint16Array([...Array(charCodes.length).keys()])
+      gl.bufferData(gl.ARRAY_BUFFER, order, gl.STATIC_DRAW)
+      
+
+      gl.vertexAttribPointer(3, 1, gl.UNSIGNED_SHORT, false, 2, 0);
+      gl.enableVertexAttribArray(3)
+      gl.vertexAttribDivisor(3, 1)
+  
 
       return vao;
 
     },
-    addUniformData(gl: W2, prog: WebGLProgram){
+    uniforms(gl: W2, loc){
 
-        const u1 = gl.getUniformLocation(prog, 'uSDFTextureSize')    
-        
-        const u2 = gl.getUniformLocation(prog, 'uColor')    
-
-        const uColor = BlackColor
-        
-        const projectionMatrix = createProjectionMatrix(viewport.width, viewport.height)            
-        const u3 = gl.getUniformLocation(prog, 'uProjectionMatrix')    
-        
-        const u4 = gl.getUniformLocation(prog, 'usdfItemSize')    
-
-        const u5 = gl.getUniformLocation(prog, 'uAscender')
-        const u6 = gl.getUniformLocation(prog, 'uDescender')
-
-       
-        return () => {
-          gl.uniform2fv(u1, [sdfTexture.width, sdfTexture.height])
-          gl.uniform3fv(u2, [uColor.r,uColor.g,uColor.b])    
-          gl.uniformMatrix4fv(u3, false, projectionMatrix);
-          gl.uniform1f(u4, sdfItemSize);
-          gl.uniform1f(u5, fontMeta.ascender)
-          gl.uniform1f(u6, fontMeta.descender)
-        }
+          gl.uniform2fv(loc.uSDFTextureSize, [sdfTexture.width, sdfTexture.height])
+          gl.uniform3fv(loc.uColor, [uColor.r,uColor.g,uColor.b])    
+         // gl.uniformMatrix4fv(u3, false, projectionMatrix);
+          gl.uniform1f(loc.uSdfItemSize, sdfItemSize);
+          gl.uniform1f(loc.uAscender, fontMeta.ascender/fontMeta.unitsPerEm)
+          gl.uniform1f(loc.uDescender, fontMeta.descender/fontMeta.unitsPerEm)
+          gl.uniform1f(loc.uAtlasColumnCount, atlasColumnCount)
+          gl.uniform1f(loc.uFontSize, fontSize)
 
 
     },
     drawCall(gl: W2){
 
       gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer)
-      
-      gl.enable(gl.BLEND)
-      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
-      const {x, y, width, height} = viewport
-      gl.viewport.call(gl, x, y, width * 2, height * 2);
 
       gl.clear(gl.COLOR_BUFFER_BIT)
+
+      gl.enable(gl.BLEND)
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+      
 
       gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0., 4, charCodes.length)
 
@@ -270,17 +275,17 @@ export const passItem = ({glyphMapTexture, framebuffer, glyphBounds, charCodes, 
   }
 }
 
-export const renderText = (gl: WebGL2RenderingContext, sdfTexture: {texture: HTMLCanvasElement}, meta: TextMetaType, viewport:ViewportType, color?: ColorType ) => {
+export const renderText = (gl: WebGL2RenderingContext, sdfTexture: {texture: HTMLCanvasElement}, meta: TextMetaType, atlasColumnCount:number, shaders:{}, color?: ColorType ) => {
   
-
-    
-    const {charCodes, sdfItemSize, glyphBounds, fontMeta} = getTextMetaData(meta)
+    const {charCodes, sdfItemSize, glyphBounds, fontMeta, fontSize} = getTextMetaData(meta)
     const glyphMapTexture = convertCanvasTexture(gl, sdfTexture.texture)
 
-    const pass = passItem({glyphMapTexture, glyphBounds, charCodes, viewport, sdfTexture, sdfItemSize, fontMeta})
+    const windowPlugin = new WindowPlugin(gl)
+    
+    const pass = passItem({glyphMapTexture, glyphBounds, charCodes, sdfTexture, sdfItemSize, fontMeta, fontSize,  atlasColumnCount, shaders})
     const {renderFrame} = chain(gl, [
       pass  
-    ])
+    ], [windowPlugin])
     
    renderFrame(0)
  

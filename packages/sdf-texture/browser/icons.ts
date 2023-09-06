@@ -44,8 +44,6 @@ const sdfParams = {
 
   
   const canvas = document.createElement('canvas')!
-
-
   const canvas2 = document.createElement('canvas')!
   
   createIconTexture({'EDGE': canvas, 'DISTANCE': canvas2}, svgIcon, sdfParams)
