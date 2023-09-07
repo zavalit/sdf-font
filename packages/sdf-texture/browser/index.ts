@@ -1,4 +1,4 @@
-import {createGlyphTexture, FontMetaType} from "../src/sdfTexture";
+import {createGlyphTexture} from "../src/sdfTexture";
 import fontUrl from 'url:./fonts/Roboto/Roboto-Regular.ttf'
 
 

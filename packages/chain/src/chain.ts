@@ -1,17 +1,66 @@
+
 // Type Definitions
-type W2 = WebGL2RenderingContext;
+type W2 = WebGL2RenderingContext
 
-// Imports
-import {
-    ChainPassPops, ChainDrawProps, ChainPlugin, DrawData,
-    VAOBufferMap, BufferMap, UnirformLocationsMap, DrawCallProps
-} from "./index.types";
+export type DrawData = {[key:string]: number[]}
+export type UnirformLocationsMap =   {[key: string]: WebGLUniformLocation}
 
-// Exported Types
-export type {
-    ChainPassPops, ChainDrawProps, ChainPlugin, DrawData,
-    VAOBufferMap, BufferMap
+type FramebufferChainProp = [WebGLFramebuffer | null, null?]
+type UniformSignature = (gl:W2, locs: UnirformLocationsMap) => void
+
+export type BufferMap = {[key: string]: WebGLBuffer}
+export type VAOBufferMap = Map<WebGLVertexArrayObject, BufferMap>;
+
+export type DrawCallProps = {buffers?: BufferMap, uniformLocations: UnirformLocationsMap}
+
+export type DrawCallSignature = (gl:W2, props: DrawCallProps) => void
+
+export type ChainPassPops = {
+  vertexShader: string;
+  fragmentShader: string;
+  resolution?: [number, number];
+  passId?: string,
+  
+  devicePixelRatio?: number;
+  textures?: WebGLTexture[]
+  framebuffer?: FramebufferChainProp
+  vertexArrayObject?: (gl:W2, vaoMap:VAOBufferMap) => WebGLVertexArrayObject
+  uniforms?: UniformSignature
+  
+  drawCall?: DrawCallSignature
 };
+
+export type ProgramsMapType = {
+  [name: string]: {
+    program: WebGLProgram,
+    chainDrawCall: (time: number, drawCall?: DrawCallSignature) => void
+  }
+}
+
+
+
+export type PluginCallProps = {
+  program: WebGLProgram
+  passId: string,
+  time: number
+}
+export interface ChainPlugin {
+  onInit?: (props: ProgramsMapType) => void;
+  beforeDrawCall: (props: PluginCallProps) => void;
+  afterDrawCall: (props: PluginCallProps) => void;
+}
+
+
+
+export type ChainDrawProps = {
+ 
+  renderFrame: (time: number) => void
+  programs: ProgramsMapType
+}
+
+
+
+// Exported Plugins
 export * from './plugins'
 
 export default (
@@ -162,16 +211,12 @@ export default (
     }, {}),
     renderFrame: function (time: number){
 
-      
       calls.forEach((c) => {
-
         // Perform the draw call 
         c.chainDrawCall(time);         
 
       })      
-
     }
-      
   }
 
   // init plugins
@@ -181,6 +226,7 @@ export default (
 }
 
 
+// Utils functions
 
 
 function loadImage(url: string, callback: (i:HTMLImageElement) => void) {
@@ -214,10 +260,6 @@ export function createTexture(gl: W2, image: TexImageSource, parameterCb?: (gl: 
   parameterCb && parameterCb(gl)
 
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-
-  
-  
-
   
   gl.bindTexture(gl.TEXTURE_2D, null)
 
@@ -298,10 +340,6 @@ export const convertCanvasTexture = (gl: W2, canvas: HTMLCanvasElement,  paramet
 
   return createTexture(gl, canvas, parameterCb);
 }
-
-
-
-
 
 const addDefaultVertexArrayObject = (gl: W2): WebGLVertexArrayObject => {
 

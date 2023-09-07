@@ -1,4 +1,4 @@
-import { ChainPlugin, ProgramsMapType, PluginCallProps, ChainPassPops} from "../index.types";
+import { ChainPlugin, ProgramsMapType, PluginCallProps} from "../chain";
 
 type W2 = WebGL2RenderingContext
 
@@ -17,7 +17,6 @@ export class PerformancePlugin implements ChainPlugin {
     avg: number,
     max?: number
   }}
-
 
   constructor(gl: W2) {
     this.gl = gl;

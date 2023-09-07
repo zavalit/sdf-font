@@ -1,9 +1,8 @@
-import textVertexShader from './shaders/text/text.vertex.glsl';
-import textFragmentShader from './shaders/text/text.fragment.glsl';
+import textVertexShader from './shaders/letter/letter.vertex.glsl';
+import textFragmentShader from './shaders/letter/letter.fragment.glsl';
 import chain, {convertCanvasTexture} from '@webglify/chain'
 import {WindowPlugin} from '@webglify/chain'
 
-console.log('chain', chain)
 export interface SDFParams {sdfItemSize: number, sdfMargin: number,  sdfExponent: number}
 type W2 = WebGL2RenderingContext
 
@@ -49,7 +48,8 @@ type TextMetaType = {
   text: string
   textMeta: typeof defaultTextMeta
   sdfParams: typeof defaultSdfParams,
-  sizesMap: {[key: number]: [number, number, number, number, number]}
+  //sizesMap: {[key: number]: [number, number, number, number, number]}
+  sizesMap: {[key: number]: number[]}
   fontMeta: {
     unitsPerEm: number
     ascender: number
@@ -167,7 +167,7 @@ export type ColorType = {
 const BlackColor = {r:0, g:0, b:0}
 const uColor = BlackColor
 
-export const passItem = ({glyphMapTexture, framebuffer, glyphBounds, fontSize, charCodes, sdfTexture, sdfItemSize, fontMeta, atlasColumnCount, shaders}) => {
+export const passItem = ({glyphMapTexture, framebuffer, glyphBounds, fontSize, charCodes, sdfTexture, sdfItemSize, fontMeta, atlasColumnCount, shaders}: any) => {
   
   const fragmentShader = shaders?.fragmentShader || textFragmentShader
   const vertexShader = shaders?.vertexShader || textVertexShader
@@ -175,7 +175,7 @@ export const passItem = ({glyphMapTexture, framebuffer, glyphBounds, fontSize, c
     vertexShader,
     fragmentShader,
     textures: [glyphMapTexture!],
-    addVertexData(gl: W2){
+    vertexArrayObject(gl: W2){
       
       const vao = gl.createVertexArray()!
       gl.bindVertexArray(vao)
@@ -244,6 +244,7 @@ export const passItem = ({glyphMapTexture, framebuffer, glyphBounds, fontSize, c
 
     },
     uniforms(gl: W2, loc){
+      console.log('uniforms loc', loc)
 
           gl.uniform2fv(loc.uSDFTextureSize, [sdfTexture.width, sdfTexture.height])
           gl.uniform3fv(loc.uColor, [uColor.r,uColor.g,uColor.b])    
@@ -278,11 +279,30 @@ export const passItem = ({glyphMapTexture, framebuffer, glyphBounds, fontSize, c
 export const renderText = (gl: WebGL2RenderingContext, sdfTexture: {texture: HTMLCanvasElement}, meta: TextMetaType, atlasColumnCount:number, shaders:{}, color?: ColorType ) => {
   
     const {charCodes, sdfItemSize, glyphBounds, fontMeta, fontSize} = getTextMetaData(meta)
+    
+    const dpr = Math.min(2, window.devicePixelRatio)
+    const heightSize = fontSize + fontSize * .15
+    const lastLettersEnd = glyphBounds[glyphBounds.length - 2]
+    const widthSize = fontSize * (lastLettersEnd + .05)
+
+    
+
+  
+
+    const canvas = gl.canvas as HTMLCanvasElement
+    canvas.height = heightSize * dpr;
+    canvas.width = widthSize * dpr;
+    canvas.style.height = `${heightSize}px`;
+    canvas.style.width =  `${widthSize}px`;
+
+    
     const glyphMapTexture = convertCanvasTexture(gl, sdfTexture.texture)
 
     const windowPlugin = new WindowPlugin(gl)
     
+    console.log('windowPlugin', windowPlugin)
     const pass = passItem({glyphMapTexture, glyphBounds, charCodes, sdfTexture, sdfItemSize, fontMeta, fontSize,  atlasColumnCount, shaders})
+    
     const {renderFrame} = chain(gl, [
       pass  
     ], [windowPlugin])

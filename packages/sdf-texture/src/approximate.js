@@ -136,17 +136,17 @@ export function getSegements (path) {
 
 
 
-type Segment = {
-    x1:  number
-    y1:  number
-    x2:  number
-    y2:  number
-    distance:  number,
-    offset: number
-}
-export const approximateWithDistance = (path: string): {segments: Segment[], distance: number} => {
+// type Segment = {
+//     x1:  number
+//     y1:  number
+//     x2:  number
+//     y2:  number
+//     distance:  number,
+//     offset: number
+// }
+export const approximateWithDistance = (path) => {
 
-    const segments: Segment[] = []
+    const segments = []
 
     let distance = 0
     let offset = 0

@@ -10,12 +10,11 @@ import distanceGroupVertex from  './shaders/segments/distance/distance.group.ver
 import distanceGroupFragment from './shaders/segments/distance/distance.group.fragment.glsl'
 
 
-import {FontSvgApi, getSegements, codeToGlyph, glyphToPath, cmdsToPath, FontDataType} from '.'
-import chain, {BufferMap, createFramebufferTexture, DrawData, VAOBufferMap} from '@webglify/chain'
+import {FontSvgApi, getSegements, codeToGlyph, glyphToPath, cmdsToPath, FontDataType} from './index'
+import chain, {createFramebufferTexture, VAOBufferMap} from '@webglify/chain'
 
 
 type W2 = WebGL2RenderingContext
-
 
 export type FontMetaType = {
   unitsPerEm: number
@@ -140,7 +139,7 @@ export const renderIconAtlasTexture = (gl: W2, targets: Target[], sdfParams, uni
   return renderAtlasTexture(gl, targets, sdfParams, renderParams, shaders, blendSegmentsCb, unitsPerEm, columnCount)
 }
 
-export const renderIconDistanceSpriteTexture = async (gl: W2, targets: Target[], sdfParams, unitsPerEm: number, columnCount: number): Promise<WebGL2RenderingContext> => {
+export const renderIconDistanceAtlasTexture = async (gl: W2, targets: Target[], sdfParams, unitsPerEm: number, columnCount: number): Promise<WebGL2RenderingContext> => {
   
   const renderParams = {
     isCentered: false,
@@ -316,12 +315,11 @@ const renderAtlasTexture = (gl: W2, targets: Target[], {sdfItemSize, sdfExponent
   
 }
 
-
 interface Target {
   segmentsCoord: number[]
-  segmentsDist: number[]
+  segmentsDist?: number[]
   viewBox: number[]
-  distance: number
+  distance?: number
 }
 
 
@@ -334,25 +332,25 @@ class CharsData {
   renderableGlyphCount: number;
   charsMap: Map<number, CharMeta>
   charCodes: number[];
-  fontApi;
-  fontMeta: FontDataType
+  fontData;
+  fontMeta: FontMetaType
   sdfMeta: {sdfItemSize: number}
   
   // This regex (instead of /\s/) allows us to select all whitespace EXCEPT for non-breaking white spaces
   static lineBreakingWhiteSpace = `[^\\S\\u00A0]`
 
 
-  constructor (fontApi, sdfMeta, charCodes: number[]) {
+  constructor (fontData: FontDataType, sdfMeta, charCodes: number[]) {
       this.renderableGlyphCount = 0;
       this.charsMap = new Map()
       this.charCodes = charCodes
-      this.fontApi = fontApi
+      this.fontData = fontData
       this.sdfMeta = sdfMeta
 
-      const os2 = fontApi['OS/2']
+      const os2 = fontData['OS/2']
     
       this.fontMeta = {
-        unitsPerEm: fontApi.head.unitsPerEm,
+        unitsPerEm: fontData.head.unitsPerEm,
         ascender: os2.sTypoAscender,
         descender: os2.sTypoDescender,
         capHeight: os2.sCapHeight,
@@ -369,14 +367,14 @@ class CharsData {
 
   add (charCode: number) {
       
-      const glyphId = codeToGlyph(this.fontApi, charCode)
+      const glyphId = codeToGlyph(this.fontData, charCode)
       const char = String.fromCharCode(charCode)
       const isWhitespace = !!char && new RegExp(CharsData.lineBreakingWhiteSpace).test(char)
 
       !isWhitespace && this.renderableGlyphCount++
       
       if(!this.charsMap.get(charCode)) {
-          const {cmds, crds} = glyphToPath(this.fontApi, glyphId)
+          const {cmds, crds} = glyphToPath(this.fontData, glyphId)
              
           const path = cmdsToPath(cmds, crds)
          
@@ -407,7 +405,7 @@ class CharsData {
             edgePoints.maxY,
           ]
 
-          const advanceWidth = this.fontApi.hmtx.aWidth[glyphId]
+          const advanceWidth = this.fontData.hmtx.aWidth[glyphId]
 
           this.charsMap.set(charCode, {
               advanceWidth,

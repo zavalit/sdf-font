@@ -74,7 +74,7 @@ export type FontDataType = {
 	
 
 export {createGlyphTexture, TextureFormat} from './sdfTexture'
-export {getSegements, cmdsToPath} from './approximate'
+export {getSegements, cmdsToPath} from './approximate';
 
 
 export const codeToGlyph = (fontData: FontDataType, charCode: number) => Typr.U.codeToGlyph(fontData, charCode)

@@ -2,21 +2,21 @@
   "name": "@webglify/sdf-texture",
   "version": "0.0.1",
   "private": false,
-  "source": "src/index.ts",
-  "main": "lib/main.js",
-  "types": "./types.d.ts",
+  "main": "lib/index.js",
   "directories": {
-    "lib": "lib"
+    "dist": "lib"
   },
   "scripts": {
-    "build": "parcel build"
+    "build": "ncp src/ lib/ && tsc",
+    "watch": "nodemon -e ts,js --watch ./src -x 'npm run build' "
   },
   "dependencies": {
-    "@webglify/chain": "^0.0.37",
+    "@webglify/chain": "^0.0.7",
     "bidi-js": "^1.0.2",
     "jszip": "^3.10.1"
   },
   "devDependencies": {
-    "@parcel/transformer-glsl": "2.8.3"
+    "ncp": "^2.0.0",
+    "typescript": ">=3.0.0"
   }
 }

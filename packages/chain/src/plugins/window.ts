@@ -1,4 +1,4 @@
-import { ChainPlugin, ProgramsMapType, PluginCallProps } from "../index.types";
+import { ChainPlugin, ProgramsMapType, PluginCallProps } from "../chain";
 type W2 = WebGL2RenderingContext
 
 export class WindowPlugin implements ChainPlugin {
@@ -6,8 +6,9 @@ export class WindowPlugin implements ChainPlugin {
   private gl: W2;
   private u1: Map<WebGLProgram, WebGLUniformLocation>
   private u2: Map<WebGLProgram, WebGLUniformLocation>
- // private u3: WebGLUniformLocation
- // private u4: WebGLUniformLocation
+  //private u3: WebGLUniformLocation
+  private u4: Map<WebGLProgram, WebGLUniformLocation>
+  private canvas: HTMLCanvasElement
 
   MOUSE_COORDS = {
     x: 0,
@@ -21,8 +22,10 @@ export class WindowPlugin implements ChainPlugin {
     this.gl = gl
     this.u1 = new Map()
     this.u2 = new Map()
-    
+    this.u4 = new Map()
 
+    this.canvas = this.gl.canvas as HTMLCanvasElement
+    
     window.addEventListener("mousemove", (e) => this.listenToMouseMove(e), false)
   }
 
@@ -31,8 +34,8 @@ export class WindowPlugin implements ChainPlugin {
     const {top, bottom, left} =  (gl.canvas as HTMLCanvasElement).getBoundingClientRect()
     const height = bottom - top;
     const fromTop = ev.clientY - top;
-    this.MOUSE_COORDS.x = (left - ev.clientX) * devicePixelRatio
-    this.MOUSE_COORDS.y = (fromTop - height) * devicePixelRatio  
+    // this.MOUSE_COORDS.x = (left - ev.clientX) * devicePixelRatio
+    // this.MOUSE_COORDS.y = (fromTop - height) * devicePixelRatio  
     
     //gl.uniform2fv(this.u3, [this.MOUSE_COORDS.x, this.MOUSE_COORDS.y]);
   }
@@ -45,16 +48,11 @@ export class WindowPlugin implements ChainPlugin {
     Object.values(programs).forEach(({program}) => {
       this.u1.set(program, this.gl.getUniformLocation(program, "uResolution")!)
       this.u2.set(program, this.gl.getUniformLocation(program, "uTime")!)
+      this.u4.set(program, this.gl.getUniformLocation(program, "uResolutionInPx")!)
     })
-
-    
-    // this.u1 = gl.getUniformLocation(program, "uResolution")!;
-    // gl.uniform2fv(this.u1, [gl.drawingBufferWidth, gl.drawingBufferHeight]);
-    // this.u2 = gl.getUniformLocation(program, "uTime")!;
     // this.u3 = gl.getUniformLocation(program, "uMouse")!;
     // gl.uniform2fv(this.u3, [this.MOUSE_COORDS.x, this.MOUSE_COORDS.y]);
-    // this.u4 = gl.getUniformLocation(program, "uDpr")!;
-    // gl.uniform1f(this.u4, devicePixelRatio);
+    
   }
 
   beforeDrawCall({time, program}: PluginCallProps) {
@@ -64,12 +62,13 @@ export class WindowPlugin implements ChainPlugin {
     
       const loc2 = this.u2.get(program)!      
       loc2 && this.gl.uniform1f(loc2, time);    
+
+      const loc4 = this.u4.get(program)!      
+      loc4 && this.gl.uniform2fv(loc4, [this.canvas.clientWidth, this.canvas.clientHeight]);    
     
-    
-  
   }
 
-  afterDrawCall(props: PluginCallProps){
+  afterDrawCall(_: PluginCallProps){
 
   }
 

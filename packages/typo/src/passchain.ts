@@ -1,5 +1,5 @@
 
-import {convertCanvasTexture, createFramebuffer, ChainPassPops} from '@webglify/chain'
+import {convertCanvasTexture, createFramebufferTexture, ChainPassPops} from '@webglify/chain'
 import {createGlyphTexture, TextureFormat} from '@webglify/sdf-texture'
 import {defaultSdfParams, defaultTextMeta, getTextMetaData, passItem} from './index'
 
@@ -13,6 +13,8 @@ type TextPassProps = {
   sdfParams?: typeof defaultSdfParams
   textMeta?: typeof defaultTextMeta
   fragmentShader?: string
+  toFramebuffer?: boolean
+  columnCount: number
 }
 
 type PassChainRepo = {
@@ -21,7 +23,7 @@ type PassChainRepo = {
 }
 
 
-export const obtainPassChain = async (gl: W2, {text, fontUrl, viewport, toFramebuffer=true, ...passParams}: TextPassProps): Promise<PassChainRepo> => {
+export const obtainPassChain = async (gl: W2, {text, fontUrl, viewport, toFramebuffer=true, columnCount, ...passParams}: TextPassProps): Promise<PassChainRepo> => {
   
   const canvas = document.createElement('canvas')
   const {width, height} = viewport
@@ -32,7 +34,7 @@ export const obtainPassChain = async (gl: W2, {text, fontUrl, viewport, toFrameb
   // canvas.style.height = `${height}px`
 
   const {framebuffer, texture} = toFramebuffer
-  ? createFramebuffer(gl, {width: viewport.width, height: viewport.height})
+  ? createFramebufferTexture(gl, {width: viewport.width, height: viewport.height})
   : { framebuffer: null, texture: null}
 
   
@@ -45,7 +47,7 @@ export const obtainPassChain = async (gl: W2, {text, fontUrl, viewport, toFrameb
 
   const {fontMeta, sizesMap} = await createGlyphTexture({
     [TextureFormat.EDGE]: canvas
-  }, fontUrl, sdfParams, charCodes)
+  }, fontUrl, sdfParams, charCodes, columnCount)
 
   const glyphMapTexture = convertCanvasTexture(gl, canvas)
 
