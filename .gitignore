@@ -8,5 +8,6 @@ lib
 .DS_Store
 *.png
 *.json
+!package.json
 *.backup.*
 types.d.ts.map

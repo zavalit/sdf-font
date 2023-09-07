@@ -1,0 +1,37 @@
+{
+  "name": "@webglify/typo",
+  "version": "0.0.2",
+  "private": false,
+  "devDependencies": {
+    "ncp": "^2.0.0",
+    "nodemon": "^3.0.1",
+    "puppeteer": "^19.7.2",
+    "typescript": "^5.0.4"
+  },
+  "dependencies": {
+    "@webglify/chain": "^0.0.7",
+    "@webglify/sdf-texture": "0.0.1"
+  },
+  "main": "lib/index.js",
+  "directories": {
+    "dist": "lib"
+  },
+  "scripts": {
+    "build": "ncp src/ lib/ && tsc",
+    "watch": "nodemon -e ts,js --watch ./src -x 'npm run build' "
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zavalit/webglify.git#main"
+  },
+  "keywords": [
+    "sdf",
+    "font"
+  ],
+  "author": "Vsevolod Dolgopolov",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/zavalit/webglify/issues"
+  },
+  "homepage": "https://github.com/zavalit/webglify/tree/main#readme"
+}
