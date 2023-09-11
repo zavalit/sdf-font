@@ -73,7 +73,7 @@ export type FontDataType = {
 }
 	
 
-export {createGlyphTexture, TextureFormat} from './sdfTexture'
+export {createGlyphTexture, createGlyphAtlas, TextureFormat} from './sdfTexture'
 export {getSegements, cmdsToPath} from './approximate';
 
 

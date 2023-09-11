@@ -24,7 +24,7 @@ export type ChainPassPops = {
   devicePixelRatio?: number;
   textures?: WebGLTexture[]
   framebuffer?: FramebufferChainProp
-  vertexArrayObject?: (gl:W2, vaoMap:VAOBufferMap) => WebGLVertexArrayObject
+  vertexArrayObject?: (gl:W2, vaoMap?:VAOBufferMap) => WebGLVertexArrayObject
   uniforms?: UniformSignature
   
   drawCall?: DrawCallSignature

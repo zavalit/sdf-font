@@ -436,10 +436,8 @@ export const initFont = async (fontUrl: string) => {
   
   
 }
-const getCharsMap = (fontData: FontDataType, {sdfItemSize}: SDFParams, chars: string) => {
+const getCharsMap = (fontData: FontDataType, {sdfItemSize}: SDFParams, charCodes: number[]) => {
         
-  const charCodes = [...chars].map((_, i) => chars.codePointAt(i))
-
   const glyphsData = new CharsData(fontData, {sdfItemSize}, charCodes)
   
   const {charsMap, fontMeta} = glyphsData
@@ -475,10 +473,9 @@ export const createGlyphTexture = async (texturesDict: TexturesDict, fontUrl: st
 
 
   const fontData = await initFont(fontUrl)
-  const chars = charCodes.map(c => String.fromCodePoint(c)).join('')
 
 
-  const {charsMap, fontMeta} = getCharsMap(fontData, sdfParams, chars)
+  const {charsMap, fontMeta} = getCharsMap(fontData, sdfParams, charCodes)
   
   const occ: CharMeta[] = [];
   
@@ -486,7 +483,6 @@ export const createGlyphTexture = async (texturesDict: TexturesDict, fontUrl: st
     occ[k] = v
   });
 
-  console.log('columnCount', columnCount)
 
   
   const textures = {}
@@ -565,4 +561,52 @@ export const createIconTexture = async (texturesDict: TexturesDict, svgIcon: SVG
 
   }  
 
+}
+
+
+const defaultOptions = {
+  sdfParams: {
+    sdfItemSize: 64,
+    sdfExponent: 10
+  },
+  charCodes: () => [...Array(256).keys()],
+  columnCount: 8
+}
+
+
+export const createGlyphAtlas = async (fontUrl: string, options: {sdfParams?: SDFParams, charCodes?: number[], columnCount?: number} = {}) => {
+
+  const fontData = await initFont(fontUrl)
+
+  const sdfParams = options.sdfParams || defaultOptions.sdfParams
+
+  const charCodes = options.charCodes || defaultOptions.charCodes()
+
+  const columnCount = options.columnCount || defaultOptions.columnCount
+
+  const {charsMap, fontMeta} = getCharsMap(fontData, sdfParams, charCodes)
+  
+  const occ: CharMeta[] = [];
+  
+  charsMap.forEach((v, k) => {    
+    occ[k] = v
+  });
+
+  const canvas = document.createElement('canvas')  
+  const gl = canvas.getContext('webgl2', {premultipliedAlpha: false})!;
+  await renderGlyphAtlasTexture(gl, occ, sdfParams, fontMeta.unitsPerEm, columnCount)
+
+  const charsMeta = occ.reduce((acc, v, i) => ({...acc,[i]:[...v.viewBox, v.advanceWidth] }), {})
+
+  return {
+    atlas: canvas,
+    fontMeta: {
+      ...fontMeta,
+      charsMeta
+    },
+    atlasMeta: {
+      sdfParams,
+      columnCount
+    }
+  }
 }
