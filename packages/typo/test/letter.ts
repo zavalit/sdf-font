@@ -26,14 +26,15 @@ const charCodes = sampleText.split('').map(c => c.charCodeAt(0));
 const textCanvas = document.createElement('canvas')!
 
 
-const textGL = textCanvas.getContext('webgl2')!
+const textGL = textCanvas.getContext('webgl2', {premultipliedAlpha: true})!
 document.body.appendChild(textCanvas) 
 
 
+const fontSize = 120
 const textParams = {
-  fontSize: 140,
+  fontSize,
   letterSpacing: 1.,
-  rowHeight: 1.15 * 140
+  rowHeight: 1.15 * fontSize
 }
 const fontData = {fontMeta, atlasMeta}
  

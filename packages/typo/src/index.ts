@@ -1,7 +1,7 @@
 import textVertexShader from './shaders/glyph/glyph.vertex.glsl';
 import textFragmentShader from './shaders/glyph/glyph.fragment.glsl';
-import chain, {convertCanvasTexture} from '@webglify/chain'
-import {WindowPlugin} from '@webglify/chain'
+import chain, { CustomChainPassPops, createTexture} from '@webglify/chain'
+import {WindowUniformsPlugin} from '@webglify/chain'
 
 export interface SDFParams {sdfItemSize: number, sdfMargin: number,  sdfExponent: number}
 type W2 = WebGL2RenderingContext
@@ -31,6 +31,7 @@ export type RenderTextProps = {
    sdfItemSize: number
    fontSize: number
    rowHeight: number 
+   columnCount: number
    fontMeta: {
     unitsPerEm: number
     ascender: number
@@ -79,6 +80,7 @@ export const getTextMetaData = (textRows: string[], meta: FontTextureMetaType, t
   
     const {fontMeta, atlasMeta: { sdfParams: { sdfItemSize}}} = meta
     const {fontSize, letterSpacing} = textMeta
+    const columnCount = meta.atlasMeta.columnCount
     
     const rowHeight = textMeta.rowHeight || fontSize * (1 + fontMeta.lineGap/fontMeta.unitsPerEm)
 
@@ -89,11 +91,14 @@ export const getTextMetaData = (textRows: string[], meta: FontTextureMetaType, t
       const rowCharCodes = [...text].map((_, i) => {
         const rowIndex = textRows.length - row - 1
         const rowPadding = rowIndex * rowHeight
-        return [
+        const rowData = [
           text.codePointAt(i) as number, 
           textRows.length - row - 1,
-          rowPadding
-        ]
+          rowPadding,
+          (i)/(text.length - 1) // how far in a row
+        ];
+
+        return rowData
       })
 
       return [...acc, ...rowCharCodes]
@@ -121,7 +126,6 @@ export const getTextMetaData = (textRows: string[], meta: FontTextureMetaType, t
     
   
     
-    //const glyphPositions = new Float32Array(renderableGlyphCount * 2)
     const glyphPositions: {xProgress: number}[][] = Array(textRows.length).fill(null).map(() => []);
     
     charCodesData.forEach(([charCode, rowIndex], i: number) => {
@@ -161,7 +165,9 @@ export const getTextMetaData = (textRows: string[], meta: FontTextureMetaType, t
         sdfItemSize,
         fontMeta,
         fontSize,
-        rowHeight
+        rowHeight,
+        columnCount
+        
     }
   }
 
@@ -181,12 +187,13 @@ export type ColorType = {
   b: number
 }
 const BlackColor = {r:0, g:0, b:0}
-const uColor = BlackColor
 
-export const passItem = ({glyphMapTexture, framebuffer, glyphBounds, bottomPadding, fontSize, charCodesData, atlasTexture, sdfItemSize, fontMeta, atlasColumnCount, shaders}: any) => {
+export const passItem = (gl, {atlas, glyphBounds, bottomPadding, fontSize, charCodesData, sdfItemSize, fontMeta, columnCount}: any, pass: CustomChainPassPops = {}) => {
   
-  const fragmentShader = shaders?.fragmentShader || textFragmentShader
-  const vertexShader = shaders?.vertexShader || textVertexShader
+  const glyphMapTexture = createTexture(gl, atlas)
+
+  const fragmentShader = pass.fragmentShader || textFragmentShader
+  const vertexShader = pass.vertexShader || textVertexShader
   return {
     vertexShader,
     fragmentShader,
@@ -216,9 +223,6 @@ export const passItem = ({glyphMapTexture, framebuffer, glyphBounds, bottomPaddi
       //
       // GlyphBounds
       //          
-
-
-      console.log('glyphBounds', glyphBounds)
       
       const buf2 = gl.createBuffer()
       gl.bindBuffer(gl.ARRAY_BUFFER, buf2)
@@ -234,68 +238,52 @@ export const passItem = ({glyphMapTexture, framebuffer, glyphBounds, bottomPaddi
       //          
       const buf3 = gl.createBuffer()
       gl.bindBuffer(gl.ARRAY_BUFFER, buf3)       
-      console.log('charCodesData', charCodesData)
       const indexes = new Float32Array(charCodesData.flat())
       gl.bufferData(gl.ARRAY_BUFFER, indexes, gl.STATIC_DRAW)
       
 
-      gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 3 * 4, 0);
+      gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 4 * 4, 0);
       gl.enableVertexAttribArray(2)
       gl.vertexAttribDivisor(2, 1)
 
-      gl.vertexAttribPointer(4, 2, gl.FLOAT, false, 3 * 4, 4);
-      gl.enableVertexAttribArray(4)
-      gl.vertexAttribDivisor(4, 1)
-  
-      //
-      // Letter Order
-      //          
-      const buf4 = gl.createBuffer()
-      gl.bindBuffer(gl.ARRAY_BUFFER, buf4)       
-      const order = new Uint16Array([...Array(charCodesData.length).keys()])
-      gl.bufferData(gl.ARRAY_BUFFER, order, gl.STATIC_DRAW)
-      
-
-      gl.vertexAttribPointer(3, 1, gl.UNSIGNED_SHORT, false, 2, 0);
+      gl.vertexAttribPointer(3, 2, gl.FLOAT, false, 4 * 4, 4);
       gl.enableVertexAttribArray(3)
       gl.vertexAttribDivisor(3, 1)
-  
+
+      gl.vertexAttribPointer(4, 1, gl.FLOAT, false, 4 * 4, 4 * 3);
+      gl.enableVertexAttribArray(4)
+      gl.vertexAttribDivisor(4, 1)
 
       return vao;
 
     },
-    uniforms(gl: W2, loc){
+    uniforms(gl: W2, locs){
 
-          gl.uniform2fv(loc.uSDFTextureSize, [atlasTexture.width, atlasTexture.height])
-          gl.uniform1f(loc.uSdfItemSize, sdfItemSize);
-          gl.uniform1f(loc.uAscender, fontMeta.ascender/fontMeta.unitsPerEm)
-          gl.uniform1f(loc.uDescender, fontMeta.descender/fontMeta.unitsPerEm)
-          gl.uniform1f(loc.uAtlasColumnCount, atlasColumnCount)
-          gl.uniform1f(loc.uFontSize, fontSize)
-          gl.uniform1f(loc.uBottomPadding, bottomPadding)
+          gl.uniform2fv(locs.uSDFTextureSize, [atlas.width, atlas.height])
+          gl.uniform1f(locs.uSdfItemSize, sdfItemSize);
+          gl.uniform1f(locs.uAscender, fontMeta.ascender/fontMeta.unitsPerEm)
+          gl.uniform1f(locs.uDescender, fontMeta.descender/fontMeta.unitsPerEm)
+          gl.uniform1f(locs.uAtlasColumnCount, columnCount)
+          gl.uniform1f(locs.uFontSize, fontSize)
+          gl.uniform1f(locs.uBottomPadding, bottomPadding)
 
+          pass.uniforms && pass.uniforms(gl, locs)
 
     },
     drawCall(gl: W2){
-
-      gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer)
-
       gl.clear(gl.COLOR_BUFFER_BIT)
 
       gl.enable(gl.BLEND)
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
       
-
       gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0., 4, charCodesData.length)
-
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null)
-
     }
-
   }
 }
 
-const prepareCanvas = (gl, fontSize, glyphBounds, rowsNumber, rowHeight) => {
+const prepareCanvas = (gl,rowsNumber, meta) => {
+  
+  const {fontSize, glyphBounds, rowHeight} = meta
   const dpr = Math.min(2, window.devicePixelRatio)
   const heightSize = rowsNumber * rowHeight
 
@@ -316,28 +304,33 @@ const prepareCanvas = (gl, fontSize, glyphBounds, rowsNumber, rowHeight) => {
 
 } 
 
-export const renderTextCanvas = (gl: W2, textRows, atlasTexture: HTMLCanvasElement, fontTextureMeta: FontTextureMetaType, textMeta?: TextMetaType, shaders?:{} ) => {
+export const renderTextCanvas = (gl: W2, textRows, atlas: HTMLCanvasElement, fontData: FontTextureMetaType, textMeta?: TextMetaType, customPass: CustomChainPassPops = {} ) => {
   
   const textMetaData =  textMeta || defaultTextMeta
   
-  const {charCodesData, sdfItemSize, glyphBounds, fontMeta, fontSize, rowHeight} = getTextMetaData(textRows, fontTextureMeta, textMetaData)
+  const textPassMetaData = getTextMetaData(textRows, fontData, textMetaData)
   
-  prepareCanvas(gl, fontSize, glyphBounds, textRows.length, rowHeight)
-    
-  const glyphMapTexture = convertCanvasTexture(gl, atlasTexture)
-
-  const windowPlugin = new WindowPlugin(gl)
+  prepareCanvas(gl, textRows.length, textPassMetaData)
   
-  const pass = passItem({glyphMapTexture, glyphBounds, charCodesData, atlasTexture, sdfItemSize, fontMeta, fontSize, atlasColumnCount: fontTextureMeta.atlasMeta.columnCount, shaders})
+  const pass = passItem(gl, {atlas, ...textPassMetaData}, customPass)
   
   const {renderFrame} = chain(gl, [
     pass  
-  ], [windowPlugin])
+  ], [new WindowUniformsPlugin(gl)])
   
   renderFrame(0)
 
 }
 
 
+export const getTypoPass = (gl: W2, {textRows, atlas, fontData, textMeta}) => {
+  const textMetaData =  textMeta || defaultTextMeta
+  
+  const textPassMetaData = getTextMetaData(textRows, fontData, textMetaData)
+  
+  return (pass: CustomChainPassPops) => {
+    return passItem(gl, {atlas, ...textPassMetaData}, pass)
+  }
+}
 
-//export {obtainPassChain} from './passchain'
+

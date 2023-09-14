@@ -1,7 +1,7 @@
 import { ChainPlugin, ProgramsMapType, PluginCallProps } from "../chain";
 type W2 = WebGL2RenderingContext
 
-export class WindowPlugin implements ChainPlugin {
+export class WindowUniformsPlugin implements ChainPlugin {
 
   private gl: W2;
   private u1: Map<WebGLProgram, WebGLUniformLocation>

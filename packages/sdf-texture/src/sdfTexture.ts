@@ -208,12 +208,9 @@ const renderAtlasTexture = (gl: W2, targets: Target[], {sdfItemSize, sdfExponent
   gl.canvas.width = canvasWidth
   gl.canvas.height = canvasHeight
 
-  const STATE = {
-    viewBox: [0],
-    distance: 0,
-  }
 
-  const segmentsFBO = createFramebufferTexture(gl, {width: sdfItemSize, height: sdfItemSize})
+
+  const segmentsFBO = createFramebufferTexture(gl, [sdfItemSize,sdfItemSize])
   
   const {programs} = chain(gl, [
     // single sdf target

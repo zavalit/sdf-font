@@ -16,6 +16,8 @@ export type DrawCallProps = {buffers?: BufferMap, uniformLocations: UnirformLoca
 
 export type DrawCallSignature = (gl:W2, props: DrawCallProps) => void
 
+export type CustomChainPassPops = Partial<ChainPassPops>;
+
 export type ChainPassPops = {
   vertexShader: string;
   fragmentShader: string;
@@ -268,7 +270,10 @@ export function createTexture(gl: W2, image: TexImageSource, parameterCb?: (gl: 
 
 }
 
-export const createFramebufferTexture = (gl:W2, { width, height} : {width: number, height: number}) => {
+export const createFramebufferTexture = (gl:W2, resolution : [number, number]) => {
+    
+    const [width, height] = resolution;  
+    
     // Create a framebuffer
     const framebuffer = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);

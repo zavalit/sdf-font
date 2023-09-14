@@ -1,13 +1,17 @@
 #version 300 es
 
 layout(location=0) in vec2 aPosition;
+
+
+out vec2 iPosition;
+
+
 layout(location=1) in vec4 aGlyphBounds;
 layout(location=2) in float aGlyphIndex;
-layout(location=3) in float aGlyphOrder;
-layout(location=4) in vec2 aRow;
+layout(location=3) in vec2 aRow;
+layout(location=4) in float aRowColumn;
 
 out vec2 vUV;
-out vec4 vGB;
 out vec2 pUV;
 
 
@@ -20,14 +24,14 @@ uniform float uFontSize;
 uniform float uDescender;
 uniform float uBottomPadding;
 
-const float paddingLeft = .5;
-
-void main(){
+vec2 getGlyphPosition () {
+  
+  float paddingLeft = 1./sqrt(uFontSize);
+  
   vec4 gb = aGlyphBounds;
 
   vec2 pos = aPosition;
   
-
   vec2 fontScale = uFontSize / uResolutionInPx;
   pos.x += gb.x;
   pos.y -= uDescender;
@@ -35,6 +39,7 @@ void main(){
 
   float width = gb.z - gb.x;
   float height = gb.w - gb.y;
+
   
   float centerShiftX = (1. - width) * .5;
   
@@ -45,12 +50,10 @@ void main(){
   pos.y += min(0., gb.y) * height + aRow.y/uFontSize;
     
   pos *= fontScale;
-  
-  
+  return pos;
+}
 
-  gl_Position = vec4(mix(vec2(-1.), vec2(1.), pos), 0.,1.);
-
-
+vec2 getGlyphUV () {
   vec2 itemSize = uSdfItemSize / uSDFTextureSize;
   float column = mod(aGlyphIndex, uAtlasColumnCount) * itemSize.x;
   float row = floor(aGlyphIndex/uAtlasColumnCount) * itemSize.y;
@@ -60,9 +63,21 @@ void main(){
   float v = mix(row, row + itemSize.y, aPosition.y);
 
   vec2 uv = vec2(u,v);
+  return uv;
+}
 
 
-  vUV = uv;
-  vGB = gb;
+void main(){
+
+
+  vec2 pos = getGlyphPosition();
+
+  pos.y += sin(aRowColumn * 3.1415) * .1;
+
+
+  gl_Position = vec4(mix(vec2(-1.), vec2(1.), pos), 0.,1.);
+
+
+  vUV = getGlyphUV();
   pUV = aPosition;
 }

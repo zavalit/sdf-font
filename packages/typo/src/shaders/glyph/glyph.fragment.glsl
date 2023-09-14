@@ -5,7 +5,6 @@ precision mediump float;
 out vec4 fragColor;
 
 in vec2 vUV;
-in vec4 vGB;
 in vec2 pUV;
 uniform sampler2D uTexture0;
 uniform  highp vec2 uResolution;
