@@ -9,8 +9,8 @@
     "typescript": "^5.0.4"
   },
   "dependencies": {
-    "@webglify/chain": "^0.0.8",
-    "@webglify/sdf-texture": "0.0.3"
+    "@webglify/chain": "^0.0.9",
+    "@webglify/sdf-texture": "0.0.4"
   },
   "main": "lib/index.js",
   "directories": {

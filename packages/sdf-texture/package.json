@@ -1,6 +1,6 @@
 {
   "name": "@webglify/sdf-texture",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "private": false,
   "main": "lib/index.js",
   "directories": {
@@ -11,7 +11,7 @@
     "watch": "nodemon -e ts,js --watch ./src -x 'npm run build' "
   },
   "dependencies": {
-    "@webglify/chain": "^0.0.8",
+    "@webglify/chain": "^0.0.9",
     "bidi-js": "^1.0.2",
     "jszip": "^3.10.1"
   },

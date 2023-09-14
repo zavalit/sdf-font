@@ -2,11 +2,12 @@
 // Type Definitions
 type W2 = WebGL2RenderingContext
 
+
 export type DrawData = {[key:string]: number[]}
 export type UnirformLocationsMap =   {[key: string]: WebGLUniformLocation}
 
-type FramebufferChainProp = [WebGLFramebuffer | null, null?]
 type UniformSignature = (gl:W2, locs: UnirformLocationsMap) => void
+type FramebufferChainProp = [WebGLFramebuffer | null, null?]
 
 export type BufferMap = {[key: string]: WebGLBuffer}
 export type VAOBufferMap = Map<WebGLVertexArrayObject, BufferMap>;
@@ -325,8 +326,12 @@ export const createProgramm = (gl: W2, {vertexShader, fragmentShader}: {vertexSh
    return prog
 }
 
+type WebGLTextureData = {
+  texture: WebGLTexture,
+  resoultion: [number, number]
+}
 
-export const loadTexture = (gl: W2, url: string): Promise<WebGLTexture> => new Promise((res, _) => loadImage(url, image => res(createTexture(gl, image))));
+export const loadTexture = (gl: W2, url: string): Promise<WebGLTextureData> => new Promise((res, _) => loadImage(url, image => res({texture: createTexture(gl, image), resoultion: [image.width, image.height]})));
 
 
 export const loadSVGTexture = (gl: W2, svgString: string) => {
@@ -368,4 +373,19 @@ const drawDefaultCall = (gl: W2) => {
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     
+}
+type HTMLCanvasContetxtType = {canvas: HTMLCanvasElement, gl: WebGL2RenderingContext}
+export const createHTMLCanvasContext = (size: number, options: WebGLContextAttributes = {}, dpr?: number): HTMLCanvasContetxtType => {
+  const canvas = document.createElement('canvas')
+  const gl = canvas.getContext('webgl2', options)!
+
+  const _dpr = dpr || Math.min(window.devicePixelRatio, 2.)
+  canvas.width = size * _dpr
+  canvas.height = size * _dpr
+  canvas.style.width = `${size}px`
+  canvas.style.height = `${size}px`
+
+
+  return {canvas, gl};
+
 }
