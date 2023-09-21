@@ -7,7 +7,8 @@ out vec4 fragColor;
 in vec2 vUV;
 in vec2 pUV;
 uniform sampler2D uTexture0;
-uniform  highp vec2 uResolution;
+uniform highp vec2 uResolution;
+uniform vec3 uColor;
 
 
 
@@ -17,14 +18,14 @@ void main () {
 
   float mask = texture(uTexture0, vUV).a;
   float d = fwidth(mask);
-  float edge = smoothstep(border.x - d, border.y + d, mask);
+  float edge = smoothstep(border.x - d, border.y - d*.05, mask);
   
-  vec3 color = vec3(1., 0., 0.) * edge;
+  vec3 color = uColor * edge;
   
   fragColor = vec4(color, edge);
 
-  // fragColor.xy = pUV;
-  // fragColor.w = 1.;
+  //  fragColor.xy = pUV;
+  //  fragColor.w += .5;
 
   
 }

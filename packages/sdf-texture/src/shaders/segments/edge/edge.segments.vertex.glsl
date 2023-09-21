@@ -56,7 +56,7 @@ void main() {
     uv = uIsCentered ? moveToCenter(uv) : uv;
     
     vViewBox = mix(gb.xy, gb.zw, uv);
-   //vViewBox.x -= gb.x;
+    vViewBox.x -= gb.x;
     
     
     vMaxDistance = uUnitsPerEm;

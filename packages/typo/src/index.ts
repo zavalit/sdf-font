@@ -27,19 +27,20 @@ export interface TextCharMeta {
 
 export type RenderTextProps = { 
   charCodesData: [number, number][]
-   glyphBounds: Float32Array
-   sdfItemSize: number
-   fontSize: number
-   rowHeight: number 
-   columnCount: number
-   fontMeta: {
+  glyphBounds: Float32Array
+  sdfItemSize: number
+  fontSize: number
+  rowHeight: number 
+  columnCount: number
+  fontMeta: {
     unitsPerEm: number
     ascender: number
     descender: number
     capHeight: number
     xHeight: number
-    lineGap: number
-  } }
+    lineGap: number 
+  } 
+}
 
 
 export const defaultSdfParams = {
@@ -94,8 +95,9 @@ export const getTextMetaData = (textRows: string[], meta: FontTextureMetaType, t
         const rowData = [
           text.codePointAt(i) as number, 
           textRows.length - row - 1,
-          rowPadding,
-          (i)/(text.length - 1) // how far in a row
+          rowPadding,          
+          (i)/(text.length - 1), // how far in a row
+          i, // order
         ];
 
         return rowData
@@ -135,14 +137,16 @@ export const getTextMetaData = (textRows: string[], meta: FontTextureMetaType, t
         const [xMin, yMin, xMax, yMax, advanceWidth] = data
         const posIndex = glyphPositions[rowIndex].length;
         const x = glyphPositions[rowIndex][posIndex-1]?.xProgress || 0
-        const letterSpace = advanceWidth * fontSizeMult
+        let letterSpace = advanceWidth * fontSizeMult
+
         const xProgress = x + letterSpace - letterSpace * (1. - letterSpacing || 0.)
 
         glyphPositions[rowIndex][posIndex] = {           
             xProgress
         }
         
-        const xMinD = xMin;
+        const xMinD = Math.abs(xMin);
+        //const xMinD = xMin;
         const yMinD = yMin;
         const xMaxD = xMax || 0;
         const yMaxD = yMax || 0;
@@ -188,16 +192,20 @@ export type ColorType = {
 }
 const BlackColor = {r:0, g:0, b:0}
 
-export const passItem = (gl, {atlas, glyphBounds, bottomPadding, fontSize, charCodesData, sdfItemSize, fontMeta, columnCount}: any, pass: CustomChainPassPops = {}) => {
+export const passItem = (gl, {atlas, textResolution, glyphBounds, bottomPadding, fontSize, charCodesData, sdfItemSize, fontMeta, columnCount}: any, pass: CustomChainPassPops = {}) => {
   
   const glyphMapTexture = createTexture(gl, atlas)
 
   const fragmentShader = pass.fragmentShader || textFragmentShader
   const vertexShader = pass.vertexShader || textVertexShader
+  const textures = pass.textures || []
+  
   return {
+    framebuffer: pass.framebuffer,
     vertexShader,
     fragmentShader,
-    textures: [glyphMapTexture!],
+    resolution: pass.resolution,
+    textures: [glyphMapTexture!,...textures],
     vertexArrayObject(gl: W2){
       
       const vao = gl.createVertexArray()!
@@ -242,15 +250,15 @@ export const passItem = (gl, {atlas, glyphBounds, bottomPadding, fontSize, charC
       gl.bufferData(gl.ARRAY_BUFFER, indexes, gl.STATIC_DRAW)
       
 
-      gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 4 * 4, 0);
+      gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 5 * 4, 0);
       gl.enableVertexAttribArray(2)
       gl.vertexAttribDivisor(2, 1)
 
-      gl.vertexAttribPointer(3, 2, gl.FLOAT, false, 4 * 4, 4);
+      gl.vertexAttribPointer(3, 2, gl.FLOAT, false, 5 * 4, 4);
       gl.enableVertexAttribArray(3)
       gl.vertexAttribDivisor(3, 1)
 
-      gl.vertexAttribPointer(4, 1, gl.FLOAT, false, 4 * 4, 4 * 3);
+      gl.vertexAttribPointer(4, 2, gl.FLOAT, false, 5 * 4, 4 * 3);
       gl.enableVertexAttribArray(4)
       gl.vertexAttribDivisor(4, 1)
 
@@ -261,14 +269,14 @@ export const passItem = (gl, {atlas, glyphBounds, bottomPadding, fontSize, charC
 
           gl.uniform2fv(locs.uSDFTextureSize, [atlas.width, atlas.height])
           gl.uniform1f(locs.uSdfItemSize, sdfItemSize);
-          gl.uniform1f(locs.uAscender, fontMeta.ascender/fontMeta.unitsPerEm)
-          gl.uniform1f(locs.uDescender, fontMeta.descender/fontMeta.unitsPerEm)
+          gl.uniform1f(locs.uAscender, fontMeta.ascender/(fontMeta.ascender - fontMeta.descender))
+          gl.uniform1f(locs.uDescender, fontMeta.descender/(fontMeta.ascender - fontMeta.descender))
           gl.uniform1f(locs.uAtlasColumnCount, columnCount)
           gl.uniform1f(locs.uFontSize, fontSize)
           gl.uniform1f(locs.uBottomPadding, bottomPadding)
-
+          gl.uniform1f(locs.uPaddingLeft, 1/fontSize)
+          gl.uniform2fv(locs.uClientTextResolution, [...textResolution])
           pass.uniforms && pass.uniforms(gl, locs)
-
     },
     drawCall(gl: W2){
       gl.clear(gl.COLOR_BUFFER_BIT)
@@ -281,11 +289,10 @@ export const passItem = (gl, {atlas, glyphBounds, bottomPadding, fontSize, charC
   }
 }
 
-const prepareCanvas = (gl,rowsNumber, meta) => {
-  
+const calcTextResolution = (rowsNumber, meta): [number, number, number] => {
   const {fontSize, glyphBounds, rowHeight} = meta
-  const dpr = Math.min(2, window.devicePixelRatio)
   const heightSize = rowsNumber * rowHeight
+  const dpr = Math.min(2, window.devicePixelRatio)
 
   const outerX = [];
 
@@ -293,13 +300,19 @@ const prepareCanvas = (gl,rowsNumber, meta) => {
     outerX.push(glyphBounds[i]);
   }
   const edgeLettersEnd = Math.max(...outerX);
-  const widthSize = fontSize * (edgeLettersEnd) + fontSize
+  const widthSize = fontSize * (edgeLettersEnd) + fontSize/Math.sqrt(fontSize)
+
+  return [widthSize*dpr, heightSize*dpr, dpr]
+}
+
+const prepareCanvas = (gl,[widthSize, heightSize, dpr]) => {
+
 
   const canvas = gl.canvas as HTMLCanvasElement
-  canvas.height = heightSize * dpr;
-  canvas.width = widthSize * dpr;
-  canvas.style.height = `${heightSize}px`;
-  canvas.style.width =  `${widthSize}px`;
+  canvas.height = heightSize;
+  canvas.width = widthSize;
+  canvas.style.height = `${heightSize/dpr}px`;
+  canvas.style.width =  `${widthSize/dpr}px`;
 
 
 } 
@@ -309,10 +322,12 @@ export const renderTextCanvas = (gl: W2, textRows, atlas: HTMLCanvasElement, fon
   const textMetaData =  textMeta || defaultTextMeta
   
   const textPassMetaData = getTextMetaData(textRows, fontData, textMetaData)
+
+  const textResolution = calcTextResolution(textRows.length,textPassMetaData)
   
-  prepareCanvas(gl, textRows.length, textPassMetaData)
+  prepareCanvas(gl, textResolution)
   
-  const pass = passItem(gl, {atlas, ...textPassMetaData}, customPass)
+  const pass = passItem(gl, {atlas, textResolution, ...textPassMetaData}, customPass)
   
   const {renderFrame} = chain(gl, [
     pass  
@@ -327,10 +342,12 @@ export const getTypoPass = (gl: W2, {textRows, atlas, fontData, textMeta}) => {
   const textMetaData =  textMeta || defaultTextMeta
   
   const textPassMetaData = getTextMetaData(textRows, fontData, textMetaData)
+
+  const textResolution = calcTextResolution(textRows.length,textPassMetaData)
   
-  return (pass: CustomChainPassPops) => {
-    return passItem(gl, {atlas, ...textPassMetaData}, pass)
-  }
+  return [(pass: CustomChainPassPops) => {
+    return passItem(gl, {atlas, textResolution, ...textPassMetaData}, pass)
+  }, textResolution]
 }
 
 

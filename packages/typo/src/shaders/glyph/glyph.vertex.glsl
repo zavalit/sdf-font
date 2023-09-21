@@ -1,11 +1,7 @@
 #version 300 es
 
+
 layout(location=0) in vec2 aPosition;
-
-
-out vec2 iPosition;
-
-
 layout(location=1) in vec4 aGlyphBounds;
 layout(location=2) in float aGlyphIndex;
 layout(location=3) in vec2 aRow;
@@ -23,29 +19,34 @@ uniform vec2 uResolutionInPx;
 uniform float uFontSize;
 uniform float uDescender;
 uniform float uBottomPadding;
+uniform float uPaddingLeft;
+
 
 vec2 getGlyphPosition () {
   
-  float paddingLeft = 1./sqrt(uFontSize);
+  float paddingLeft = uPaddingLeft;
   
   vec4 gb = aGlyphBounds;
 
   vec2 pos = aPosition;
   
   vec2 fontScale = uFontSize / uResolutionInPx;
-  pos.x += gb.x;
-  pos.y -= uDescender;
+  pos.x += max(gb.x, 0.);
   pos.x += paddingLeft;
+  pos.y -= uDescender;
+  
 
   float width = gb.z - gb.x;
   float height = gb.w - gb.y;
 
   
-  float centerShiftX = (1. - width) * .5;
+  float centerShiftX = .5 - .5 * width;
   
   float centerShiftY = (1. - height) * .5;
 
   pos.x -= centerShiftX;
+  
+  
   pos.y -= centerShiftY;
   pos.y += min(0., gb.y) * height + aRow.y/uFontSize;
     
@@ -67,13 +68,13 @@ vec2 getGlyphUV () {
 }
 
 
+#pragma glslify2: topDot = require('./glyph.position.vertex.glsl)
+
+
 void main(){
 
 
   vec2 pos = getGlyphPosition();
-
-  pos.y += sin(aRowColumn * 3.1415) * .1;
-
 
   gl_Position = vec4(mix(vec2(-1.), vec2(1.), pos), 0.,1.);
 

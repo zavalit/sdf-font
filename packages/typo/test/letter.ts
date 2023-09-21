@@ -5,10 +5,11 @@ import {  renderTextCanvas } from "../src"
 // import letterFragmentShader from './testshaders/letter.fragment.glsl'
 // import letterVertexShader from './testshaders/letter.vertex.glsl'
 
-
+const sampleText0 = "Ljub@s"
 const sampleText = "@p+-Ä"
 const sampleText2 = "2 Ü"
 const sampleText3 = "2001g"
+
 //const textBlocks = sampleData.map(({m}) => m);
 
 
@@ -20,7 +21,7 @@ const charCodes = sampleText.split('').map(c => c.charCodeAt(0));
 
 
 
-  const {atlas, fontMeta, atlasMeta} = await createGlyphAtlas(fontUrl)
+  const {atlas, fontMeta, atlasMeta} = await createGlyphAtlas(fontUrl, {sdfParams: {sdfItemSize: 64*2, sdfExponent: 10}})
 
 
 const textCanvas = document.createElement('canvas')!
@@ -39,9 +40,10 @@ const textParams = {
 const fontData = {fontMeta, atlasMeta}
  
 
-renderTextCanvas(textGL, [sampleText, sampleText2, sampleText3], atlas, fontData, textParams)
+const textRows = [sampleText0, sampleText, sampleText2, sampleText3]
+renderTextCanvas(textGL, [sampleText0], atlas, fontData, textParams)
 
-document.body.appendChild(atlas)
+//document.body.appendChild(atlas)
 
 
 })()

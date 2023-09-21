@@ -74,14 +74,23 @@ export default (
 
   const vaoMap: VAOBufferMap = new Map()
     
-  const calls = callsProps.map(({ vertexShader, fragmentShader, devicePixelRatio=2, ...props }, index:number) => {
-
-
+  const calls = callsProps
+  // init programms
+  .map(({ vertexShader, fragmentShader, devicePixelRatio=2, ...props }, index:number) => {
     const passId = props.passId || `${index}`
+
+    
+    const program = createProgramm(gl, {vertexShader, fragmentShader})
+    
+    
+    return {...props, passId, program }
+  })
+  // init state
+  .map(({program, passId, ...props}) => {
+
      
     const [width, height] = props.resolution || [gl.drawingBufferWidth, gl.drawingBufferHeight]
     
-    const program = createProgramm(gl, {vertexShader, fragmentShader})
   
 
     // provide attributes and uniforms
@@ -147,20 +156,18 @@ export default (
 
 
     const beforeDrawCall = () => {
-      
+
+      gl.viewport(0, 0, width, height);
+
       startFramebuffer()
       
       gl.useProgram(program)
       gl.bindVertexArray(vao)
-      gl.viewport(0, 0, width, height);
       
       textures.forEach(t => t.activate())      
       
       props.uniforms &&  props.uniforms(gl, uniformLocations)
-    
-      
-
-      
+          
     }
 
     const afterDrawCall = () => {
@@ -168,6 +175,7 @@ export default (
       gl.bindVertexArray(null)
       textures.forEach(t => t.deactivate())
       endFramebuffer()
+      
     }
 
     
@@ -285,8 +293,8 @@ export const createFramebufferTexture = (gl:W2, resolution : [number, number]) =
 
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
 
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
     
