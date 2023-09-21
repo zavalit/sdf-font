@@ -11,3 +11,4 @@ lib
 !package.json
 *.backup.*
 types.d.ts.map
+fonts

@@ -18,12 +18,11 @@ out vec4 fragColor;
 void main() {
 
   vec2 uv = vUV;
-  uv.y = uFlipY ? 1. - uv.y : uv.y;
   vec4 color = texture(tex, uv);
   bool inside = color.r != color.g;
   float val = inside ? 1.0 - color.a : color.a;
-  // Write to all channels; gl.colorMask will choose which one(s) survive.
-  color = uMirrorInside ? vec4(val) : color;
+  
+  color = vec4(val);
   
   fragColor = color;
 

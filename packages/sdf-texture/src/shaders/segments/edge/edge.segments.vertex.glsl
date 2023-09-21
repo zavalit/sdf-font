@@ -7,6 +7,10 @@ layout(location=3) in vec3 aGlyphBounds;
 
 uniform vec4 uGlyphBounds;
 uniform float uUnitsPerEm;
+uniform float uSdfItemSize;
+uniform float uDescender;
+uniform float uAscender;
+
 uniform bool uIsCentered;
 
 out vec4 vSegmentsCoord;
@@ -36,10 +40,13 @@ vec2 moveToCenter(vec2 uv) {
 void main() {
     
     vec4 gb = uGlyphBounds;
+    
 
-    vec2 from = gb.xy/uUnitsPerEm;    
-    vec2 to = gb.zw/uUnitsPerEm;
+    
+    vec2 from = gb.xy/(uUnitsPerEm);    
+    vec2 to = gb.zw/(uUnitsPerEm);
 
+   
         
     vec2 pos = aPosition;
     
@@ -52,11 +59,18 @@ void main() {
     
     vec2 uv = aPosition;
 
+    float glyphSpace = uAscender - uDescender;
+    float height = (gb.w - gb.y)/glyphSpace;
+    float width = (gb.z - gb.x)/glyphSpace;
+    uv.y -= 1./height * .5 - .5;
+    uv.x -= 1./width * .5 - .5;
 
-    uv = uIsCentered ? moveToCenter(uv) : uv;
+    uv *= 2.;
+    uv -= vec2(.5);
+
+    
     
     vViewBox = mix(gb.xy, gb.zw, uv);
-    vViewBox.x -= gb.x;
     
     
     vMaxDistance = uUnitsPerEm;

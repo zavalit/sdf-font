@@ -52,6 +52,7 @@ export const defaultTextMeta = {
   fontSize: 16,
   letterSpacing: 1.,
   rowHeight: 20,
+  paddingBottom: 0.
 }
 
 type TextMetaType = typeof defaultTextMeta
@@ -96,7 +97,7 @@ export const getTextMetaData = (textRows: string[], meta: FontTextureMetaType, t
           text.codePointAt(i) as number, 
           textRows.length - row - 1,
           rowPadding,          
-          (i)/(text.length - 1), // how far in a row
+          (i)/(text.length - 1) || 0, // how far in a row
           i, // order
         ];
 
@@ -106,7 +107,7 @@ export const getTextMetaData = (textRows: string[], meta: FontTextureMetaType, t
       return [...acc, ...rowCharCodes]
     }, [])
     
-    
+    console.log('charCodesData', charCodesData)
 
     const glyphBounds = new Float32Array(charCodesData.length * 4)
     
@@ -137,9 +138,12 @@ export const getTextMetaData = (textRows: string[], meta: FontTextureMetaType, t
         const [xMin, yMin, xMax, yMax, advanceWidth] = data
         const posIndex = glyphPositions[rowIndex].length;
         const x = glyphPositions[rowIndex][posIndex-1]?.xProgress || 0
-        let letterSpace = advanceWidth * fontSizeMult
+        const letterWidth = xMax - xMin
+        let betweenLetterSpace = (advanceWidth - letterWidth) * fontSizeMult
+        let letterSpace = (advanceWidth) * fontSizeMult
 
         const xProgress = x + letterSpace - letterSpace * (1. - letterSpacing || 0.)
+//        const xProgress = x + letterSpace + betweenLetterSpace * letterSpacing;
 
         glyphPositions[rowIndex][posIndex] = {           
             xProgress
@@ -167,6 +171,7 @@ export const getTextMetaData = (textRows: string[], meta: FontTextureMetaType, t
         glyphBounds,        
         charCodesData,
         sdfItemSize,
+        ...textMeta,
         fontMeta,
         fontSize,
         rowHeight,
@@ -192,7 +197,7 @@ export type ColorType = {
 }
 const BlackColor = {r:0, g:0, b:0}
 
-export const passItem = (gl, {atlas, textResolution, glyphBounds, bottomPadding, fontSize, charCodesData, sdfItemSize, fontMeta, columnCount}: any, pass: CustomChainPassPops = {}) => {
+export const passItem = (gl, {atlas, textResolution, glyphBounds, paddingBottom, fontSize, charCodesData, sdfItemSize, fontMeta, columnCount}: any, pass: CustomChainPassPops = {}) => {
   
   const glyphMapTexture = createTexture(gl, atlas)
 
@@ -267,14 +272,16 @@ export const passItem = (gl, {atlas, textResolution, glyphBounds, bottomPadding,
     },
     uniforms(gl: W2, locs){
 
+          const glyphSpace = fontMeta.ascender - fontMeta.descender;
           gl.uniform2fv(locs.uSDFTextureSize, [atlas.width, atlas.height])
           gl.uniform1f(locs.uSdfItemSize, sdfItemSize);
-          gl.uniform1f(locs.uAscender, fontMeta.ascender/(fontMeta.ascender - fontMeta.descender))
-          gl.uniform1f(locs.uDescender, fontMeta.descender/(fontMeta.ascender - fontMeta.descender))
+          gl.uniform1f(locs.uAscender, fontMeta.ascender/glyphSpace)
+          gl.uniform1f(locs.uUnitsPerEm, fontMeta.unitsPerEm/glyphSpace)
+          gl.uniform1f(locs.uDescender, fontMeta.descender/glyphSpace)
           gl.uniform1f(locs.uAtlasColumnCount, columnCount)
           gl.uniform1f(locs.uFontSize, fontSize)
-          gl.uniform1f(locs.uBottomPadding, bottomPadding)
           gl.uniform1f(locs.uPaddingLeft, 1/fontSize)
+          gl.uniform1f(locs.uPaddingBottom, paddingBottom)
           gl.uniform2fv(locs.uClientTextResolution, [...textResolution])
           pass.uniforms && pass.uniforms(gl, locs)
     },

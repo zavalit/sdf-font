@@ -57,8 +57,8 @@ const vertexArrayObject  = (gl: W2, vaoMap: VAOBufferMap) => {
     gl.bindBuffer(gl.ARRAY_BUFFER, pb);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
       0,0,
-      10,0,
-      0,10
+      20,0,
+      0,20
     ]), gl.STATIC_DRAW)
     
     
@@ -93,7 +93,7 @@ type RenderParams = {
   flipTextureY: boolean
 }
 
-export const renderGlyphAtlasTexture = (gl: W2, targets: Target[], sdfParams, unitsPerEm: number, columnCount: number): Promise<WebGL2RenderingContext> => {
+export const renderGlyphAtlasTexture = (gl: W2, targets: Target[], sdfParams, fontMeta: FontMetaType, columnCount: number): Promise<WebGL2RenderingContext> => {
   
   const renderParams = {
     isCentered: true,
@@ -114,10 +114,10 @@ export const renderGlyphAtlasTexture = (gl: W2, targets: Target[], sdfParams, un
     gl.blendEquationSeparate(gl.FUNC_ADD, gl.MAX)
   }
 
-  return renderAtlasTexture(gl, targets, sdfParams, renderParams, shaders, blendSegmentsCb, unitsPerEm, columnCount)
+  return renderAtlasTexture(gl, targets, sdfParams, renderParams, shaders, blendSegmentsCb, fontMeta, columnCount)
 }
 
-export const renderIconAtlasTexture = (gl: W2, targets: Target[], sdfParams, unitsPerEm: number, columnCount: number): Promise<WebGL2RenderingContext> => {
+export const renderIconAtlasTexture = (gl: W2, targets: Target[], sdfParams, fontMeta: FontMetaType, columnCount: number): Promise<WebGL2RenderingContext> => {
   
   const renderParams = {
     isCentered: false,
@@ -136,10 +136,10 @@ export const renderIconAtlasTexture = (gl: W2, targets: Target[], sdfParams, uni
     gl.blendEquationSeparate(gl.FUNC_ADD, gl.MAX)
   }
 
-  return renderAtlasTexture(gl, targets, sdfParams, renderParams, shaders, blendSegmentsCb, unitsPerEm, columnCount)
+  return renderAtlasTexture(gl, targets, sdfParams, renderParams, shaders, blendSegmentsCb, fontMeta, columnCount)
 }
 
-export const renderIconDistanceAtlasTexture = async (gl: W2, targets: Target[], sdfParams, unitsPerEm: number, columnCount: number): Promise<WebGL2RenderingContext> => {
+export const renderIconDistanceAtlasTexture = async (gl: W2, targets: Target[], sdfParams, fontMeta: FontMetaType, columnCount: number): Promise<WebGL2RenderingContext> => {
   
   const renderParams = {
     isCentered: false,
@@ -162,13 +162,13 @@ export const renderIconDistanceAtlasTexture = async (gl: W2, targets: Target[], 
   const targetsWithDistance = getTargetsWithDistance(targets)
   
 
-  const r = await renderAtlasTexture(gl, targetsWithDistance, sdfParams, renderParams,shaders, blendSegmentsCb, unitsPerEm, columnCount);
+  const r = await renderAtlasTexture(gl, targetsWithDistance, sdfParams, renderParams,shaders, blendSegmentsCb, fontMeta, columnCount);
   console.log(gl.getParameter(gl.VIEWPORT))
 
   return r
 }
 
-export const renderGlyphDistanceAtlasTexture = (gl: W2, targets: Target[], sdfParams, unitsPerEm: number, columnCount:number): Promise<WebGL2RenderingContext> => {
+export const renderGlyphDistanceAtlasTexture = (gl: W2, targets: Target[], sdfParams, fontMeta: FontMetaType, columnCount:number): Promise<WebGL2RenderingContext> => {
   
   const renderParams = {
     isCentered: true,
@@ -186,45 +186,52 @@ export const renderGlyphDistanceAtlasTexture = (gl: W2, targets: Target[], sdfPa
   const blendSegmentsCb = (gl: W2) => {
     gl.enable(gl.BLEND)
     gl.blendFunc(gl.ONE, gl.ONE)
-    gl.blendEquation(gl.MAX) 
+    gl.blendEquationSeparate(gl.FUNC_ADD, gl.MAX) 
   }
   const targetsWithDistance = getTargetsWithDistance(targets)
 
-  return renderAtlasTexture(gl, targetsWithDistance, sdfParams, renderParams,shaders, blendSegmentsCb, unitsPerEm, columnCount)
+  return renderAtlasTexture(gl, targetsWithDistance, sdfParams, renderParams,shaders, blendSegmentsCb, fontMeta, columnCount)
 }
 
 
-const renderAtlasTexture = (gl: W2, targets: Target[], {sdfItemSize, sdfExponent}: SDFParams, {isCentered, mirrorInside, flipTextureY}: RenderParams, shaders, segmentsBlendCb: (gl: W2)=> void,  unitsPerEm: number, columnCount: number): Promise<WebGL2RenderingContext> => {
+const renderAtlasTexture = (gl: W2, targets: Target[], {sdfItemSize, sdfExponent}: SDFParams, {isCentered, mirrorInside, flipTextureY}: RenderParams, shaders, segmentsBlendCb: (gl: W2)=> void,  fontMeta: FontMetaType, columnCount: number): Promise<WebGL2RenderingContext> => {
+
 
   const {
     vertexShader, fragmentShader, groupVertexShader, groupFragmentShader
   } = shaders
   
-  
-  const width = columnCount * sdfItemSize
-  const height = Math.ceil( targets.length / columnCount) * sdfItemSize
+  const adjustedSdfItemSize = sdfItemSize * 2.;  
+
+
+  const width = columnCount * adjustedSdfItemSize
+  const height = Math.ceil( (targets.length/4) / columnCount) * adjustedSdfItemSize
   const canvasWidth = width 
   const canvasHeight = height 
   gl.canvas.width = canvasWidth
   gl.canvas.height = canvasHeight
 
-
-
-  const segmentsFBO = createFramebufferTexture(gl, [sdfItemSize,sdfItemSize])
+  const segmentsFBO = createFramebufferTexture(gl, [adjustedSdfItemSize,adjustedSdfItemSize])
   
+
+  console.log('fontMeta', fontMeta)
   const {programs} = chain(gl, [
     // single sdf target
     {
       passId: 'segments',
+      framebuffer: [segmentsFBO.framebuffer, null],
       vertexShader,
       fragmentShader,
-      resolution: [sdfItemSize, sdfItemSize],
-      framebuffer: [segmentsFBO.framebuffer, null],
+      resolution: [adjustedSdfItemSize, adjustedSdfItemSize],
       vertexArrayObject,
       uniforms (gl, loc) {
         
+        gl.uniform1f(loc.uSdfItemSize, sdfItemSize)
         gl.uniform1f(loc.uExponent, sdfExponent)
-        gl.uniform1f(loc.uUnitsPerEm, unitsPerEm)
+        gl.uniform1f(loc.uUnitsPerEm, fontMeta.unitsPerEm)
+        gl.uniform1f(loc.uDescender, fontMeta.descender)
+        gl.uniform1f(loc.uAscender, fontMeta.ascender)
+
         gl.uniform1f(loc.uIsCentered, isCentered ?  1 : 0)
             
       }
@@ -232,10 +239,11 @@ const renderAtlasTexture = (gl: W2, targets: Target[], {sdfItemSize, sdfExponent
     },
     //put together 
     {
-      passId: 'group',
+      passId: 'atlas',
       resolution: [canvasWidth , canvasHeight],
       vertexShader: groupVertexShader,
       fragmentShader: groupFragmentShader,
+      textures: [segmentsFBO.texture!],
       vertexArrayObject,
       uniforms (gl, locs) {
      
@@ -243,25 +251,24 @@ const renderAtlasTexture = (gl: W2, targets: Target[], {sdfItemSize, sdfExponent
           gl.uniform1f(locs.uFlipY, flipTextureY ? 1 : 0)
       
       },
-      textures: [segmentsFBO.texture!],
      
     } 
   ])
 
-  const segNextDataDrawCall = programs['segments'].chainDrawCall
-  const groupNextDataDrawCall = programs['group'].chainDrawCall
-  
 
   const buffer = gl.createBuffer()!;
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
 
   // render a gpyph sprite
   targets.forEach((t, i) => { 
-    const column = i%columnCount
-    const row = Math.floor(i/columnCount)
+    //const i = _i - 48;
+    const c = Math.floor(i/4);
+    
+    const column = c%columnCount
+    const row = Math.floor(c/columnCount)
       
     const data = t
-    segNextDataDrawCall(0, (gl, props) => {
+    programs['segments'].chainDrawCall(0, (gl, props) => {
 
 
       const {buffers, uniformLocations} = props
@@ -269,11 +276,7 @@ const renderAtlasTexture = (gl: W2, targets: Target[], {sdfItemSize, sdfExponent
         throw new Error(`segments draw call pass lacks of buffer or payload data`)
       }
       
-      
-      gl.uniform4fv( uniformLocations.uGlyphBounds, t.viewBox)
-      gl.uniform1f(uniformLocations.uDistance, t.distance!)
-      segmentsBlendCb(gl);       
-               
+              
       const composedData = [];
       for(let i =0, j=0; i < data.segmentsCoord.length; i+=4, j++){
         const dist = data.segmentsDist && data.segmentsDist[j]
@@ -285,24 +288,45 @@ const renderAtlasTexture = (gl: W2, targets: Target[], {sdfItemSize, sdfExponent
       }
       gl.bindBuffer(gl.ARRAY_BUFFER, buffers.segments)
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(composedData), gl.DYNAMIC_DRAW)
+
+
+ 
+      gl.uniform4fv( uniformLocations.uGlyphBounds, t.viewBox)
+      gl.uniform1f(uniformLocations.uDistance, t.distance!)
       
+      //segmentsBlendCb(gl);       
+      
+      gl.enable(gl.BLEND)
+      gl.blendFunc(gl.ONE, gl.ONE)
+      gl.blendEquationSeparate(gl.FUNC_ADD, gl.MAX) 
+      
+      gl.colorMask(true, true, true, true)
+      gl.viewport(0, 0, adjustedSdfItemSize, adjustedSdfItemSize)
+      gl.scissor(0, 0, adjustedSdfItemSize, adjustedSdfItemSize)
+
       gl.clear(gl.COLOR_BUFFER_BIT)
+
       // render
-      
+
       gl.drawArraysInstanced(gl.TRIANGLES, 0, 3, data.segmentsCoord.length/4)
       
       
     })
 
-    const x = sdfItemSize * column;
-    const y = sdfItemSize * row
+    const x = adjustedSdfItemSize * column;
+    const y = adjustedSdfItemSize * row
     
-    groupNextDataDrawCall(0, (gl, props) => {
-      gl.viewport(x, y, sdfItemSize, sdfItemSize)
-
+    programs['atlas'].chainDrawCall(0, (gl, props) => {
+      gl.viewport(x, y, adjustedSdfItemSize, adjustedSdfItemSize)
+      const r = i%4 === 0
+      const g = i%4 === 1 
+      const b = i%4 === 2
+      const a = i%4 === 3
+      gl.colorMask(r, g, b, a)
+      console.log('rgba', r,g,b,a)
       gl.disable(gl.BLEND)
       gl.drawArrays(gl.TRIANGLES, 0, 3);
-      
+    
     })
 
   })
@@ -479,21 +503,19 @@ export const createGlyphTexture = async (texturesDict: TexturesDict, fontUrl: st
   charsMap.forEach((v, k) => {    
     occ[k] = v
   });
-
-
   
   const textures = {}
   const edgeCanvas = texturesDict['EDGE']
   if(edgeCanvas){
     const glE = edgeCanvas.getContext('webgl2', {premultipliedAlpha: false})!;
-    await renderGlyphAtlasTexture(glE, occ, sdfParams, fontMeta.unitsPerEm, columnCount)
+    await renderGlyphAtlasTexture(glE, occ, sdfParams, fontMeta, columnCount)
     textures['EDGE'] = edgeCanvas  
   }
   
   const distCanvas = texturesDict['DISTANCE']
   if(distCanvas){
     const glD = distCanvas.getContext('webgl2', {premultipliedAlpha: false})!;
-    await renderGlyphDistanceAtlasTexture(glD, occ, sdfParams, fontMeta.unitsPerEm, columnCount)
+    await renderGlyphDistanceAtlasTexture(glD, occ, sdfParams, fontMeta, columnCount)
     textures['DISTANCE'] = distCanvas  
   }
 
@@ -591,7 +613,7 @@ export const createGlyphAtlas = async (fontUrl: string, options: {sdfParams?: SD
 
   const canvas = document.createElement('canvas')  
   const gl = canvas.getContext('webgl2', {premultipliedAlpha: false})!;
-  await renderGlyphAtlasTexture(gl, occ, sdfParams, fontMeta.unitsPerEm, columnCount)
+  await renderGlyphAtlasTexture(gl, occ, sdfParams, fontMeta, columnCount)
 
   const charsMeta = occ.reduce((acc, v, i) => ({...acc,[i]:[...v.viewBox, v.advanceWidth] }), {})
 

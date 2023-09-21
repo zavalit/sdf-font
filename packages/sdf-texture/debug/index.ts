@@ -1,11 +1,17 @@
 import {createGlyphTexture} from "../src/sdfTexture";
 import fontUrl from 'url:./fonts/Roboto/Roboto-Regular.ttf'
+import interFontUrl from 'url:./fonts/Inter/static/Inter-Regular.ttf'
+import cairoFontUrl from 'url:./fonts/Cairo/static/Cairo-Regular.ttf'
+import cairoBlackFontUrl from 'url:./fonts/Cairo/static/Cairo-Black.ttf'
+import baseneueFontUrl from 'url:./fonts/BaseNeue-Trial/web/WOFF/BaseNeueTrial-Regular.ttf'
+import travelNextUrl from 'url:./fonts/TT-Travels-Next/TT Travels Next Regular.ttf'
+import bluescreensTrialUrl from 'url:./fonts/ttbluescreens_trial/TT Bluescreens Trial Regular.ttf'
 
 
 
 const _256 = [...Array(256).keys()]
 
-const sdfItemSize = 64 * 4
+const sdfItemSize = 64
 const sdfParams = {
   sdfItemSize,
   sdfExponent: 20.,
@@ -36,26 +42,17 @@ const svg = ({sdfViewBox, path}) => {
   
 
   const edgeCanvas = document.createElement('canvas')
-  const distanceCanvas = document.createElement('canvas')
 
-  const charCodes = '!'.split('').map(c => c.charCodeAt(0))
+  const charCodes = 'j'.split('').map(c => c.charCodeAt(0))
   
-  console.log('charCodes', charCodes)
-  //const {textures,fontMeta} = await createGlyphTexture({'EDGE': edgeCanvas, 'DISTANCE': distanceCanvas}, fontUrl, sdfParams, charCodes, 8)
-  const {textures,fontMeta} = await createGlyphTexture({'EDGE': edgeCanvas}, fontUrl, sdfParams, charCodes, 8)
+  const {textures, ...rest} = await createGlyphTexture({'EDGE': edgeCanvas}, travelNextUrl, sdfParams, _256, 8)
 
   const edge = textures['EDGE']
   document.body.appendChild(edge)
   
-  // const dist = textures['DISTANCE']
-  // document.body.appendChild(dist)
   
-  // Array.from(charsMap.values()).forEach(c => {
-  //   console.log('c', c)
-  //   svg(c)
-  // })
   
-  console.log('fontMeta', fontMeta)
+  console.log('fontdata', rest)
 
 
   
