@@ -60,8 +60,8 @@ void main() {
     vec2 uv = aPosition;
 
     float glyphSpace = uAscender - uDescender;
-    float height = (gb.w - gb.y)/glyphSpace;
-    float width = (gb.z - gb.x)/glyphSpace;
+    float height = (gb.w - gb.y)/uUnitsPerEm;
+    float width = (gb.z - gb.x)/uUnitsPerEm;
     uv.y -= 1./height * .5 - .5;
     uv.x -= 1./width * .5 - .5;
 

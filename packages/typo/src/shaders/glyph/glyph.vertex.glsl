@@ -6,11 +6,12 @@ layout(location=1) in vec4 aGlyphBounds;
 layout(location=2) in float aGlyphIndex;
 layout(location=3) in vec2 aRow;
 layout(location=4) in vec2 aRowColumn;
+layout(location=5) in float aGylphPadding;
 
-out vec2 vUV;
-out vec2 pUV;
+out vec2 glyphUV;
+out vec2 textUV;
 out float vChannel;
-
+out vec4 vGlyphBounds;
 
 uniform float uAtlasColumnCount;
 uniform vec2 uSDFTextureSize;
@@ -25,6 +26,7 @@ uniform float uBottomPadding;
 uniform float uPaddingLeft;
 uniform float uPaddingBottom;
 
+const float leftPadding = 0.;
 
 vec2 getGlyphPosition () {
   
@@ -32,17 +34,19 @@ vec2 getGlyphPosition () {
 
   vec2 pos = aPosition;
   
-
+  pos.x += leftPadding;
+  
   float height = gb.w + gb.y;
   float width = gb.z - gb.x;
   
   float overStep = (uAscender - uDescender)/uUnitsPerEm;
   
   pos.y += ((gb.w - gb.y) * .5 - .5);
-  pos.y += (.5 - overStep * .5 );
-  pos.x += (.5 - overStep * .5 );
+  // pos.y += (.5 - overStep * .5 );
+  // pos.x += (.5 - overStep * .5 );
   
   pos.x += width * .5 - .5;
+  
   pos *= 2.;
   
   pos.y -= height * .5;
@@ -50,8 +54,11 @@ vec2 getGlyphPosition () {
   pos.x -= width * .5;
   
   pos.y -= uDescender;
-
+  
+  
   pos.x += gb.x;
+  pos.x -= 2. * aGylphPadding;
+  
   
 
   vec2 fontScale = uFontSize / (uResolutionInPx);
@@ -100,7 +107,8 @@ void main(){
   gl_Position = vec4(mix(vec2(-1.), vec2(1.), pos), 0.,1.);
 
 
-  vUV = getGlyphUV();
-  pUV = aPosition;
+  glyphUV = getGlyphUV();
+  textUV = pos;
   vChannel = mod(aGlyphIndex, 4.);
+  vGlyphBounds = aGlyphBounds;
 }

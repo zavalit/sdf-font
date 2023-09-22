@@ -109,7 +109,7 @@ export const getTextMetaData = (textRows: string[], meta: FontTextureMetaType, t
     
     console.log('charCodesData', charCodesData)
 
-    const glyphBounds = new Float32Array(charCodesData.length * 4)
+    const glyphBounds = new Float32Array(charCodesData.length * 5)
     
     let boundsIdx = 0
 
@@ -149,8 +149,7 @@ export const getTextMetaData = (textRows: string[], meta: FontTextureMetaType, t
             xProgress
         }
         
-        const xMinD = Math.abs(xMin);
-        //const xMinD = xMin;
+        const xMinD = xMin;
         const yMinD = yMin;
         const xMaxD = xMax || 0;
         const yMaxD = yMax || 0;
@@ -163,6 +162,7 @@ export const getTextMetaData = (textRows: string[], meta: FontTextureMetaType, t
         glyphBounds[boundsIdx++] = posY + yMinD * fontSizeMult
         glyphBounds[boundsIdx++] = posX + xMaxD * fontSizeMult
         glyphBounds[boundsIdx++] = posY + yMaxD * fontSizeMult
+        glyphBounds[boundsIdx++] = xMinD * fontSizeMult
         
     })
 
@@ -236,14 +236,19 @@ export const passItem = (gl, {atlas, textResolution, glyphBounds, paddingBottom,
       //
       // GlyphBounds
       //          
+      console.log('glyphBounds', glyphBounds)
       
       const buf2 = gl.createBuffer()
       gl.bindBuffer(gl.ARRAY_BUFFER, buf2)
       gl.bufferData(gl.ARRAY_BUFFER, glyphBounds, gl.STATIC_DRAW)          
 
-      gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 4*4, 0);
+      gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 5*4, 0);
       gl.enableVertexAttribArray(1)
       gl.vertexAttribDivisor(1, 1)
+  
+      gl.vertexAttribPointer(5, 1, gl.FLOAT, false, 5*4, 4*4);
+      gl.enableVertexAttribArray(5)
+      gl.vertexAttribDivisor(5, 1)
   
       
       //
@@ -282,7 +287,8 @@ export const passItem = (gl, {atlas, textResolution, glyphBounds, paddingBottom,
           gl.uniform1f(locs.uFontSize, fontSize)
           gl.uniform1f(locs.uPaddingLeft, 1/fontSize)
           gl.uniform1f(locs.uPaddingBottom, paddingBottom)
-          gl.uniform2fv(locs.uClientTextResolution, [...textResolution])
+          gl.uniform2fv(locs.uClientTextResolution, [...textResolution.resolution])
+          gl.uniform1f(locs.uMaxGylphX, textResolution.maxGylphX)
           pass.uniforms && pass.uniforms(gl, locs)
     },
     drawCall(gl: W2){
@@ -296,24 +302,32 @@ export const passItem = (gl, {atlas, textResolution, glyphBounds, paddingBottom,
   }
 }
 
-const calcTextResolution = (rowsNumber, meta): [number, number, number] => {
+
+type TextResulutionProps = {
+  resolution: [number, number],
+  dpr: number,
+  maxGylphX: number,
+}
+
+const calcTextResolution = (rowsNumber, meta): TextResulutionProps => {
   const {fontSize, glyphBounds, rowHeight} = meta
   const heightSize = rowsNumber * rowHeight
   const dpr = Math.min(2, window.devicePixelRatio)
 
   const outerX = [];
 
-  for (let i = 2; i < glyphBounds.length; i += 4) {
+  for (let i = 2; i < glyphBounds.length; i += 5) {
     outerX.push(glyphBounds[i]);
   }
-  const edgeLettersEnd = Math.max(...outerX);
-  const widthSize = fontSize * (edgeLettersEnd) + fontSize/Math.sqrt(fontSize)
+  const maxGylphX = Math.max(...outerX);
+  const widthSize = fontSize * (maxGylphX)
 
-  return [widthSize*dpr, heightSize*dpr, dpr]
+  return {resolution: [widthSize*dpr, heightSize*dpr], dpr, maxGylphX}
 }
 
-const prepareCanvas = (gl,[widthSize, heightSize, dpr]) => {
+const prepareCanvas = (gl, textResolution: TextResulutionProps) => {
 
+  const {resolution: [widthSize, heightSize], dpr} = textResolution
 
   const canvas = gl.canvas as HTMLCanvasElement
   canvas.height = heightSize;

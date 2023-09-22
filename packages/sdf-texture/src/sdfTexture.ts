@@ -117,56 +117,7 @@ export const renderGlyphAtlasTexture = (gl: W2, targets: Target[], sdfParams, fo
   return renderAtlasTexture(gl, targets, sdfParams, renderParams, shaders, blendSegmentsCb, fontMeta, columnCount)
 }
 
-export const renderIconAtlasTexture = (gl: W2, targets: Target[], sdfParams, fontMeta: FontMetaType, columnCount: number): Promise<WebGL2RenderingContext> => {
-  
-  const renderParams = {
-    isCentered: false,
-    mirrorInside: false,
-    flipTextureY: true,
-  }
-  const shaders = {
-    vertexShader: edgeSegmentsVertex,
-    fragmentShader: edgeSegmentsFragment,
-    groupVertexShader: edgeGroupVertex,
-    groupFragmentShader: edgeGroupFragment
-  }
-  const blendSegmentsCb = (gl: W2) => {
-    gl.enable(gl.BLEND)
-    gl.blendFunc(gl.ONE, gl.ONE)
-    gl.blendEquationSeparate(gl.FUNC_ADD, gl.MAX)
-  }
 
-  return renderAtlasTexture(gl, targets, sdfParams, renderParams, shaders, blendSegmentsCb, fontMeta, columnCount)
-}
-
-export const renderIconDistanceAtlasTexture = async (gl: W2, targets: Target[], sdfParams, fontMeta: FontMetaType, columnCount: number): Promise<WebGL2RenderingContext> => {
-  
-  const renderParams = {
-    isCentered: false,
-    mirrorInside: false,
-    flipTextureY: true,
-  }
-  const shaders = {
-    vertexShader: distanceSegmentsVertex,
-    fragmentShader: distanceSegmentsFragment,
-    groupVertexShader: distanceGroupVertex,
-    groupFragmentShader: distanceGroupFragment
-  }
-  
-  const blendSegmentsCb = (gl: W2) => {
-    gl.enable(gl.BLEND)
-    gl.blendFunc(gl.ONE, gl.ONE)
-    gl.blendEquation(gl.MAX) 
-  }
-
-  const targetsWithDistance = getTargetsWithDistance(targets)
-  
-
-  const r = await renderAtlasTexture(gl, targetsWithDistance, sdfParams, renderParams,shaders, blendSegmentsCb, fontMeta, columnCount);
-  console.log(gl.getParameter(gl.VIEWPORT))
-
-  return r
-}
 
 export const renderGlyphDistanceAtlasTexture = (gl: W2, targets: Target[], sdfParams, fontMeta: FontMetaType, columnCount:number): Promise<WebGL2RenderingContext> => {
   
@@ -323,7 +274,6 @@ const renderAtlasTexture = (gl: W2, targets: Target[], {sdfItemSize, sdfExponent
       const b = i%4 === 2
       const a = i%4 === 3
       gl.colorMask(r, g, b, a)
-      console.log('rgba', r,g,b,a)
       gl.disable(gl.BLEND)
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     
@@ -349,6 +299,49 @@ interface CharMeta extends Target{
   advanceWidth: number
 }
 
+export const parseGlyph = (fontData, glyphId) => {
+  
+  const {cmds, crds} = glyphToPath(fontData, glyphId)
+             
+  const path = cmdsToPath(cmds, crds)
+
+  const segmentsCoord = getSegements(path)
+
+  const edgePoints = segmentsCoord.reduce((acc, n, i) => {
+      
+    if(i%2 ==1) {
+      let {minY, maxY} = acc    
+        maxY = typeof maxY === 'undefined' || maxY < n ? n : maxY
+        minY = typeof minY === 'undefined' || minY > n ? n : minY
+
+        return {...acc, maxY, minY}
+    }else {
+      let {minX, maxX} = acc    
+      maxX = typeof maxX === 'undefined' || maxX < n ? n : maxX
+      minX = typeof minX === 'undefined' || minX > n ? n : minX
+
+      return {...acc, maxX, minX}
+    }
+      
+  }, {minX:undefined, minY:0, maxX: undefined, maxY: undefined})
+
+  const viewBox = [ 
+    edgePoints.minX,
+    edgePoints.minY,
+    edgePoints.maxX,
+    edgePoints.maxY,
+  ]
+
+  const advanceWidth = fontData.hmtx.aWidth[glyphId]
+  return {
+    advanceWidth,
+    viewBox,             
+    segmentsCoord,
+    path
+  }
+}
+
+
 class CharsData {
   renderableGlyphCount: number;
   charsMap: Map<number, CharMeta>
@@ -359,7 +352,6 @@ class CharsData {
   
   // This regex (instead of /\s/) allows us to select all whitespace EXCEPT for non-breaking white spaces
   static lineBreakingWhiteSpace = `[^\\S\\u00A0]`
-
 
   constructor (fontData: FontDataType, sdfMeta, charCodes: number[]) {
       this.renderableGlyphCount = 0;
@@ -395,49 +387,13 @@ class CharsData {
       !isWhitespace && this.renderableGlyphCount++
       
       if(!this.charsMap.get(charCode)) {
-          const {cmds, crds} = glyphToPath(this.fontData, glyphId)
-             
-          const path = cmdsToPath(cmds, crds)
-         
-          const segmentsCoord = getSegements(path)
-
-          const edgePoints = segmentsCoord.reduce((acc, n, i) => {
-              
-            if(i%2 ==1) {
-              let {minY, maxY} = acc    
-                maxY = typeof maxY === 'undefined' || maxY < n ? n : maxY
-                minY = typeof minY === 'undefined' || minY > n ? n : minY
-
-                return {...acc, maxY, minY}
-            }else {
-              let {minX, maxX} = acc    
-              maxX = typeof maxX === 'undefined' || maxX < n ? n : maxX
-              minX = typeof minX === 'undefined' || minX > n ? n : minX
-
-              return {...acc, maxX, minX}
-            }
-              
-          }, {minX:0, minY:0, maxX: undefined, maxY: undefined})
-
-          const viewBox = [ 
-            edgePoints.minX,
-            edgePoints.minY,
-            edgePoints.maxX,
-            edgePoints.maxY,
-          ]
-
-          const advanceWidth = this.fontData.hmtx.aWidth[glyphId]
-
-          this.charsMap.set(charCode, {
-              advanceWidth,
-              viewBox,             
-              segmentsCoord,
-              path
-            })
-          }
       
-
-    
+          this.charsMap.set(
+            charCode, 
+            parseGlyph(this.fontData, glyphId)
+          )
+      }
+      
       return this;
   }
 
@@ -530,57 +486,8 @@ export const createGlyphTexture = async (texturesDict: TexturesDict, fontUrl: st
   }
 }
 
-export const createIconTexture = async (texturesDict: TexturesDict, svgIcon: SVGElement ,sdfParams: SDFParams, columnCount: number ): Promise<IconTexturesType> => {
-
-  const pathElements = svgIcon.getElementsByTagName("path");
-  const [minX, minY, svgWidth, svgHeight] = svgIcon.getAttribute('viewBox').split(/\s+/).map(v => parseInt(v))
-  const viewBox = [ 
-    minX,
-    minY, 
-    minX + svgWidth,
-    minY + svgHeight
-  ]
-  const occ = []
-  const itemsCount = pathElements.length
-  for (let i = 0; i < itemsCount; i++) {
 
 
-    const d = pathElements[i].getAttribute("d"); // Logs the 'd' attribute of each path
-    const segmentsCoord = getSegements(d)
-    
-    const t = {segmentsCoord, viewBox}
-
-    
-    occ.push(t)
-
-  }
-
-  const unitsPerEm = Math.max(svgWidth, svgHeight)
-
-  const textures = {}
-  const edgeCanvas = texturesDict['EDGE']
-  if(edgeCanvas){
-    const glE = edgeCanvas.getContext('webgl2', {premultipliedAlpha: false})!;
-    await renderIconAtlasTexture(glE, occ, sdfParams, unitsPerEm, columnCount)
-    textures['EDGE'] = edgeCanvas  
-  }
-  
-  const distCanvas = texturesDict['DISTANCE']
-  if(distCanvas){
-    const glD = distCanvas.getContext('webgl2', {premultipliedAlpha: false})!;
-    await renderIconDistanceAtlasTexture(glD, occ, sdfParams, unitsPerEm, columnCount)
-    textures['DISTANCE'] = distCanvas  
-  }
-
-
-  return {
-      textures,
-      sdfParams,
-      itemsCount
-
-  }  
-
-}
 
 
 const defaultOptions = {
