@@ -8,11 +8,14 @@ in vec2 glyphUV;
 in vec2 textUV;
 in float vChannel;
 in vec4 vGlyphBounds;
+in float vRowOrder;
 
 uniform sampler2D uTexture0;
 uniform highp vec2 uResolution;
 uniform float uMaxGylphX;
 uniform vec3 uColor;
+uniform float uRowCount;
+uniform vec2 uTextResolution;
 
 
 
@@ -43,29 +46,40 @@ void main () {
 
   float textWidth = uMaxGylphX;
 
-  float glyphBox = step(gb.x/textWidth, textUV.x);
+  vec2 tUV = (gl_FragCoord.xy/uTextResolution);
 
-  //  glyphBox = min(glyphBox,1. - step(gb.z/textWidth, textUV.x));
+  float rowOrderTop = (uRowCount - vRowOrder) / uRowCount;
+  float rowOrderBottom = (uRowCount - (vRowOrder + 1.)) / uRowCount;
 
-  //  if(vChannel == 0.){    
-  //    color.r += glyphBox;
-  //  }
-  //  if(vChannel == 1.){
-  //    color.g += glyphBox;
-  //  }
+  float glyphBox = step((gb.x)/textWidth, tUV.x);
+
+  glyphBox = min(glyphBox,1. - step((gb.z)/textWidth, tUV.x));
   
-  // if(vChannel == 2.){
-  //   color.b += glyphBox;
-  // }
-  // if(vChannel == 3.){
-  //   color.rgb -= glyphBox;
-  // }
   
-  // fragColor = vec4(color, max(edge,glyphBox * .3));
-  fragColor = vec4(color, edge);
+  glyphBox = min(glyphBox, (1. - step((1. + vRowOrder)/uRowCount, tUV.y)));
+  glyphBox = min(glyphBox, (step((vRowOrder)/uRowCount, tUV.y)));
+  
+  //glyphBox = min(glyphBox, (1. - step(rowOrderBottom, tUV.y)));   
+   
+   if(vChannel == 0.){    
+     color.r += glyphBox;
+   }
+   if(vChannel == 1.){
+     color.g += glyphBox;
+   }
+  
+  if(vChannel == 2.){
+    color.b += glyphBox;
+  }
+  if(vChannel == 3.){
+    color.rgb -= glyphBox;
+  }
+  
+  fragColor = vec4(color, max(edge,glyphBox * .8));
+  //fragColor = vec4(color, edge);
 
-  //fragColor.xy = textUV;
-  //fragColor.w += .5;
+  //fragColor.xy = tUV;
+  //fragColor.w += .1;
 
   
 }

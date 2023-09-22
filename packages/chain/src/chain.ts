@@ -388,15 +388,17 @@ const drawDefaultCall = (gl: W2) => {
     
 }
 type HTMLCanvasContetxtType = {canvas: HTMLCanvasElement, gl: WebGL2RenderingContext}
-export const createHTMLCanvasContext = (size: number, options: WebGLContextAttributes = {}, dpr?: number): HTMLCanvasContetxtType => {
+export const createHTMLCanvasContext = (size: number | [number, number], options: WebGLContextAttributes = {}, dpr?: number): HTMLCanvasContetxtType => {
   const canvas = document.createElement('canvas')
   const gl = canvas.getContext('webgl2', options)!
 
+  const [width, height] = (typeof size == 'object') ? [size[0], size[1]]: [size, size]
+  
   const _dpr = dpr || Math.min(window.devicePixelRatio, 2.)
-  canvas.width = size * _dpr
-  canvas.height = size * _dpr
-  canvas.style.width = `${size}px`
-  canvas.style.height = `${size}px`
+  canvas.width = width * _dpr
+  canvas.height = height * _dpr
+  canvas.style.width = `${width}px`
+  canvas.style.height = `${height}px`
 
 
   return {canvas, gl};

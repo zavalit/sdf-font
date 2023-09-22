@@ -30,6 +30,8 @@ export type RenderTextProps = {
   glyphBounds: Float32Array
   sdfItemSize: number
   fontSize: number
+  paddingBottom: number,
+  rowsCount: number,
   rowHeight: number 
   columnCount: number
   fontMeta: {
@@ -85,6 +87,7 @@ export const getTextMetaData = (textRows: string[], meta: FontTextureMetaType, t
     const columnCount = meta.atlasMeta.columnCount
     
     const rowHeight = textMeta.rowHeight || fontSize * (1 + fontMeta.lineGap/fontMeta.unitsPerEm)
+    const paddingBottom = textMeta.paddingBottom || defaultTextMeta.paddingBottom
 
     const charCodesData = textRows.reduce((acc, text, row) => {
       if(typeof text !== 'string'){
@@ -107,8 +110,6 @@ export const getTextMetaData = (textRows: string[], meta: FontTextureMetaType, t
       return [...acc, ...rowCharCodes]
     }, [])
     
-    console.log('charCodesData', charCodesData)
-
     const glyphBounds = new Float32Array(charCodesData.length * 5)
     
     let boundsIdx = 0
@@ -166,14 +167,14 @@ export const getTextMetaData = (textRows: string[], meta: FontTextureMetaType, t
         
     })
 
-    
     return {
         glyphBounds,        
         charCodesData,
         sdfItemSize,
-        ...textMeta,
+        rowsCount: textRows.length,
         fontMeta,
         fontSize,
+        paddingBottom,
         rowHeight,
         columnCount
         
@@ -197,14 +198,13 @@ export type ColorType = {
 }
 const BlackColor = {r:0, g:0, b:0}
 
-export const passItem = (gl, {atlas, textResolution, glyphBounds, paddingBottom, fontSize, charCodesData, sdfItemSize, fontMeta, columnCount}: any, pass: CustomChainPassPops = {}) => {
+export const passItem = (gl, {atlas, textResolution, glyphBounds, paddingBottom, fontSize, charCodesData, sdfItemSize, fontMeta, columnCount, rowsCount}: any, pass: CustomChainPassPops = {}) => {
   
   const glyphMapTexture = createTexture(gl, atlas)
 
   const fragmentShader = pass.fragmentShader || textFragmentShader
   const vertexShader = pass.vertexShader || textVertexShader
   const textures = pass.textures || []
-  
   return {
     framebuffer: pass.framebuffer,
     vertexShader,
@@ -254,6 +254,9 @@ export const passItem = (gl, {atlas, textResolution, glyphBounds, paddingBottom,
       //
       // Letter Position
       //          
+
+      console.log('charCodesData', charCodesData)
+
       const buf3 = gl.createBuffer()
       gl.bindBuffer(gl.ARRAY_BUFFER, buf3)       
       const indexes = new Float32Array(charCodesData.flat())
@@ -286,9 +289,11 @@ export const passItem = (gl, {atlas, textResolution, glyphBounds, paddingBottom,
           gl.uniform1f(locs.uAtlasColumnCount, columnCount)
           gl.uniform1f(locs.uFontSize, fontSize)
           gl.uniform1f(locs.uPaddingLeft, 1/fontSize)
-          gl.uniform1f(locs.uPaddingBottom, paddingBottom)
-          gl.uniform2fv(locs.uClientTextResolution, [...textResolution.resolution])
+          gl.uniform1f(locs.uPaddingBottom, paddingBottom)          
+          gl.uniform2fv(locs.uTextResolution, [...textResolution.resolution])
           gl.uniform1f(locs.uMaxGylphX, textResolution.maxGylphX)
+          gl.uniform1f(locs.uRowCount, rowsCount)
+          
           pass.uniforms && pass.uniforms(gl, locs)
     },
     drawCall(gl: W2){

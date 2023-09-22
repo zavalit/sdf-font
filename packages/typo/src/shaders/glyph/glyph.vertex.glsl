@@ -12,6 +12,8 @@ out vec2 glyphUV;
 out vec2 textUV;
 out float vChannel;
 out vec4 vGlyphBounds;
+out float vRowOrder;
+
 
 uniform float uAtlasColumnCount;
 uniform vec2 uSDFTextureSize;
@@ -20,8 +22,6 @@ uniform vec2 uResolution;
 uniform vec2 uResolutionInPx;
 uniform float uFontSize;
 uniform float uDescender;
-uniform float uAscender;
-uniform float uUnitsPerEm;
 uniform float uBottomPadding;
 uniform float uPaddingLeft;
 uniform float uPaddingBottom;
@@ -38,12 +38,8 @@ vec2 getGlyphPosition () {
   
   float height = gb.w + gb.y;
   float width = gb.z - gb.x;
-  
-  float overStep = (uAscender - uDescender)/uUnitsPerEm;
-  
+    
   pos.y += ((gb.w - gb.y) * .5 - .5);
-  // pos.y += (.5 - overStep * .5 );
-  // pos.x += (.5 - overStep * .5 );
   
   pos.x += width * .5 - .5;
   
@@ -59,14 +55,9 @@ vec2 getGlyphPosition () {
   pos.x += gb.x;
   pos.x -= 2. * aGylphPadding;
   
-  
-
   vec2 fontScale = uFontSize / (uResolutionInPx);
 
   pos.y += uPaddingBottom  / (uResolutionInPx.y);
-  
-  
-  
   
   pos *= fontScale;
 
@@ -111,4 +102,5 @@ void main(){
   textUV = pos;
   vChannel = mod(aGlyphIndex, 4.);
   vGlyphBounds = aGlyphBounds;
+  vRowOrder = aRow.x;
 }

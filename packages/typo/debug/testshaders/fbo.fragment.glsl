@@ -6,11 +6,12 @@ out vec4 fragColor;
 
 uniform sampler2D uTexture0;
 
+in vec2 vUv;
+
 void main () {
 
-  float alpha = 1.;
-  vec3 color;
+  vec4 text = texture(uTexture0, vUv);
 
-  fragColor = vec4(color, alpha);
+  fragColor = text;
 
 }
