@@ -9,6 +9,7 @@ in vec2 textUV;
 in float vChannel;
 in vec4 vGlyphBounds;
 in float vRowOrder;
+in vec2 vGlyphPadding;
 
 uniform sampler2D uTexture0;
 uniform highp vec2 uResolution;
@@ -43,13 +44,16 @@ void main () {
   
   
   vec4 gb = vGlyphBounds;
+  vec2 gp = vGlyphPadding;
 
   float textWidth = uMaxGylphX;
 
   vec2 tUV = (gl_FragCoord.xy/uTextResolution);
 
-  float glyphBox = step((gb.x)/textWidth, tUV.x);
-  glyphBox = min(glyphBox,1. - step((gb.z)/textWidth, tUV.x));
+  float pl = .01;
+  float pr = .05;
+  float glyphBox = step((gb.x - gp.x)/textWidth, tUV.x);
+  glyphBox = min(glyphBox,1. - step((gb.z + gp.y)/textWidth, tUV.x));
   glyphBox = min(glyphBox, (1. - step((1. + vRowOrder)/uRowCount, tUV.y)));
   glyphBox = min(glyphBox, (step((vRowOrder)/uRowCount, tUV.y)));
   

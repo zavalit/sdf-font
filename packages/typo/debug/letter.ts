@@ -57,7 +57,7 @@ const charCodes = sampleText4.split('').map(c => c.charCodeAt(0));
    
   
   const textRows = [sampleText0, sampleText, sampleText2, sampleText3]
-  renderTextCanvas(textGL, [sampleText0, sampleText0], atlas, fontData, textParams)
+  renderTextCanvas(textGL, textRows, atlas, fontData, textParams)
   
 
   
@@ -86,7 +86,7 @@ document.body.appendChild(canvas)
   
   const [typoPass, {resolution: [textWidth, textHeight]}] = 
     getTypoPass(gl, {
-      textRows: ['Ljuba'],
+      textRows: ['01234'],
       atlas, 
       fontData, 
       textMeta})

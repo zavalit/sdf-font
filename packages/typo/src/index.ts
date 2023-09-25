@@ -131,7 +131,9 @@ export const getTextMetaData = (textRows: string[], meta: FontTextureMetaType, t
         
     const glyphPositions: {xProgress: number}[][] = Array(rows.length).fill(null).map(() => []);
     
-    const glyphData = textData.map(({charCode, rowIndex}) => {
+    const glyphData = textData
+    // caluculate glyph positions
+    .map(({charCode, rowIndex}) => {
       const data = charsMap[charCode]
         if(!data) return
         
@@ -149,8 +151,8 @@ export const getTextMetaData = (textRows: string[], meta: FontTextureMetaType, t
             xProgress
         }
         
-        const xMinD = xMin;
-        const yMinD = yMin;
+        const xMinD = xMin
+        const yMinD = yMin || 0;
         const xMaxD = xMax || 0;
         const yMaxD = yMax || 0;
         
@@ -167,9 +169,28 @@ export const getTextMetaData = (textRows: string[], meta: FontTextureMetaType, t
 
         return [...glyphBounds, charCode,  xMinD * fontSizeMult]
     })
+    // calculate middles between glyphs
+    const glyphDistanceData = textData.map((td, i) => {
+      
+      const glyph = glyphData[i]
+      const [x,_,z,] = glyph
+      const tdPrev = textData[i-1]
+      const prevGlyph = glyphData[i-1]
+      const tdNext = textData[i+1]
+      const nextGlyph = glyphData[i+1]
+      const prevZ = prevGlyph && tdPrev?.rowIndex === td.rowIndex ? prevGlyph[2] : 0
+      const nextX = nextGlyph && tdNext?.rowIndex === td.rowIndex ? nextGlyph[0] : z
+      let px = (x - prevZ) * .5;
+      let pz = (nextX - z) * .5;
+      pz = (nextGlyph ? pz : pz + px) || 0;
+    
+      px = (prevGlyph ? px : Math.max(pz, px)) || 0;
+
+      return [...glyph, px, pz]
+    })
 
     return {
-        glyphData: new Float32Array(glyphData.flat()),        
+        glyphData: new Float32Array(glyphDistanceData.flat()),        
         textData: textAttributes,
         sdfItemSize,
         rowsCount: rows.length,
@@ -242,18 +263,21 @@ export const passItem = (gl, {atlas, textResolution, glyphData, paddingBottom, f
       gl.bindBuffer(gl.ARRAY_BUFFER, buf2)
       gl.bufferData(gl.ARRAY_BUFFER, glyphData, gl.STATIC_DRAW)          
 
-      gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 6*4, 0);
+      gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 8*4, 0);
       gl.enableVertexAttribArray(1)
       gl.vertexAttribDivisor(1, rowInstances)
 
-      gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 6*4, 4*4);
+      gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 8*4, 4*4);
       gl.enableVertexAttribArray(2)
       gl.vertexAttribDivisor(2, rowInstances)
   
-  
-      gl.vertexAttribPointer(5, 1, gl.FLOAT, false, 6*4, 5*4);
+      gl.vertexAttribPointer(5, 1, gl.FLOAT, false, 8*4, 5*4);
       gl.enableVertexAttribArray(5)
       gl.vertexAttribDivisor(5, rowInstances)
+  
+      gl.vertexAttribPointer(6, 2, gl.FLOAT, false, 8*4, 6*4);
+      gl.enableVertexAttribArray(6)
+      gl.vertexAttribDivisor(6, rowInstances)
   
       
       //
@@ -327,7 +351,7 @@ const calcTextResolution = (rowsNumber, meta): TextResulutionProps => {
 
   const outerX = [];
 
-  for (let i = 2; i < glyphData.length; i += 6) {
+  for (let i = 2; i < glyphData.length; i += 8) {
     outerX.push(glyphData[i]);
   }
   const maxGylphX = Math.max(...outerX);

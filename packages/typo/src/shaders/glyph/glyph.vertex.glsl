@@ -6,13 +6,15 @@ layout(location=1) in vec4 aGlyphBounds;
 layout(location=2) in float aGlyphIndex;
 layout(location=3) in vec2 aRow;
 layout(location=4) in vec2 aRowColumn;
-layout(location=5) in float aGylphPadding;
+layout(location=5) in float aGlyphShift;
+layout(location=6) in vec2 aGlyphPadding;
 
 out vec2 glyphUV;
 out vec2 textUV;
 out float vChannel;
 out vec4 vGlyphBounds;
 out float vRowOrder;
+out vec2 vGlyphPadding;
 
 
 uniform float uAtlasColumnCount;
@@ -53,7 +55,7 @@ vec2 getGlyphPosition () {
   
   
   pos.x += gb.x;
-  pos.x -= 2. * aGylphPadding;
+  pos.x -= 2. * aGlyphShift;
   
   vec2 fontScale = uFontSize / (uResolutionInPx);
 
@@ -103,4 +105,5 @@ void main(){
   vChannel = mod(aGlyphIndex, 4.);
   vGlyphBounds = aGlyphBounds;
   vRowOrder = aRow.x;
+  vGlyphPadding = aGlyphPadding;
 }
