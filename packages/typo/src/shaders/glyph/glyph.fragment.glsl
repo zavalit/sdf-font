@@ -48,18 +48,11 @@ void main () {
 
   vec2 tUV = (gl_FragCoord.xy/uTextResolution);
 
-  float rowOrderTop = (uRowCount - vRowOrder) / uRowCount;
-  float rowOrderBottom = (uRowCount - (vRowOrder + 1.)) / uRowCount;
-
   float glyphBox = step((gb.x)/textWidth, tUV.x);
-
   glyphBox = min(glyphBox,1. - step((gb.z)/textWidth, tUV.x));
-  
-  
   glyphBox = min(glyphBox, (1. - step((1. + vRowOrder)/uRowCount, tUV.y)));
   glyphBox = min(glyphBox, (step((vRowOrder)/uRowCount, tUV.y)));
   
-  //glyphBox = min(glyphBox, (1. - step(rowOrderBottom, tUV.y)));   
    
    if(vChannel == 0.){    
      color.r += glyphBox;

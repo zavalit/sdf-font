@@ -1,7 +1,8 @@
 import textVertexShader from './shaders/glyph/glyph.vertex.glsl';
 import textFragmentShader from './shaders/glyph/glyph.fragment.glsl';
 import chain, { CustomChainPassPops, createTexture} from '@webglify/chain'
-import {WindowUniformsPlugin} from '@webglify/chain'
+import {WindowUniformsPlugin, VAOBufferMap} from '@webglify/chain'
+import { FontMetaType } from '@webglify/sdf-texture/lib/sdfTexture';
 
 export interface SDFParams {sdfItemSize: number, sdfMargin: number,  sdfExponent: number}
 type W2 = WebGL2RenderingContext
@@ -26,12 +27,13 @@ export interface TextCharMeta {
 
 
 export type RenderTextProps = { 
-  charCodesData: [number, number][]
-  glyphBounds: Float32Array
+  textData: number[][]
+  glyphData: Float32Array
   sdfItemSize: number
   fontSize: number
   paddingBottom: number,
   rowsCount: number,
+  rowInstances: number,
   rowHeight: number 
   columnCount: number
   fontMeta: {
@@ -54,10 +56,11 @@ export const defaultTextMeta = {
   fontSize: 16,
   letterSpacing: 1.,
   rowHeight: 20,
+  rowInstances: 1,
   paddingBottom: 0.
 }
 
-type TextMetaType = typeof defaultTextMeta
+type TextMetaProps = typeof defaultTextMeta
 type FontTextureMetaType = {
   atlasMeta: {
     sdfParams: typeof defaultSdfParams,
@@ -80,71 +83,67 @@ type FontTextureMetaType = {
 
 
 
-export const getTextMetaData = (textRows: string[], meta: FontTextureMetaType, textMeta: TextMetaType): RenderTextProps  => {
+export const getTextMetaData = (textRows: string[], meta: FontTextureMetaType, textMeta: TextMetaProps): RenderTextProps  => {
   
+    
     const {fontMeta, atlasMeta: { sdfParams: { sdfItemSize}}} = meta
-    const {fontSize, letterSpacing} = textMeta
+    const {fontSize, letterSpacing, paddingBottom, rowInstances, rowHeight} = ensureTextMeta(textMeta, fontMeta)
     const columnCount = meta.atlasMeta.columnCount
     
-    const rowHeight = textMeta.rowHeight || fontSize * (1 + fontMeta.lineGap/fontMeta.unitsPerEm)
-    const paddingBottom = textMeta.paddingBottom || defaultTextMeta.paddingBottom
 
-    const charCodesData = textRows.reduce((acc, text, row) => {
+    const rows = textRows;
+
+    const textData = [...rows].reduce((acc, text, row) => {
       if(typeof text !== 'string'){
         throw new Error(`text value is wrong: "${text}"`)
       }
-      const rowCharCodes = [...text].map((_, i) => {
-        const rowIndex = textRows.length - row - 1
-        const rowPadding = rowIndex * rowHeight
-        const rowData = [
-          text.codePointAt(i) as number, 
-          textRows.length - row - 1,
-          rowPadding,          
-          (i)/(text.length - 1) || 0, // how far in a row
-          i, // order
-        ];
-
-        return rowData
+      const rowCharCodes = [...text].map((_, i) => {
+        const rowIndex = rows.length - row - 1
+  
+        return {
+          charCode: text.codePointAt(i) as number, 
+          rowIndex,
+          rowProgress: (i)/(text.length - 1) || 0, // how far in a row
+          order: i, // order
+        }        
       })
 
       return [...acc, ...rowCharCodes]
     }, [])
+
+
+    const textAttributes = textData.map(({rowIndex, ...row}) => {
+      
+      return [...Array(rowInstances).keys()].map(k => {
+     
+        const _rowIndex = rowIndex + k;
+        const _rowPadding = _rowIndex * rowHeight
+        return [_rowIndex, _rowPadding, row.rowProgress, row.order]
+        
+      })      
+      
+    }).flat()
     
-    const glyphBounds = new Float32Array(charCodesData.length * 5)
-    
-    let boundsIdx = 0
 
     const charsMap = meta.fontMeta.charsMeta
 
     const fontSizeMult = 1. / fontMeta.unitsPerEm
-      
-    let lineHeight = (fontMeta.ascender - fontMeta.descender + fontMeta.lineGap) / fontMeta.unitsPerEm
+        
+    const glyphPositions: {xProgress: number}[][] = Array(rows.length).fill(null).map(() => []);
     
-    // Determine line height and leading adjustments
-    lineHeight = lineHeight * fontSize
-    const halfLeading = (lineHeight - (fontMeta.ascender - fontMeta.descender) * fontSizeMult) / 2
-    let topBaseline = -(fontMeta.ascender * fontSizeMult + halfLeading)
-    
-    // since there is no multiline now, handle it by default
-    topBaseline = 0;
-    
-  
-    
-    const glyphPositions: {xProgress: number}[][] = Array(textRows.length).fill(null).map(() => []);
-    
-    charCodesData.forEach(([charCode, rowIndex], i: number) => {
+    const glyphData = textData.map(({charCode, rowIndex}) => {
       const data = charsMap[charCode]
         if(!data) return
         
         const [xMin, yMin, xMax, yMax, advanceWidth] = data
         const posIndex = glyphPositions[rowIndex].length;
         const x = glyphPositions[rowIndex][posIndex-1]?.xProgress || 0
-        const letterWidth = xMax - xMin
-        let betweenLetterSpace = (advanceWidth - letterWidth) * fontSizeMult
+        //const letterWidth = xMax - xMin
+        //let betweenLetterSpace = (advanceWidth - letterWidth) * fontSizeMult
         let letterSpace = (advanceWidth) * fontSizeMult
 
         const xProgress = x + letterSpace - letterSpace * (1. - letterSpacing || 0.)
-//        const xProgress = x + letterSpace + betweenLetterSpace * letterSpacing;
+        // const xProgress = x + letterSpace + betweenLetterSpace * letterSpacing;
 
         glyphPositions[rowIndex][posIndex] = {           
             xProgress
@@ -157,27 +156,29 @@ export const getTextMetaData = (textRows: string[], meta: FontTextureMetaType, t
         
         // Determine final glyph position and add to glyphPositions array
         const posX =  x
-        const posY = topBaseline
+        const posY = 0
         
-        glyphBounds[boundsIdx++] = posX + xMinD * fontSizeMult
-        glyphBounds[boundsIdx++] = posY + yMinD * fontSizeMult
-        glyphBounds[boundsIdx++] = posX + xMaxD * fontSizeMult
-        glyphBounds[boundsIdx++] = posY + yMaxD * fontSizeMult
-        glyphBounds[boundsIdx++] = xMinD * fontSizeMult
-        
+        const glyphBounds = [
+          posX + xMinD * fontSizeMult,
+          posY + yMinD * fontSizeMult,
+          posX + xMaxD * fontSizeMult,
+          posY + yMaxD * fontSizeMult,
+        ]
+
+        return [...glyphBounds, charCode,  xMinD * fontSizeMult]
     })
 
     return {
-        glyphBounds,        
-        charCodesData,
+        glyphData: new Float32Array(glyphData.flat()),        
+        textData: textAttributes,
         sdfItemSize,
-        rowsCount: textRows.length,
+        rowsCount: rows.length,
+        rowInstances,
         fontMeta,
         fontSize,
         paddingBottom,
         rowHeight,
-        columnCount
-        
+        columnCount        
     }
   }
 
@@ -198,7 +199,7 @@ export type ColorType = {
 }
 const BlackColor = {r:0, g:0, b:0}
 
-export const passItem = (gl, {atlas, textResolution, glyphBounds, paddingBottom, fontSize, charCodesData, sdfItemSize, fontMeta, columnCount, rowsCount}: any, pass: CustomChainPassPops = {}) => {
+export const passItem = (gl, {atlas, textResolution, glyphData, paddingBottom, fontSize, textData, sdfItemSize, rowInstances, fontMeta, columnCount, rowsCount}: any, pass: CustomChainPassPops = {}) => {
   
   const glyphMapTexture = createTexture(gl, atlas)
 
@@ -211,7 +212,7 @@ export const passItem = (gl, {atlas, textResolution, glyphBounds, paddingBottom,
     fragmentShader,
     resolution: pass.resolution,
     textures: [glyphMapTexture!,...textures],
-    vertexArrayObject(gl: W2){
+    vertexArrayObject(gl: W2, vaoMap: VAOBufferMap){
       
       const vao = gl.createVertexArray()!
       gl.bindVertexArray(vao)
@@ -234,75 +235,80 @@ export const passItem = (gl, {atlas, textResolution, glyphBounds, paddingBottom,
      
      
       //
-      // GlyphBounds
+      // GlyphData
       //          
-      console.log('glyphBounds', glyphBounds)
       
       const buf2 = gl.createBuffer()
       gl.bindBuffer(gl.ARRAY_BUFFER, buf2)
-      gl.bufferData(gl.ARRAY_BUFFER, glyphBounds, gl.STATIC_DRAW)          
+      gl.bufferData(gl.ARRAY_BUFFER, glyphData, gl.STATIC_DRAW)          
 
-      gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 5*4, 0);
+      gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 6*4, 0);
       gl.enableVertexAttribArray(1)
-      gl.vertexAttribDivisor(1, 1)
+      gl.vertexAttribDivisor(1, rowInstances)
+
+      gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 6*4, 4*4);
+      gl.enableVertexAttribArray(2)
+      gl.vertexAttribDivisor(2, rowInstances)
   
-      gl.vertexAttribPointer(5, 1, gl.FLOAT, false, 5*4, 4*4);
+  
+      gl.vertexAttribPointer(5, 1, gl.FLOAT, false, 6*4, 5*4);
       gl.enableVertexAttribArray(5)
-      gl.vertexAttribDivisor(5, 1)
+      gl.vertexAttribDivisor(5, rowInstances)
   
       
       //
-      // Letter Position
+      // Text Data
       //          
-
-      console.log('charCodesData', charCodesData)
 
       const buf3 = gl.createBuffer()
       gl.bindBuffer(gl.ARRAY_BUFFER, buf3)       
-      const indexes = new Float32Array(charCodesData.flat())
+      const indexes = new Float32Array(textData.flat())
       gl.bufferData(gl.ARRAY_BUFFER, indexes, gl.STATIC_DRAW)
       
 
-      gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 5 * 4, 0);
-      gl.enableVertexAttribArray(2)
-      gl.vertexAttribDivisor(2, 1)
-
-      gl.vertexAttribPointer(3, 2, gl.FLOAT, false, 5 * 4, 4);
+      
+      gl.vertexAttribPointer(3, 2, gl.FLOAT, false, 4 * 4, 0);
       gl.enableVertexAttribArray(3)
       gl.vertexAttribDivisor(3, 1)
 
-      gl.vertexAttribPointer(4, 2, gl.FLOAT, false, 5 * 4, 4 * 3);
+      gl.vertexAttribPointer(4, 2, gl.FLOAT, false, 4 * 4, 4 * 2);
       gl.enableVertexAttribArray(4)
       gl.vertexAttribDivisor(4, 1)
+
+      vaoMap.set(vao, {
+        quad: buf1,
+        glyphData: buf2,
+        textData: buf3
+      })
 
       return vao;
 
     },
     uniforms(gl: W2, locs){
 
-          const glyphSpace = fontMeta.ascender - fontMeta.descender;
-          gl.uniform2fv(locs.uSDFTextureSize, [atlas.width, atlas.height])
-          gl.uniform1f(locs.uSdfItemSize, sdfItemSize);
-          gl.uniform1f(locs.uAscender, fontMeta.ascender/glyphSpace)
-          gl.uniform1f(locs.uUnitsPerEm, fontMeta.unitsPerEm/glyphSpace)
-          gl.uniform1f(locs.uDescender, fontMeta.descender/glyphSpace)
-          gl.uniform1f(locs.uAtlasColumnCount, columnCount)
-          gl.uniform1f(locs.uFontSize, fontSize)
-          gl.uniform1f(locs.uPaddingLeft, 1/fontSize)
-          gl.uniform1f(locs.uPaddingBottom, paddingBottom)          
-          gl.uniform2fv(locs.uTextResolution, [...textResolution.resolution])
-          gl.uniform1f(locs.uMaxGylphX, textResolution.maxGylphX)
-          gl.uniform1f(locs.uRowCount, rowsCount)
-          
-          pass.uniforms && pass.uniforms(gl, locs)
+      const glyphSpace = fontMeta.ascender - fontMeta.descender;
+      gl.uniform2fv(locs.uSDFTextureSize, [atlas.width, atlas.height])
+      gl.uniform1f(locs.uSdfItemSize, sdfItemSize);
+      gl.uniform1f(locs.uAscender, fontMeta.ascender/glyphSpace)
+      gl.uniform1f(locs.uUnitsPerEm, fontMeta.unitsPerEm/glyphSpace)
+      gl.uniform1f(locs.uDescender, fontMeta.descender/glyphSpace)
+      gl.uniform1f(locs.uAtlasColumnCount, columnCount)
+      gl.uniform1f(locs.uFontSize, fontSize)
+      gl.uniform1f(locs.uPaddingLeft, 1/fontSize)
+      gl.uniform1f(locs.uPaddingBottom, paddingBottom)          
+      gl.uniform2fv(locs.uTextResolution, [...textResolution.resolution])
+      gl.uniform1f(locs.uMaxGylphX, textResolution.maxGylphX)
+      gl.uniform1f(locs.uRowCount, rowsCount)
+      
+      pass.uniforms && pass.uniforms(gl, locs)
+
     },
     drawCall(gl: W2){
       gl.clear(gl.COLOR_BUFFER_BIT)
 
       gl.enable(gl.BLEND)
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
-      
-      gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0., 4, charCodesData.length)
+      gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0., 4, textData.length)
     }
   }
 }
@@ -315,14 +321,14 @@ type TextResulutionProps = {
 }
 
 const calcTextResolution = (rowsNumber, meta): TextResulutionProps => {
-  const {fontSize, glyphBounds, rowHeight} = meta
+  const {fontSize, glyphData, rowHeight} = meta
   const heightSize = rowsNumber * rowHeight
   const dpr = Math.min(2, window.devicePixelRatio)
 
   const outerX = [];
 
-  for (let i = 2; i < glyphBounds.length; i += 5) {
-    outerX.push(glyphBounds[i]);
+  for (let i = 2; i < glyphData.length; i += 6) {
+    outerX.push(glyphData[i]);
   }
   const maxGylphX = Math.max(...outerX);
   const widthSize = fontSize * (maxGylphX)
@@ -343,11 +349,10 @@ const prepareCanvas = (gl, textResolution: TextResulutionProps) => {
 
 } 
 
-export const renderTextCanvas = (gl: W2, textRows, atlas: HTMLCanvasElement, fontData: FontTextureMetaType, textMeta?: TextMetaType, customPass: CustomChainPassPops = {} ) => {
+export const renderTextCanvas = (gl: W2, textRows, atlas: HTMLCanvasElement, fontData: FontTextureMetaType, textMeta?: TextMetaProps, customPass: CustomChainPassPops = {} ) => {
   
-  const textMetaData =  textMeta || defaultTextMeta
   
-  const textPassMetaData = getTextMetaData(textRows, fontData, textMetaData)
+  const textPassMetaData = getTextMetaData(textRows, fontData, textMeta)
 
   const textResolution = calcTextResolution(textRows.length,textPassMetaData)
   
@@ -363,11 +368,18 @@ export const renderTextCanvas = (gl: W2, textRows, atlas: HTMLCanvasElement, fon
 
 }
 
+const ensureTextMeta = (textMeta: TextMetaProps, fontMeta: FontMetaType) => {
+
+  const _m = {...defaultTextMeta, ...textMeta}
+  const rowHeight = _m.rowHeight || _m.fontSize * (1 + fontMeta.lineGap/fontMeta.unitsPerEm)
+  return {..._m, rowHeight}
+
+}
+
 
 export const getTypoPass = (gl: W2, {textRows, atlas, fontData, textMeta}) => {
-  const textMetaData =  textMeta || defaultTextMeta
   
-  const textPassMetaData = getTextMetaData(textRows, fontData, textMetaData)
+  const textPassMetaData = getTextMetaData(textRows, fontData, textMeta)
 
   const textResolution = calcTextResolution(textRows.length,textPassMetaData)
   

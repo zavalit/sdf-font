@@ -69,7 +69,6 @@ const vertexArrayObject  = (gl: W2, vaoMap: VAOBufferMap) => {
 
   const sb = gl.createBuffer()!;
   gl.bindBuffer(gl.ARRAY_BUFFER, sb);
-  //gl.bufferData(gl.ARRAY_BUFFER, null, gl.STREAM_DRAW);
   gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 4*5, 0);
   gl.enableVertexAttribArray(1);
   gl.vertexAttribDivisor(1, 1);
@@ -165,7 +164,6 @@ const renderAtlasTexture = (gl: W2, targets: Target[], {sdfItemSize, sdfExponent
   const segmentsFBO = createFramebufferTexture(gl, [adjustedSdfItemSize,adjustedSdfItemSize])
   
 
-  console.log('fontMeta', fontMeta)
   const {programs} = chain(gl, [
     // single sdf target
     {
