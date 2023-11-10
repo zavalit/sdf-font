@@ -19,12 +19,11 @@ export class PerformancePlugin implements ChainPlugin {
   }}
 
   constructor(gl: W2) {
-    this.gl = gl;
     this.ext = gl.getExtension('EXT_disjoint_timer_query_webgl2');
     if (!this.ext) {
       console.warn('EXT_disjoint_timer_query_webgl2 extension is not supported.');
     }
-    
+    this.gl = gl;
     this.query = {}
     this.stats = {}
     this.aggStats = {}
@@ -32,11 +31,13 @@ export class PerformancePlugin implements ChainPlugin {
   }
 
   onInit(programs: ProgramsMapType) {
+    if (!this.ext) return
     this.programsCount = Object.keys(programs).length
     this.stats[this.aggregateKey] = {avg:0}
   }
 
   beforeDrawCall({passId, time}:PluginCallProps) {
+    if (!this.ext) return
     const key = `${passId}-${time}`
     const query = this.gl.createQuery()!;
     this.query[key] = query;
@@ -52,6 +53,7 @@ export class PerformancePlugin implements ChainPlugin {
   }
 
   afterDrawCall(props: PluginCallProps) {
+    if (!this.ext) return
 
     this.gl.endQuery(this.ext.TIME_ELAPSED_EXT);
     this.checkQueryResult(props)

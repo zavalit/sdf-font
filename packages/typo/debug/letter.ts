@@ -77,7 +77,7 @@ document.body.appendChild(canvas)
     fontSize,
     letterSpacing: 1.15,
     rowHeight: 1.2 * fontSize,
-    rowInstances: 3,
+    rowInstances: 4,
     paddingBottom: 0.*fontSize,
    
   }
@@ -86,18 +86,15 @@ document.body.appendChild(canvas)
   
   const [typoPass, {resolution: [textWidth, textHeight]}] = 
     getTypoPass(gl, {
-      textRows: ['01234'],
+      textRows: ['Djuk@'],
       atlas, 
       fontData, 
       textMeta})
   
-  const fbo = createFramebufferTexture(gl, [textWidth, textHeight])
+  const fbo = createFramebufferTexture(gl, [canvas.width, canvas.height])
   const {renderFrame} = chain(gl, [
     typoPass({
-      framebuffer: fbo.framebuffer,
-      vertexArrayObject(gl, vaoMap){
-
-      }
+      framebuffer: [fbo.framebuffer, null],
       
       
     }),

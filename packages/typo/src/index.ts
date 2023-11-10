@@ -78,130 +78,125 @@ type FontTextureMetaType = {
   }
 }
 
-
-
-
-
-
 export const getTextMetaData = (textRows: string[], meta: FontTextureMetaType, textMeta: TextMetaProps): RenderTextProps  => {
+   
+  const {fontMeta, atlasMeta: { sdfParams: { sdfItemSize}}} = meta
+  const {fontSize, letterSpacing, paddingBottom, rowInstances, rowHeight} = ensureTextMeta(textMeta, fontMeta)
+  const columnCount = meta.atlasMeta.columnCount
   
-    
-    const {fontMeta, atlasMeta: { sdfParams: { sdfItemSize}}} = meta
-    const {fontSize, letterSpacing, paddingBottom, rowInstances, rowHeight} = ensureTextMeta(textMeta, fontMeta)
-    const columnCount = meta.atlasMeta.columnCount
-    
 
-    const rows = textRows;
+  const rows = textRows;
 
-    const textData = [...rows].reduce((acc, text, row) => {
-      if(typeof text !== 'string'){
-        throw new Error(`text value is wrong: "${text}"`)
-      }
-      const rowCharCodes = [...text].map((_, i) => {
-        const rowIndex = rows.length - row - 1
-  
-        return {
-          charCode: text.codePointAt(i) as number, 
-          rowIndex,
-          rowProgress: (i)/(text.length - 1) || 0, // how far in a row
-          order: i, // order
-        }        
-      })
-
-      return [...acc, ...rowCharCodes]
-    }, [])
-
-
-    const textAttributes = textData.map(({rowIndex, ...row}) => {
-      
-      return [...Array(rowInstances).keys()].map(k => {
-     
-        const _rowIndex = rowIndex + k;
-        const _rowPadding = _rowIndex * rowHeight
-        return [_rowIndex, _rowPadding, row.rowProgress, row.order]
-        
-      })      
-      
-    }).flat()
-    
-
-    const charsMap = meta.fontMeta.charsMeta
-
-    const fontSizeMult = 1. / fontMeta.unitsPerEm
-        
-    const glyphPositions: {xProgress: number}[][] = Array(rows.length).fill(null).map(() => []);
-    
-    const glyphData = textData
-    // caluculate glyph positions
-    .map(({charCode, rowIndex}) => {
-      const data = charsMap[charCode]
-        if(!data) return
-        
-        const [xMin, yMin, xMax, yMax, advanceWidth] = data
-        const posIndex = glyphPositions[rowIndex].length;
-        const x = glyphPositions[rowIndex][posIndex-1]?.xProgress || 0
-        //const letterWidth = xMax - xMin
-        //let betweenLetterSpace = (advanceWidth - letterWidth) * fontSizeMult
-        let letterSpace = (advanceWidth) * fontSizeMult
-
-        const xProgress = x + letterSpace - letterSpace * (1. - letterSpacing || 0.)
-        // const xProgress = x + letterSpace + betweenLetterSpace * letterSpacing;
-
-        glyphPositions[rowIndex][posIndex] = {           
-            xProgress
-        }
-        
-        const xMinD = xMin
-        const yMinD = yMin || 0;
-        const xMaxD = xMax || 0;
-        const yMaxD = yMax || 0;
-        
-        // Determine final glyph position and add to glyphPositions array
-        const posX =  x
-        const posY = 0
-        
-        const glyphBounds = [
-          posX + xMinD * fontSizeMult,
-          posY + yMinD * fontSizeMult,
-          posX + xMaxD * fontSizeMult,
-          posY + yMaxD * fontSizeMult,
-        ]
-
-        return [...glyphBounds, charCode,  xMinD * fontSizeMult]
-    })
-    // calculate middles between glyphs
-    const glyphDistanceData = textData.map((td, i) => {
-      
-      const glyph = glyphData[i]
-      const [x,_,z,] = glyph
-      const tdPrev = textData[i-1]
-      const prevGlyph = glyphData[i-1]
-      const tdNext = textData[i+1]
-      const nextGlyph = glyphData[i+1]
-      const prevZ = prevGlyph && tdPrev?.rowIndex === td.rowIndex ? prevGlyph[2] : 0
-      const nextX = nextGlyph && tdNext?.rowIndex === td.rowIndex ? nextGlyph[0] : z
-      let px = (x - prevZ) * .5;
-      let pz = (nextX - z) * .5;
-      pz = (nextGlyph ? pz : pz + px) || 0;
-    
-      px = (prevGlyph ? px : Math.max(pz, px)) || 0;
-
-      return [...glyph, px, pz]
-    })
-
-    return {
-        glyphData: new Float32Array(glyphDistanceData.flat()),        
-        textData: textAttributes,
-        sdfItemSize,
-        rowsCount: rows.length,
-        rowInstances,
-        fontMeta,
-        fontSize,
-        paddingBottom,
-        rowHeight,
-        columnCount        
+  const textData = [...rows].reduce((acc, text, row) => {
+    if(typeof text !== 'string'){
+      throw new Error(`text value is wrong: "${text}"`)
     }
+    const rowCharCodes = [...text].map((_, i) => {
+      const rowIndex = rows.length - row - 1
+      const length = text.length
+      return {
+        charCode: text.codePointAt(i) as number, 
+        rowIndex,
+        rowProgress: (i)/(text.length - 1) || 0, // how far in a row
+        order: i, // order
+        length
+      }        
+    })
+
+    return [...acc, ...rowCharCodes]
+  }, [])
+
+
+  const textAttributes = textData.map(({rowIndex, ...row}) => {
+    
+    return [...Array(rowInstances).keys()].map(k => {
+    
+      const _rowIndex = rowIndex + k;
+      const _rowPadding = _rowIndex * rowHeight
+      return [_rowIndex, _rowPadding, row.rowProgress, row.order, row.length]
+      
+    })      
+    
+  }).flat()
+  
+
+  const charsMap = meta.fontMeta.charsMeta
+
+  const fontSizeMult = 1. / fontMeta.unitsPerEm
+      
+  const glyphPositions: {xProgress: number}[][] = Array(rows.length).fill(null).map(() => []);
+  
+  const glyphData = textData
+  // caluculate glyph positions
+  .map(({charCode, rowIndex}) => {
+    const data = charsMap[charCode]
+      if(!data) return
+      
+      const [xMin, yMin, xMax, yMax, advanceWidth] = data
+      const posIndex = glyphPositions[rowIndex].length;
+      const x = glyphPositions[rowIndex][posIndex-1]?.xProgress || 0
+      //const letterWidth = xMax - xMin
+      //let betweenLetterSpace = (advanceWidth - letterWidth) * fontSizeMult
+      let letterSpace = (advanceWidth) * fontSizeMult
+
+      const xProgress = x + letterSpace - letterSpace * (1. - letterSpacing || 0.)
+      // const xProgress = x + letterSpace + betweenLetterSpace * letterSpacing;
+
+      glyphPositions[rowIndex][posIndex] = {           
+          xProgress
+      }
+      
+      const xMinD = xMin
+      const yMinD = yMin || 0;
+      const xMaxD = xMax || 0;
+      const yMaxD = yMax || 0;
+      
+      // Determine final glyph position and add to glyphPositions array
+      const posX =  x
+      const posY = 0
+      
+      const glyphBounds = [
+        posX + xMinD * fontSizeMult,
+        posY + yMinD * fontSizeMult,
+        posX + xMaxD * fontSizeMult,
+        posY + yMaxD * fontSizeMult,
+      ]
+
+      return [...glyphBounds, charCode,  xMinD * fontSizeMult]
+  })
+  // calculate middles between glyphs
+  const glyphDistanceData = textData.map((td, i) => {
+    
+    const glyph = glyphData[i]
+    const [x,_,z,] = glyph
+    const tdPrev = textData[i-1]
+    const prevGlyph = glyphData[i-1]
+    const tdNext = textData[i+1]
+    const nextGlyph = glyphData[i+1]
+    const prevZ = prevGlyph && tdPrev?.rowIndex === td.rowIndex ? prevGlyph[2] : 0
+    const nextX = nextGlyph && tdNext?.rowIndex === td.rowIndex ? nextGlyph[0] : z
+    let px = (x - prevZ) * .5;
+    let pz = (nextX - z) * .5;
+    pz = (nextGlyph ? pz : pz + px) || 0;
+  
+    px = (prevGlyph ? px : Math.max(pz, px)) || 0;
+
+    return [...glyph, px, pz]
+  })
+
+  return {
+      glyphData: new Float32Array(glyphDistanceData.flat()),        
+      textData: textAttributes,
+      sdfItemSize,
+      rowsCount: rows.length,
+      rowInstances,
+      fontMeta,
+      fontSize,
+      paddingBottom,
+      rowHeight,
+      columnCount        
   }
+}
 
 
 
@@ -220,7 +215,7 @@ export type ColorType = {
 }
 const BlackColor = {r:0, g:0, b:0}
 
-export const passItem = (gl, {atlas, textResolution, glyphData, paddingBottom, fontSize, textData, sdfItemSize, rowInstances, fontMeta, columnCount, rowsCount}: any, pass: CustomChainPassPops = {}) => {
+export const passItem = (gl, {atlas, textResolution, glyphData, paddingBottom, fontSize, textData, sdfItemSize, rowInstances, fontMeta, columnCount, rowsCount, rowHeight}: any, pass: CustomChainPassPops = {}) => {
   
   const glyphMapTexture = createTexture(gl, atlas)
 
@@ -289,15 +284,19 @@ export const passItem = (gl, {atlas, textResolution, glyphData, paddingBottom, f
       const indexes = new Float32Array(textData.flat())
       gl.bufferData(gl.ARRAY_BUFFER, indexes, gl.STATIC_DRAW)
       
-
-      
-      gl.vertexAttribPointer(3, 2, gl.FLOAT, false, 4 * 4, 0);
+      gl.vertexAttribPointer(3, 2, gl.FLOAT, false, 5 * 4, 0);
       gl.enableVertexAttribArray(3)
       gl.vertexAttribDivisor(3, 1)
 
-      gl.vertexAttribPointer(4, 2, gl.FLOAT, false, 4 * 4, 4 * 2);
+      gl.vertexAttribPointer(4, 2, gl.FLOAT, false, 5 * 4, 4 * 2);
       gl.enableVertexAttribArray(4)
       gl.vertexAttribDivisor(4, 1)
+
+      gl.vertexAttribPointer(7, 1, gl.FLOAT, false, 5 * 4, 4 * 4);
+      gl.enableVertexAttribArray(7)
+      gl.vertexAttribDivisor(7, 1)
+
+
 
       vaoMap.set(vao, {
         quad: buf1,
@@ -323,6 +322,8 @@ export const passItem = (gl, {atlas, textResolution, glyphData, paddingBottom, f
       gl.uniform2fv(locs.uTextResolution, [...textResolution.resolution])
       gl.uniform1f(locs.uMaxGylphX, textResolution.maxGylphX)
       gl.uniform1f(locs.uRowCount, rowsCount)
+      gl.uniform1f(locs.uRowHeight, rowHeight)
+      
       
       pass.uniforms && pass.uniforms(gl, locs)
 

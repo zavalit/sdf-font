@@ -12,6 +12,7 @@ layout(location=6) in vec2 aGlyphPadding;
 out vec2 glyphUV;
 out vec2 textUV;
 out float vChannel;
+out float vYPosShift;
 out vec4 vGlyphBounds;
 out float vRowOrder;
 out vec2 vGlyphPadding;
@@ -27,6 +28,7 @@ uniform float uDescender;
 uniform float uBottomPadding;
 uniform float uPaddingLeft;
 uniform float uPaddingBottom;
+uniform float uTime;
 
 const float leftPadding = 0.;
 
@@ -96,14 +98,13 @@ void main(){
 
 
   vec2 pos = getGlyphPosition();
-
   gl_Position = vec4(mix(vec2(-1.), vec2(1.), pos), 0.,1.);
 
 
   glyphUV = getGlyphUV();
-  textUV = pos;
   vChannel = mod(aGlyphIndex, 4.);
   vGlyphBounds = aGlyphBounds;
+  //vGlyphBounds.yw -= mod(aRowColumn.y, 2.) * .1;
   vRowOrder = aRow.x;
   vGlyphPadding = aGlyphPadding;
 }

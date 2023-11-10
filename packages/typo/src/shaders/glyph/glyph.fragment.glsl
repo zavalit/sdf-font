@@ -44,6 +44,7 @@ void main () {
   
   
   vec4 gb = vGlyphBounds;
+   
   vec2 gp = vGlyphPadding;
 
   float textWidth = uMaxGylphX;
@@ -54,8 +55,10 @@ void main () {
   float pr = .05;
   float glyphBox = step((gb.x - gp.x)/textWidth, tUV.x);
   glyphBox = min(glyphBox,1. - step((gb.z + gp.y)/textWidth, tUV.x));
+
+  float yShift = -.0;
   glyphBox = min(glyphBox, (1. - step((1. + vRowOrder)/uRowCount, tUV.y)));
-  glyphBox = min(glyphBox, (step((vRowOrder)/uRowCount, tUV.y)));
+  glyphBox = min(glyphBox, (step((vRowOrder - yShift)/uRowCount, tUV.y)));
   
    
    if(vChannel == 0.){    
