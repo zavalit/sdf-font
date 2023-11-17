@@ -2632,12 +2632,12 @@ export const parseFont = (buff) => {
 	const bin = Typr.B;
 	const data = new Uint8Array(buff);
 	
-	const tmap = {};
+	let tmap = {};
 	const tag = bin.readASCII(data, 0, 4);  
 	if(tag=="ttcf") {
-		const offset = 4;
-		const majV = bin.readUshort(data, offset);  offset+=2;
-		const minV = bin.readUshort(data, offset);  offset+=2;
+		let offset = 4;
+		bin.readUshort(data, offset);  offset+=2;
+		bin.readUshort(data, offset);  offset+=2;
 		const numF = bin.readUint  (data, offset);  offset+=4;
 		const fnts = [];
 		for(var i=0; i<numF; i++) {

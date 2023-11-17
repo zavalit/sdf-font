@@ -28,6 +28,7 @@ uniform float uDescender;
 uniform float uBottomPadding;
 uniform float uPaddingLeft;
 uniform float uPaddingBottom;
+uniform float uUnitsPerEm;
 uniform float uTime;
 
 const float leftPadding = 0.;
@@ -59,7 +60,7 @@ vec2 getGlyphPosition () {
   pos.x += gb.x;
   pos.x -= 2. * aGlyphShift;
   
-  vec2 fontScale = uFontSize / (uResolutionInPx);
+  vec2 fontScale = uFontSize  / (uResolutionInPx);
 
   pos.y += uPaddingBottom  / (uResolutionInPx.y);
   
@@ -71,7 +72,8 @@ vec2 getGlyphPosition () {
 }
 
 vec2 getGlyphUV () {
-    vec4 gb = aGlyphBounds;
+    
+  vec4 gb = aGlyphBounds;
 
   vec2 pos = aPosition;
   

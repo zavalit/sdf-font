@@ -28,7 +28,7 @@ export interface TextCharMeta {
 
 export type RenderTextProps = { 
   textData: number[][]
-  glyphData: Float32Array
+  glyphData: number[][]
   sdfItemSize: number
   fontSize: number
   paddingBottom: number,
@@ -78,21 +78,13 @@ type FontTextureMetaType = {
   }
 }
 
-export const getTextMetaData = (textRows: string[], meta: FontTextureMetaType, textMeta: TextMetaProps): RenderTextProps  => {
-   
-  const {fontMeta, atlasMeta: { sdfParams: { sdfItemSize}}} = meta
-  const {fontSize, letterSpacing, paddingBottom, rowInstances, rowHeight} = ensureTextMeta(textMeta, fontMeta)
-  const columnCount = meta.atlasMeta.columnCount
-  
-
-  const rows = textRows;
-
-  const textData = [...rows].reduce((acc, text, row) => {
+const calculateTextData = (textRows: string[]) => {
+  return [...textRows].reduce((acc, text, row) => {
     if(typeof text !== 'string'){
       throw new Error(`text value is wrong: "${text}"`)
     }
     const rowCharCodes = [...text].map((_, i) => {
-      const rowIndex = rows.length - row - 1
+      const rowIndex = textRows.length - row - 1
       const length = text.length
       return {
         charCode: text.codePointAt(i) as number, 
@@ -105,28 +97,16 @@ export const getTextMetaData = (textRows: string[], meta: FontTextureMetaType, t
 
     return [...acc, ...rowCharCodes]
   }, [])
+}
 
-
-  const textAttributes = textData.map(({rowIndex, ...row}) => {
-    
-    return [...Array(rowInstances).keys()].map(k => {
-    
-      const _rowIndex = rowIndex + k;
-      const _rowPadding = _rowIndex * rowHeight
-      return [_rowIndex, _rowPadding, row.rowProgress, row.order, row.length]
-      
-    })      
-    
-  }).flat()
+const calculateGlyphData = (textData, fontMeta, letterSpacing, glyphPositions) => {
   
+  const charsMap = fontMeta.charsMeta
 
-  const charsMap = meta.fontMeta.charsMeta
-
-  const fontSizeMult = 1. / fontMeta.unitsPerEm
+  const fontSizeMult = 1. / fontMeta.unitsPerEm;
       
-  const glyphPositions: {xProgress: number}[][] = Array(rows.length).fill(null).map(() => []);
-  
-  const glyphData = textData
+
+  return textData
   // caluculate glyph positions
   .map(({charCode, rowIndex}) => {
     const data = charsMap[charCode]
@@ -164,6 +144,36 @@ export const getTextMetaData = (textRows: string[], meta: FontTextureMetaType, t
 
       return [...glyphBounds, charCode,  xMinD * fontSizeMult]
   })
+}
+
+export const getTextMetaData = (textRows: string[], meta: FontTextureMetaType, textMeta: TextMetaProps): RenderTextProps  => {
+   
+  const {fontMeta, atlasMeta: { sdfParams: { sdfItemSize}}} = meta
+  const {fontSize, letterSpacing, paddingBottom, rowInstances, rowHeight} = ensureTextMeta(textMeta, fontMeta)
+  const columnCount = meta.atlasMeta.columnCount
+  
+
+  const textData = calculateTextData(textRows)
+
+  
+  const textAttributes = textData.map(({rowIndex, ...row}) => {
+    
+    return [...Array(rowInstances).keys()].map(k => {
+    
+      const _rowIndex = rowIndex + k;
+      const _rowPadding = _rowIndex * rowHeight
+      return [_rowIndex, _rowPadding, row.rowProgress, row.order, row.length]
+      
+    })      
+    
+  }).flat()
+  
+  const glyphPositions: {xProgress: number}[][] = Array(textRows.length).fill(null).map(() => []);
+  
+  const glyphData = calculateGlyphData(textData, meta.fontMeta, letterSpacing, glyphPositions)
+  
+
+ 
   // calculate middles between glyphs
   const glyphDistanceData = textData.map((td, i) => {
     
@@ -185,10 +195,10 @@ export const getTextMetaData = (textRows: string[], meta: FontTextureMetaType, t
   })
 
   return {
-      glyphData: new Float32Array(glyphDistanceData.flat()),        
+      glyphData: glyphDistanceData,        
       textData: textAttributes,
       sdfItemSize,
-      rowsCount: rows.length,
+      rowsCount: textRows.length,
       rowInstances,
       fontMeta,
       fontSize,
@@ -256,7 +266,7 @@ export const passItem = (gl, {atlas, textResolution, glyphData, paddingBottom, f
       
       const buf2 = gl.createBuffer()
       gl.bindBuffer(gl.ARRAY_BUFFER, buf2)
-      gl.bufferData(gl.ARRAY_BUFFER, glyphData, gl.STATIC_DRAW)          
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(glyphData.flat()), gl.STATIC_DRAW)          
 
       gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 8*4, 0);
       gl.enableVertexAttribArray(1)
@@ -313,7 +323,7 @@ export const passItem = (gl, {atlas, textResolution, glyphData, paddingBottom, f
       gl.uniform2fv(locs.uSDFTextureSize, [atlas.width, atlas.height])
       gl.uniform1f(locs.uSdfItemSize, sdfItemSize);
       gl.uniform1f(locs.uAscender, fontMeta.ascender/glyphSpace)
-      gl.uniform1f(locs.uUnitsPerEm, fontMeta.unitsPerEm/glyphSpace)
+      gl.uniform1f(locs.uUnitsPerEm, fontMeta.unitsPerEm)
       gl.uniform1f(locs.uDescender, fontMeta.descender/glyphSpace)
       gl.uniform1f(locs.uAtlasColumnCount, columnCount)
       gl.uniform1f(locs.uFontSize, fontSize)
@@ -345,17 +355,24 @@ type TextResulutionProps = {
   maxGylphX: number,
 }
 
+
+const calculateGylphMaxX = (glyphData) => {
+  const outerX = []
+  for (let i = 0; i < glyphData.length; i++) {
+    outerX.push(glyphData[i][2]);
+  }
+  const maxGylphX = Math.max(...outerX);
+  return maxGylphX
+}
+
 const calcTextResolution = (rowsNumber, meta): TextResulutionProps => {
   const {fontSize, glyphData, rowHeight} = meta
   const heightSize = rowsNumber * rowHeight
   const dpr = Math.min(2, window.devicePixelRatio)
 
-  const outerX = [];
+   
+  const maxGylphX = calculateGylphMaxX(glyphData)
 
-  for (let i = 2; i < glyphData.length; i += 8) {
-    outerX.push(glyphData[i]);
-  }
-  const maxGylphX = Math.max(...outerX);
   const widthSize = fontSize * (maxGylphX)
 
   return {resolution: [widthSize*dpr, heightSize*dpr], dpr, maxGylphX}
@@ -372,10 +389,27 @@ const prepareCanvas = (gl, textResolution: TextResulutionProps) => {
   canvas.style.width =  `${widthSize/dpr}px`;
 
 
-} 
+}
+
+
+export const calcFontSizeByTextWidth = (textRows, fontMeta, width, letterSpacing): number => {
+  const textData = calculateTextData(textRows)
+  const glyphPositions: {xProgress: number}[][] = Array(textRows.length).fill(null).map(() => []);
+
+  const glyphData = calculateGlyphData(textData, fontMeta, letterSpacing,glyphPositions)
+
+  const maxGylphX = calculateGylphMaxX(glyphData)
+  
+  const lastLetterPos = maxGylphX;
+  
+  const fontSize = width / lastLetterPos
+
+  return fontSize
+}
+
+
 
 export const renderTextCanvas = (gl: W2, textRows, atlas: HTMLCanvasElement, fontData: FontTextureMetaType, textMeta?: TextMetaProps, customPass: CustomChainPassPops = {} ) => {
-  
   
   const textPassMetaData = getTextMetaData(textRows, fontData, textMeta)
 

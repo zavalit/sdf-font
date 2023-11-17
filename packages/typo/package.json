@@ -1,6 +1,6 @@
 {
   "name": "@webglify/typo",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "private": false,
   "devDependencies": {
     "ncp": "^2.0.0",

@@ -11,7 +11,7 @@ import bluescreensTrialUrl from 'url:./fonts/ttbluescreens_trial/TT Bluescreens 
 import vertexShader from './testshaders/vertex.glsl'
 import fboFragmentShader from './testshaders/fbo.fragment.glsl'
 
-import {  renderTextCanvas, getTypoPass } from "../src"
+import {  renderTextCanvas, getTypoPass, calcFontSizeByTextWidth } from "../src"
 // import letterFragmentShader from './testshaders/letter.fragment.glsl'
 // import letterVertexShader from './testshaders/letter.vertex.glsl'
 
@@ -20,6 +20,7 @@ const sampleText = "@p+-Ä"
 const sampleText2 = "2 Ü"
 const sampleText3 = "2001g"
 const sampleText4 = "PÖWER/{}[]qpy"
+const sampleText5 = "Components"
 
 //const textBlocks = sampleData.map(({m}) => m);
 
@@ -29,11 +30,13 @@ const _256 = [...Array(256).keys()]
 const charCodes = sampleText4.split('').map(c => c.charCodeAt(0));
 
 (async() => {
-  
-  const {atlas, fontMeta, atlasMeta} = await createGlyphAtlas(fontUrl, {sdfParams: {sdfItemSize: 64*2, sdfExponent: 10}, charCodes: _256})
 
+  let fUrl = fontUrl
+  fUrl = cairoBlackFontUrl
 
-// redner canvas
+  const {atlas, fontMeta, atlasMeta} = await createGlyphAtlas(fUrl, {sdfParams: {sdfItemSize: 64*2, sdfExponent: 10}, charCodes: _256})
+
+  // redner canvas
 
 {
 
@@ -68,14 +71,20 @@ const charCodes = sampleText4.split('').map(c => c.charCodeAt(0));
 
 {
 //const {canvas, gl} = createHTMLCanvasContext([891.3599967956543*.5, 288*.5])
-const {canvas, gl} = createHTMLCanvasContext(512)
+const width = 431
+const height = 557
+const size = [width, height]
+const {canvas, gl} = createHTMLCanvasContext(size)
 document.body.appendChild(canvas) 
+const letterSpacing = 1.15
+
+const textRows = [sampleText5]
   
-  
-  const fontSize = 120
+  const calculatedFontSize = calcFontSizeByTextWidth(textRows, fontMeta, canvas.clientWidth, letterSpacing)
+  const fontSize = calculatedFontSize
   const textMeta = {
     fontSize,
-    letterSpacing: 1.15,
+    letterSpacing,
     rowHeight: 1.2 * fontSize,
     rowInstances: 4,
     paddingBottom: 0.*fontSize,
@@ -86,7 +95,7 @@ document.body.appendChild(canvas)
   
   const [typoPass, {resolution: [textWidth, textHeight]}] = 
     getTypoPass(gl, {
-      textRows: ['Djuk@'],
+      textRows,
       atlas, 
       fontData, 
       textMeta})
