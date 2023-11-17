@@ -1,6 +1,6 @@
 {
   "name": "@webglify/typo",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "private": false,
   "devDependencies": {
     "ncp": "^2.0.0",
@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@webglify/chain": "^0.1.1",
-    "@webglify/sdf-texture": "0.0.6"
+    "@webglify/sdf-texture": "0.0.7"
   },
   "main": "lib/index.js",
   "directories": {
