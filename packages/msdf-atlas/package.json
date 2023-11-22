@@ -1,0 +1,20 @@
+{
+  "name": "@webglify/msdf-atlas",
+  "version": "0.0.1",
+  "private": false,
+  "main": "lib/index.js",
+  "directories": {
+    "dist": "lib"
+  },
+  "scripts": {
+    "build": "ncp src/ lib/ && tsc",
+    "watch": "nodemon -e ts,js --watch ./src -x 'npm run build' "
+  },
+  "dependencies": {
+    "@webglify/chain": "^0.1.1"
+  },
+  "devDependencies": {
+    "ncp": "^2.0.0",
+    "typescript": ">=3.0.0"
+  }
+}
