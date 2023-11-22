@@ -10,15 +10,15 @@ type ConfigChar = {
   id: number
   index: number
   char: string
-  width: number
-  height: number
-  xoffset: number
-  yoffset: number
   xadvance: number
-  chnl: number
-  x: number
-  y: number
-  page: number
+  width?: number
+  height?: number
+  xoffset?: number
+  yoffset?: number
+  chnl?: number
+  x?: number
+  y?: number
+  page?: number
 }
 
 const vertexArrayObject  = (gl: W2, vaoMap: VAOBufferMap) => {
@@ -62,6 +62,17 @@ const vertexArrayObject  = (gl: W2, vaoMap: VAOBufferMap) => {
 
 }
 
+const getWhitspaceConfigChar = (ag: AtlasGlyph) => {
+  const {glyph} = ag.obtainCharData(` `)
+  
+  return {
+    id: glyph.unicode,
+    index: glyph.index,
+    xadvance: glyph.advanceWidth,
+    char: ` `
+  }
+}
+
 
 const calculateCavasSize = (atlasGlyph: AtlasGlyph, charset: string[]) => {
   
@@ -97,7 +108,7 @@ export const renderAtlas = async ({fontUrl, chars}: AtlasInput) => {
   const canvas = document.createElement('canvas')  
   const gl = canvas.getContext('webgl2', {premultipliedAlpha: false})!;
   
-  const charset = chars.split('')
+  const charset = chars.split('').filter(c => c!= ' ' && c!='\n' && c!='\t')
   const res = calculateCavasSize(atlasGlyph, charset)
   // const res = {
   //   width: 2675,
@@ -155,7 +166,7 @@ export const renderAtlas = async ({fontUrl, chars}: AtlasInput) => {
   pages[pageId] = canvas
   const config = {
     pages,
-    chars: [],
+    chars: new Map(),
     info: {
       face: atlasGlyph.fontName,
       size: undefined,
@@ -170,8 +181,8 @@ export const renderAtlas = async ({fontUrl, chars}: AtlasInput) => {
       spacing: [0, 0]      
     },
     common: {
-      lineHeight: undefined,
-      base: undefined,
+      lineHeight: atlasGlyph.font.ascender - atlasGlyph.font.descender + atlasGlyph.font.tables.os2.sTypoLineGap,
+      base: atlasGlyph.font.ascender,
       scaleW: width,
       scaleH: height,
       pages: 1,
@@ -185,11 +196,11 @@ export const renderAtlas = async ({fontUrl, chars}: AtlasInput) => {
       distanceRange: undefined
     }
   }
-  console.log('config', config)
   // render a gpyph sprite
   charset.forEach((char, i) => { 
 
     const charData = atlasGlyph.obtainCharData(char)
+    
     const {glyphBounds: [_x,_y,_z,_w], glyph, bbox: {minX, minY}} = charData
     const width = _z - _x
     const height = _w - _y
@@ -197,7 +208,6 @@ export const renderAtlas = async ({fontUrl, chars}: AtlasInput) => {
     const x = prevX;
     prevX += width
     const y = canvasHeight - height;
-    console.log('xy', x, y)
 
     const segmentsFBO = createFramebufferTexture(gl, [width, height])
     
@@ -242,8 +252,8 @@ export const renderAtlas = async ({fontUrl, chars}: AtlasInput) => {
       
 
       //gl.clear(gl.COLOR_BUFFER_BIT)
-      var viewport = gl.getParameter(gl.VIEWPORT);
-      console.log("Viewport state:", viewport);
+      // var viewport = gl.getParameter(gl.VIEWPORT);
+      // console.log("Viewport state:", viewport);
 
       gl.bindFramebuffer(gl.FRAMEBUFFER, segmentsFBO.framebuffer)
       // render
@@ -284,10 +294,14 @@ export const renderAtlas = async ({fontUrl, chars}: AtlasInput) => {
       y: y,
       page: pageId,
     }
-    config.chars.push(cc)
+    config.chars.set(cc.id, cc)
 
 
   })
+
+  // add whitespace data
+  const wsCC = getWhitspaceConfigChar(atlasGlyph)
+  config.chars.set(wsCC.id, wsCC)
 
   return config
 

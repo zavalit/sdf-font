@@ -6,7 +6,7 @@ import cairoBlackFontUrl from 'url:./fonts/Cairo/static/Cairo-Black.ttf'
 import baseneueFontUrl from 'url:./fonts/BaseNeue-Trial/web/WOFF/BaseNeueTrial-Regular.ttf'
 import travelNextUrl from 'url:./fonts/TT-Travels-Next/TT Travels Next Regular.ttf'
 import bluescreensTrialUrl from 'url:./fonts/ttbluescreens_trial/TT Bluescreens Trial Regular.ttf'
-import {segmentize} from '../src/segmetizer'
+import {renderCanvasText} from '../src'
 
 
 (async() => {
@@ -14,19 +14,31 @@ import {segmentize} from '../src/segmetizer'
   let fu = fontUrl
   fu = travelNextUrl
 
+  const text = `pa,Ä`
   const input = {
     fontUrl: fu,
-    chars: 'qW,'
+    chars: text
   }
 
   const config = await renderAtlas(input)
 
   console.log(config)
-  const canvas = config.pages[0] as HTMLCanvasElement
-  const dpr = Math.min(2, window.devicePixelRatio)
-  canvas.style.width = `${canvas.width  / dpr }px`
-  canvas.style.height = `${canvas.height / dpr }px`
+
+
+  const canvas = document.createElement('canvas')
+
+  renderCanvasText(canvas, text, config)
 
   document.body.appendChild(canvas)
+
+
+
+
+  const atlasCanvas = config.pages[0] as HTMLCanvasElement
+  const dpr = Math.min(2, window.devicePixelRatio)
+  atlasCanvas.style.width = `${atlasCanvas.width  / dpr }px`
+  atlasCanvas.style.height = `${atlasCanvas.height / dpr }px`
+
+  document.body.appendChild(atlasCanvas)
 
 })()
