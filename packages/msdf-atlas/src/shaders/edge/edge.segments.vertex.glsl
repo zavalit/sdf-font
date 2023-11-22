@@ -5,6 +5,7 @@ layout(location=1) in vec4 aSegments;
 
 uniform float uUnitsPerEm;
 uniform vec4 uGlyphBounds;
+uniform vec2 uItemResolution;
 
 
 out vec2 vViewBox;
@@ -23,21 +24,26 @@ void main() {
 		//gb.xz -= gb.x;
 		gb.yw -= gb.y;
 
-		float size = uUnitsPerEm / (gb.z - gb.x) ;
 
 		// float scale = size / uUnitsPerEm;
 
-		// float height = (gb.w - gb.y) * scale;
-    // float width = (gb.z - gb.x) * scale;
+		float height = (gb.w - gb.y) / uUnitsPerEm;
+    float width = (gb.z - gb.x) / uUnitsPerEm;
+    
+    float p = 0.;
+    // gb.xy -= p;
+    // gb.zw += p;
+    
+    vec2 ir = uItemResolution;
+    vec2 scale = ir/(gb.zw - gb.xy);
     
     
-		vec2 from = gb.xy / gb.zw;    
-    vec2 to = gb.zw / gb.zw;    
-		
+    
     vec2 pos = aPosition;  
-		
-    //pos = mix(from, to, pos);
-
+    
+    
+    pos = mix(gb.xy/gb.zw, vec2(1.), pos);
+    
 		
 	
     vec2 glpos = mix(vec2(-1.), vec2(1.), pos);
@@ -46,9 +52,20 @@ void main() {
     gl_Position = vec4(glpos, 0., 1.);
 
 
-    vec2 uv = aPosition;    
-		//uv.y -= 1./height * 100. / uUnitsPerEm;
-		//uv.x -= 1./height * 50. / uUnitsPerEm;
+    vec2 uv = aPosition; 
+    uv *= scale;
+    uv += (1. - scale) * .5;
+    
+
+    
+		//uv.y *= 1. + 100. / uUnitsPerEm;
+    
+    //uv.y -= 1./height * 50. / uUnitsPerEm;
+		
+    
+    //uv.x *= 1. + 100./uUnitsPerEm;
+    //uv.x -= 1./width * 50. / uUnitsPerEm;
+
     
 		
     vViewBox = mix(gb.xy, gb.zw, uv);    

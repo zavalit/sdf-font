@@ -35,15 +35,15 @@ void main(){
   
   // fix height scaling
   float glyphHeight = aGlyphSize.y;
-  float s = uLineHeight/glyphHeight; 
-  gpos.y *= s;
+  float heightScale = uLineHeight/glyphHeight; 
+  gpos.y *= heightScale;
   
 
   // move scaled pos up to the base
-  gpos.y -= (1. - (uBaseLine)/uLineHeight) * s;
+  gpos.y -= (1. - (uBaseLine)/uLineHeight) * heightScale;
     
   // offset y
-  gpos.y -= aGlyphOffset.y/uLineHeight * s;
+  gpos.y -= aGlyphOffset.y/uLineHeight * heightScale;
 
   glyphUV = mix(ab.xy/ar, ab.zw/ar, gpos);
   

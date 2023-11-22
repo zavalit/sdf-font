@@ -25,6 +25,9 @@ void main() {
   float val = inside ? 1.0 - color.a : color.a;
   
   color = vec4(val);
+
+  //color.r = 0.;
+  //color.a = 1.;
   
   fragColor = color;
 

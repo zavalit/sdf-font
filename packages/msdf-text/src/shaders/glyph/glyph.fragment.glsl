@@ -20,7 +20,7 @@ void main () {
   
   float mask = texture(uTexture0, uv).a;
   float d = fwidth(mask);
-  float edge = smoothstep(border.x - d, border.y - d*.05, mask);
+  float edge = smoothstep(border.x - d, border.y + d, mask);
   
   vec3 color = vec3(1.) * edge;
   

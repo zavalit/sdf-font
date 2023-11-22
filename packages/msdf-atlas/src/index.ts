@@ -74,50 +74,56 @@ const getWhitspaceConfigChar = (ag: AtlasGlyph) => {
 }
 
 
-const calculateCavasSize = (atlasGlyph: AtlasGlyph, charset: string[]) => {
+const calculateCavasSize = (atlasGlyph: AtlasGlyph, charset: string[], padding: number) => {
   
   const res = {
     width: 0,
-    height: 0,
-    glyphMaxWidth: 0,
-    glyphMaxHeight: 0
+    height: 0
   }
   
   charset.forEach((char, i) => { 
 
     const {bbox: {width, height}} = atlasGlyph.obtainCharData(char)
-    res.width += width
-    res.glyphMaxWidth = Math.max(width, res.glyphMaxWidth)
+    res.width += width + padding * 2.
     
-    res.height = Math.max(height, res.height)
-    res.glyphMaxHeight = Math.max(height, res.glyphMaxHeight)
+    
+    res.height = Math.max(height + padding * 2., res.height)
+    
   
   })
 
   return res
 }
 
-export type AtlasInput = {
-  fontUrl: string,
-  chars: string
+export type AtlasRenderOptions = {
+  sdfExponent: number
+  padding: number
 }
 
-export const renderAtlas = async ({fontUrl, chars}: AtlasInput) => {
+const defaultAtlasRenderOptions: AtlasRenderOptions = {
+  sdfExponent: 10,
+  padding: 50,
+}
 
+export type AtlasInput = {
+  fontUrl: string,
+  chars: string,
+  options?: Partial<AtlasRenderOptions>
+}
+
+export const renderAtlas = async ({fontUrl, chars, options}: AtlasInput) => {
+
+  const aOptions = {...defaultAtlasRenderOptions, ...options}
+  
   const atlasGlyph: AtlasGlyph = await AtlasGlyph.init(fontUrl)
   const canvas = document.createElement('canvas')  
   const gl = canvas.getContext('webgl2', {premultipliedAlpha: false})!;
   
   const charset = chars.split('').filter(c => c!= ' ' && c!='\n' && c!='\t')
-  const res = calculateCavasSize(atlasGlyph, charset)
-  // const res = {
-  //   width: 2675,
-  //   height: 1000
-  // }
+  const res = calculateCavasSize(atlasGlyph, charset, aOptions.padding)
 
-  const size = 512
   
-  const sdfExponent = 10
+  
 
   const width = res.width
   const height = res.height
@@ -139,7 +145,7 @@ export const renderAtlas = async ({fontUrl, chars}: AtlasInput) => {
       vertexArrayObject,
       uniforms (gl, loc) {
         
-        gl.uniform1f(loc.uExponent, sdfExponent)
+        gl.uniform1f(loc.uExponent, aOptions.sdfExponent)
         gl.uniform1f(loc.uUnitsPerEm, atlasGlyph.font.unitsPerEm)
             
       }
@@ -164,6 +170,7 @@ export const renderAtlas = async ({fontUrl, chars}: AtlasInput) => {
   const pageId = 0;
   const pages = []
   pages[pageId] = canvas
+  const p = aOptions.padding
   const config = {
     pages,
     chars: new Map(),
@@ -177,7 +184,7 @@ export const renderAtlas = async ({fontUrl, chars}: AtlasInput) => {
       stretchH: 100,
       smooth: true,
       aa: true,
-      padding: [2,2,2,2],
+      padding: [p, p, p, p],
       spacing: [0, 0]      
     },
     common: {
@@ -202,8 +209,8 @@ export const renderAtlas = async ({fontUrl, chars}: AtlasInput) => {
     const charData = atlasGlyph.obtainCharData(char)
     
     const {glyphBounds: [_x,_y,_z,_w], glyph, bbox: {minX, minY}} = charData
-    const width = _z - _x
-    const height = _w - _y
+    const width = _z - _x + aOptions.padding
+    const height = _w - _y + aOptions.padding
     
     const x = prevX;
     prevX += width
@@ -235,9 +242,9 @@ export const renderAtlas = async ({fontUrl, chars}: AtlasInput) => {
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(charData.segments), gl.DYNAMIC_DRAW)
 
 
- 
+      
       gl.uniform4fv( uniformLocations.uGlyphBounds, charData.glyphBounds)
-      //gl.uniform1f(uniformLocations.uDistance, t.distance!)
+      gl.uniform2fv(uniformLocations.uItemResolution, [width, height])
       
       //segmentsBlendCb(gl);       
       
@@ -265,7 +272,6 @@ export const renderAtlas = async ({fontUrl, chars}: AtlasInput) => {
     })
 
 
-    const adjustedSdfItemSize = size;
     
     programs['atlas'].chainDrawCall(0, (gl) => {
       gl.viewport(x, y, width, height)

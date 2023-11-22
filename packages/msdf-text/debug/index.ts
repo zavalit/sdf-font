@@ -14,16 +14,18 @@ import {renderCanvasText} from '../src'
   let fu = fontUrl
   fu = travelNextUrl
 
-  const text = `pa,Ä`
+  const text = `pb,Ä`
   const input = {
     fontUrl: fu,
-    chars: text
+    chars: text,
+    options: {
+      padding: 100
+    }
   }
 
   const config = await renderAtlas(input)
 
-  console.log(config)
-
+  console.log('config', config)
 
   const canvas = document.createElement('canvas')
 
