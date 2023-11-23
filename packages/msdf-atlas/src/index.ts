@@ -62,6 +62,7 @@ const vertexArrayObject  = (gl: W2, vaoMap: VAOBufferMap) => {
 
 }
 
+
 const getWhitspaceConfigChar = (ag: AtlasGlyph) => {
   const {glyph} = ag.obtainCharData(` `)
   
@@ -84,10 +85,11 @@ const calculateCavasSize = (atlasGlyph: AtlasGlyph, charset: string[], padding: 
   charset.forEach((char, i) => { 
 
     const {bbox: {width, height}} = atlasGlyph.obtainCharData(char)
-    res.width += width + padding * 2.
+    res.width += width + padding 
     
-    
-    res.height = Math.max(height + padding * 2., res.height)
+    const heightStep = Math.floor(i/4);  
+    const stackHeight = heightStep * 820
+    res.height = Math.max(stackHeight + height + padding, res.height)
     
   
   })
@@ -135,7 +137,7 @@ export const renderAtlas = async ({fontUrl, chars, options}: AtlasInput) => {
   
   
 
-  const {programs, renderFrame} = chain(gl, [
+  const {programs} = chain(gl, [
     // single sdf target
     {
       passId: 'segments',
@@ -166,7 +168,6 @@ export const renderAtlas = async ({fontUrl, chars, options}: AtlasInput) => {
   const buffer = gl.createBuffer()!;
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
 
-  let prevX = 0;
   const pageId = 0;
   const pages = []
   pages[pageId] = canvas
@@ -188,7 +189,7 @@ export const renderAtlas = async ({fontUrl, chars, options}: AtlasInput) => {
       spacing: [0, 0]      
     },
     common: {
-      lineHeight: atlasGlyph.font.ascender - atlasGlyph.font.descender + atlasGlyph.font.tables.os2.sTypoLineGap,
+      lineHeight: atlasGlyph.font.ascender - atlasGlyph.font.descender,// + atlasGlyph.font.tables.os2.sTypoLineGap,
       base: atlasGlyph.font.ascender,
       scaleW: width,
       scaleH: height,
@@ -203,18 +204,31 @@ export const renderAtlas = async ({fontUrl, chars, options}: AtlasInput) => {
       distanceRange: undefined
     }
   }
+  let prevX = [0, 0, 0,0];
+  let prevY = [canvasHeight, canvasHeight, canvasHeight,canvasHeight];
   // render a gpyph sprite
   charset.forEach((char, i) => { 
 
     const charData = atlasGlyph.obtainCharData(char)
     
     const {glyphBounds: [_x,_y,_z,_w], glyph, bbox: {minX, minY}} = charData
+
     const width = _z - _x + aOptions.padding
     const height = _w - _y + aOptions.padding
     
-    const x = prevX;
-    prevX += width
-    const y = canvasHeight - height;
+    
+    const channelIndex = i%4
+
+    const r = channelIndex === 0
+    const g = channelIndex === 1 
+    const b = channelIndex === 2
+    const a = channelIndex === 3
+
+    const x = prevX[channelIndex];
+   // prevX[channelIndex] += width
+    
+    const y = prevY[channelIndex] - height;
+    prevY[channelIndex] = y;
 
     const segmentsFBO = createFramebufferTexture(gl, [width, height])
     
@@ -246,7 +260,7 @@ export const renderAtlas = async ({fontUrl, chars, options}: AtlasInput) => {
       gl.uniform4fv( uniformLocations.uGlyphBounds, charData.glyphBounds)
       gl.uniform2fv(uniformLocations.uItemResolution, [width, height])
       
-      //segmentsBlendCb(gl);       
+             
       
       gl.enable(gl.BLEND)
       gl.blendFunc(gl.ONE, gl.ONE)
@@ -277,11 +291,8 @@ export const renderAtlas = async ({fontUrl, chars, options}: AtlasInput) => {
       gl.viewport(x, y, width, height)
       gl.bindTexture(gl.TEXTURE_2D, segmentsFBO.texture);
 
-      const r = i%4 === 0
-      const g = i%4 === 1 
-      const b = i%4 === 2
-      const a = i%4 === 3
-      //gl.colorMask(r, g, b, a)
+    
+      gl.colorMask(r, g, b, a)
       gl.disable(gl.BLEND)
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
           
@@ -295,7 +306,7 @@ export const renderAtlas = async ({fontUrl, chars, options}: AtlasInput) => {
       xoffset: minX,
       yoffset: minY,
       xadvance: glyph.advanceWidth,
-      chnl: undefined,
+      chnl: channelIndex,
       x: x,
       y: y,
       page: pageId,
@@ -304,6 +315,8 @@ export const renderAtlas = async ({fontUrl, chars, options}: AtlasInput) => {
 
 
   })
+
+  console.log('prevX', prevX, prevY)
 
   // add whitespace data
   const wsCC = getWhitspaceConfigChar(atlasGlyph)

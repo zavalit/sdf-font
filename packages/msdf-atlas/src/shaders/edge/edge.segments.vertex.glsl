@@ -20,32 +20,25 @@ void main() {
     vec4 gb = uGlyphBounds;
 
     
-		
+		float xOffset = gb.x;
 		//gb.xz -= gb.x;
+    
 		gb.yw -= gb.y;
 
 
-		// float scale = size / uUnitsPerEm;
-
+		
 		float height = (gb.w - gb.y) / uUnitsPerEm;
-    float width = (gb.z - gb.x) / uUnitsPerEm;
+    float width = (gb.z + gb.x) / uUnitsPerEm;
     
     float p = 0.;
-    // gb.xy -= p;
-    // gb.zw += p;
     
+    // padding scale factor
     vec2 ir = uItemResolution;
     vec2 scale = ir/(gb.zw - gb.xy);
     
     
-    
     vec2 pos = aPosition;  
     
-    
-    pos = mix(gb.xy/gb.zw, vec2(1.), pos);
-    
-		
-	
     vec2 glpos = mix(vec2(-1.), vec2(1.), pos);
 
 
@@ -53,6 +46,8 @@ void main() {
 
 
     vec2 uv = aPosition; 
+
+    // fit uv for padding 
     uv *= scale;
     uv += (1. - scale) * .5;
     
@@ -68,6 +63,7 @@ void main() {
 
     
 		
+    
     vViewBox = mix(gb.xy, gb.zw, uv);    
 
     vMaxDistance = uUnitsPerEm;

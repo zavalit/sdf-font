@@ -5,14 +5,18 @@ layout(location=0) in vec2 aPosition;
 layout(location=1) in vec4 aGlyphBounds;
 layout(location=2) in vec2 aGlyphSize;
 layout(location=3) in vec2 aGlyphOffset;
-layout(location=4) in vec4 aAtlasBounds;
+layout(location=4) in float aGlyphChannel;
+
+layout(location=5) in vec4 aAtlasBounds;
 
 out vec2 glyphUV;
+out float vGlyphChannel;
 
 uniform vec2 uAtlasResolution;
 uniform vec2 uResolution;
 uniform float uLineHeight;
 uniform float uBaseLine;
+uniform vec4 uPadding;
 
 void main(){
 
@@ -22,7 +26,11 @@ void main(){
   vec2 r = uResolution;
   pos = mix(gb.xy/r, gb.zw/r, pos);
   
-  
+  // offset x
+  float glyphWidth = aGlyphSize.x;
+
+  pos.x += aGlyphOffset.x/r.x;
+
   pos = mix(vec2(-1.), vec2(1.), pos);
   gl_Position = vec4(pos, 0.,1.);
 
@@ -45,6 +53,13 @@ void main(){
   // offset y
   gpos.y -= aGlyphOffset.y/uLineHeight * heightScale;
 
+  
+  // padding 
+  vec2 p = uPadding.xy * .5;
+  gpos +=  p / aGlyphSize;
+
   glyphUV = mix(ab.xy/ar, ab.zw/ar, gpos);
+  
+  vGlyphChannel = aGlyphChannel;
   
 }

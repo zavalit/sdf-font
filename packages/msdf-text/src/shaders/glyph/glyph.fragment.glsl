@@ -3,7 +3,7 @@
 precision mediump float;
 
 in vec2 glyphUV;
-
+in float vGlyphChannel;
 out vec4 fragColor;
 
 uniform sampler2D uTexture0;
@@ -19,13 +19,23 @@ void main () {
   //uv.y *= 1.3;
   
   float mask = texture(uTexture0, uv).a;
+  if(vGlyphChannel==0.){
+    mask = texture(uTexture0, uv).r;
+  }
+  else if(vGlyphChannel==1.){
+    mask = texture(uTexture0, uv).g;
+  }
+  if(vGlyphChannel==2.){
+    mask = texture(uTexture0, uv).b;
+  }
+  
   float d = fwidth(mask);
   float edge = smoothstep(border.x - d, border.y + d, mask);
   
   vec3 color = vec3(1.) * edge;
   
   
-  fragColor = vec4(color, 1.);
-
+  fragColor = vec4(color, .8);
+  //fragColor.r = 1.;
   
 }

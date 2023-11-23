@@ -13,13 +13,15 @@ import {renderCanvasText} from '../src'
 
   let fu = fontUrl
   fu = travelNextUrl
+  //fu = cairoBlackFontUrl
 
-  const text = `pb,Ä`
+  const text = "12345"
   const input = {
     fontUrl: fu,
     chars: text,
     options: {
-      padding: 100
+      padding: 100,
+      sdfExponent: 50,
     }
   }
 

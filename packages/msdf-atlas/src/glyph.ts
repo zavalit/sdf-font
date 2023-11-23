@@ -100,14 +100,6 @@ const calculateBoundingBox = (commands): BBox => {
   return { minX, minY, maxY, maxX, width: maxX - minX, height: maxY - minY };
 }
 
-export const calculateSvgSize = (boundingBox, desiredWidth) => {
-  const aspectRatio = boundingBox.width / boundingBox.height;
-  const svgWidth = desiredWidth;
-  const svgHeight = desiredWidth / aspectRatio;
-
-  return { svgWidth, svgHeight };
-}
-
 type WSDFGlyph = {
 
   glyphBounds: [number, number, number, number]

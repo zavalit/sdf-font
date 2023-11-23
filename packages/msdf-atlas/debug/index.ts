@@ -8,13 +8,22 @@ import baseneueFontUrl from 'url:./fonts/BaseNeue-Trial/web/WOFF/BaseNeueTrial-R
 import travelNextUrl from 'url:./fonts/TT-Travels-Next/TT Travels Next Regular.ttf'
 import bluescreensTrialUrl from 'url:./fonts/ttbluescreens_trial/TT Bluescreens Trial Regular.ttf'
 import {segmentize} from '../src/segmetizer'
-import {AtlasGlyph, calculateSvgSize, commandsToPathData} from '../src/glyph'
+import {AtlasGlyph, commandsToPathData} from '../src/glyph'
 import {renderAtlas} from '../src'
 
 let fu = fontUrl;
 fu = travelNextUrl
  //fu = baseneueFontUrl
  //fu = cairoBlackFontUrl
+
+
+export const calculateSvgSize = (boundingBox, desiredWidth) => {
+  const aspectRatio = boundingBox.width / boundingBox.height;
+  const svgWidth = desiredWidth;
+  const svgHeight = desiredWidth / aspectRatio;
+
+  return { svgWidth, svgHeight };
+}
 
 function segmentsToSvgPaths(segments) {
 	let svgPaths = [];
@@ -30,20 +39,17 @@ function segmentsToSvgPaths(segments) {
 }
 
 (async() => {
-
-	const ag = await AtlasGlyph.init(fu)
-	const glyph = ag.obtainCharData(`p`, true)
-	
-	console.log('glyph', glyph, ag.font)
-	// render SVG
+// render SVG
 	// {
+
+	// 	const ag = await AtlasGlyph.init(fu)
+	// 	const glyph = ag.obtainCharData(`j`, true)
 		
-	
-	// 	const desiredWidth = 200; // Set this to your desired width
-	
+	// 	console.log('glyph', glyph, ag.font)
+					
 	
 	// 	const bb = glyph.bbox
-	// 	const res = calculateSvgSize(bb, desiredWidth)
+	// 	const res = calculateSvgSize(bb, glyph.bbox.width * .5)
 	// 	// Create SVG element
 	// 	const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
 	// 	svg.setAttribute("width", res.svgWidth);
@@ -80,9 +86,9 @@ function segmentsToSvgPaths(segments) {
 
 		const altasInput = {
 			fontUrl: fu,
-			chars: 'Wt',
+			chars: '12345678',
 			options: {
-				padding: 300
+				padding: 100
 			}
 		}
 		const config = await renderAtlas(altasInput)

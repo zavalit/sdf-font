@@ -42,7 +42,9 @@ const calculateCanvasTextData = (textRows, config) => {
         g.height,
         // aGlyphOffset
         g.xoffset,
-        g.yoffset
+        g.yoffset,
+        // Channel
+        g.chnl
       ]
 
       glyphPositions.push(glyphPos)
@@ -86,6 +88,7 @@ export const renderCanvasText = (canvas: HTMLCanvasElement, text: string, config
   const atlasCanvas = config.pages[0]
   const atlasTexture = createTexture(gl, atlasCanvas)
   const atlasRes = [atlasCanvas.width, atlasCanvas.height]
+
   
 
   const r = chain(gl,
@@ -98,6 +101,8 @@ export const renderCanvasText = (canvas: HTMLCanvasElement, text: string, config
           gl.uniform2fv(locs.uAtlasResolution, atlasRes);
           gl.uniform1f(locs.uLineHeight, config.common.lineHeight);
           gl.uniform1f(locs.uBaseLine, config.common.base);
+          gl.uniform4fv(locs.uPadding, config.info.padding);
+          
   
         },
         vertexArrayObject(gl){
@@ -122,17 +127,22 @@ export const renderCanvasText = (canvas: HTMLCanvasElement, text: string, config
           gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(p.glyphPositions.flat()), gl.STATIC_DRAW)
           
           
-          gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 8*4, 0);
+          gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 9*4, 0);
           gl.enableVertexAttribArray(1);
           gl.vertexAttribDivisor(1,1);
           
-          gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 8*4, 4*4);
+          gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 9*4, 4*4);
           gl.enableVertexAttribArray(2);
           gl.vertexAttribDivisor(2,1);
 
-          gl.vertexAttribPointer(3, 2, gl.FLOAT, false, 8*4, 6*4);
+          gl.vertexAttribPointer(3, 2, gl.FLOAT, false, 9*4, 6*4);
           gl.enableVertexAttribArray(3);
           gl.vertexAttribDivisor(3,1);
+
+
+          gl.vertexAttribPointer(4, 1, gl.FLOAT, false, 9*4, 8*4);
+          gl.enableVertexAttribArray(4);
+          gl.vertexAttribDivisor(4,1);
 
           
           // atlas pos
@@ -141,15 +151,18 @@ export const renderCanvasText = (canvas: HTMLCanvasElement, text: string, config
           gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(p.atlasPosistions.flat()), gl.STATIC_DRAW)
           
           
-          gl.vertexAttribPointer(4, 4, gl.FLOAT, false, 0, 0);
-          gl.enableVertexAttribArray(4);
-          gl.vertexAttribDivisor(4,1);
+          gl.vertexAttribPointer(5, 4, gl.FLOAT, false, 0, 0);
+          gl.enableVertexAttribArray(5);
+          gl.vertexAttribDivisor(5,1);
 
 
 
           return vao
         },
         drawCall(gl) {
+
+          gl.enable(gl.BLEND)
+          gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
           gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, p.glyphPositions.length)
         }
       },

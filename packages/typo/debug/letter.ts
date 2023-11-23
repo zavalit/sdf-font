@@ -20,7 +20,7 @@ const sampleText = "@p+-Ä"
 const sampleText2 = "2 Ü"
 const sampleText3 = "2001g"
 const sampleText4 = "PÖWER/{}[]qpy"
-const sampleText5 = "Components"
+const sampleText5 = "jjjjj"
 
 //const textBlocks = sampleData.map(({m}) => m);
 
@@ -33,6 +33,7 @@ const charCodes = sampleText4.split('').map(c => c.charCodeAt(0));
 
   let fUrl = fontUrl
   fUrl = cairoBlackFontUrl
+  fUrl = travelNextUrl
 
   const {atlas, fontMeta, atlasMeta} = await createGlyphAtlas(fUrl, {sdfParams: {sdfItemSize: 64*2, sdfExponent: 10}, charCodes: _256})
 
