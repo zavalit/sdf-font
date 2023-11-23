@@ -14,11 +14,26 @@ const calculateCanvasTextData = (textRows, config) => {
     let rowWidth = 0
   
     let rowGlyphX = 0
+
+    
+    const firstGlyph = chars.get(text.charCodeAt(0));
+
+    // to align on left border
+    const alignToStart = firstGlyph.xoffset
+    
+
     text.split('').forEach((char, j) => {
       
       const unicode = char.charCodeAt(0)
       const g = chars.get(unicode)
-      rowWidth += g.xadvance
+      const nextChar = text[j + 1]
+      const nextG = nextChar && chars.get(nextChar.charCodeAt(0))
+      
+      const prevChar = text[j - 1]
+      
+      const prevG = prevChar && chars.get(prevChar.charCodeAt(0)) || {}
+            
+      rowWidth += g.xadvance 
       
       // atlas
       const atlasPos = [
@@ -30,30 +45,48 @@ const calculateCanvasTextData = (textRows, config) => {
 
       atlasPosistions.push(atlasPos)
       
+      
+
+      const x = rowGlyphX + g.xoffset - alignToStart     
+      const y = i * lineHeight
+      const z = rowGlyphX + g.width + g.xoffset - alignToStart
+      const w = (i + 1) + lineHeight
+
+      rowGlyphX += g.xadvance
+
+      let altZ = z
+      if(nextG) {
+         const nextX = rowGlyphX + nextG.xoffset
+         altZ = (z + nextX) * .5
+         
+      }
+      
       // glyph
       const glyphPos = [
         // aGlyphBounds
-        rowGlyphX,
-        i * lineHeight,
-        rowGlyphX + g.width,
-        (i + 1) + lineHeight,
+        x, //+ (altZ - z),
+        y,
+        z,
+        w,
+        
         // aGlyphSize
         g.width,
         g.height,
+        
         // aGlyphOffset
         g.xoffset,
         g.yoffset,
+        
         // Channel
         g.chnl
       ]
 
       glyphPositions.push(glyphPos)
 
-      rowGlyphX += g.xadvance
 
     })
   
-    rowWidthes.push(rowWidth)
+    rowWidthes.push(rowWidth - alignToStart)
 
   })
 

@@ -11,6 +11,8 @@ layout(location=5) in vec4 aAtlasBounds;
 
 out vec2 glyphUV;
 out float vGlyphChannel;
+out float vS;
+
 
 uniform vec2 uAtlasResolution;
 uniform vec2 uResolution;
@@ -23,13 +25,23 @@ void main(){
   vec2 pos = aPosition;
   
   vec4 gb = aGlyphBounds;
+  
+  
   vec2 r = uResolution;
+  
   pos = mix(gb.xy/r, gb.zw/r, pos);
   
-  // offset x
-  float glyphWidth = aGlyphSize.x;
-
-  pos.x += aGlyphOffset.x/r.x;
+  
+  // offset y
+  float glyphHeight = aGlyphSize.y;
+  float heightScale = uLineHeight/glyphHeight; 
+  // pos.y /= heightScale;
+  
+  // // move scaled pos up to the base
+  // pos.y += (1. - (uBaseLine)/uLineHeight) * heightScale;
+  
+  // // offset y
+  // pos.y += aGlyphOffset.y/uLineHeight * heightScale;
 
   pos = mix(vec2(-1.), vec2(1.), pos);
   gl_Position = vec4(pos, 0.,1.);
@@ -42,8 +54,8 @@ void main(){
   vec2 gpos = aPosition;
   
   // fix height scaling
-  float glyphHeight = aGlyphSize.y;
-  float heightScale = uLineHeight/glyphHeight; 
+  
+  //float heightScale = uLineHeight/glyphHeight; 
   gpos.y *= heightScale;
   
 
@@ -56,9 +68,12 @@ void main(){
   
   // padding 
   vec2 p = uPadding.xy * .5;
-  gpos +=  p / aGlyphSize;
+  gpos.y +=  p.y / aGlyphSize.y;
 
-  glyphUV = mix(ab.xy/ar, ab.zw/ar, gpos);
+  glyphUV = mix((ab.xy)/ar, ab.zw/ar, gpos);
+
+  
+  
   
   vGlyphChannel = aGlyphChannel;
   

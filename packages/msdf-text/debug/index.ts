@@ -13,14 +13,14 @@ import {renderCanvasText} from '../src'
 
   let fu = fontUrl
   fu = travelNextUrl
-  //fu = cairoBlackFontUrl
+  fu = cairoBlackFontUrl
 
-  const text = "12345"
+  const text = "b@wdflsml"
   const input = {
     fontUrl: fu,
     chars: text,
     options: {
-      padding: 100,
+      padding: 50,
       sdfExponent: 50,
     }
   }

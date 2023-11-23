@@ -81,6 +81,8 @@ const calculateCavasSize = (atlasGlyph: AtlasGlyph, charset: string[], padding: 
     width: 0,
     height: 0
   }
+
+  const lineheight = atlasGlyph.font.ascender - atlasGlyph.font.descender
   
   charset.forEach((char, i) => { 
 
@@ -88,7 +90,7 @@ const calculateCavasSize = (atlasGlyph: AtlasGlyph, charset: string[], padding: 
     res.width += width + padding 
     
     const heightStep = Math.floor(i/4);  
-    const stackHeight = heightStep * 820
+    const stackHeight = heightStep * (1.5 * lineheight)
     res.height = Math.max(stackHeight + height + padding, res.height)
     
   
@@ -122,6 +124,7 @@ export const renderAtlas = async ({fontUrl, chars, options}: AtlasInput) => {
   const gl = canvas.getContext('webgl2', {premultipliedAlpha: false})!;
   
   const charset = chars.split('').filter(c => c!= ' ' && c!='\n' && c!='\t')
+  //const charset = '123456789'.split('').filter(c => c!= ' ' && c!='\n' && c!='\t')
   const res = calculateCavasSize(atlasGlyph, charset, aOptions.padding)
 
   
@@ -164,6 +167,7 @@ export const renderAtlas = async ({fontUrl, chars, options}: AtlasInput) => {
     } 
   ])
   
+  const lineHeight = atlasGlyph.font.ascender - atlasGlyph.font.descender;// + atlasGlyph.font.tables.os2.sTypoLineGap,
 
   const buffer = gl.createBuffer()!;
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
@@ -189,7 +193,7 @@ export const renderAtlas = async ({fontUrl, chars, options}: AtlasInput) => {
       spacing: [0, 0]      
     },
     common: {
-      lineHeight: atlasGlyph.font.ascender - atlasGlyph.font.descender,// + atlasGlyph.font.tables.os2.sTypoLineGap,
+      lineHeight,
       base: atlasGlyph.font.ascender,
       scaleW: width,
       scaleH: height,
@@ -227,7 +231,8 @@ export const renderAtlas = async ({fontUrl, chars, options}: AtlasInput) => {
     const x = prevX[channelIndex];
    // prevX[channelIndex] += width
     
-    const y = prevY[channelIndex] - height;
+    const stack = Math.floor(i/4) * lineHeight * .5
+    const y = prevY[channelIndex] - height - stack;
     prevY[channelIndex] = y;
 
     const segmentsFBO = createFramebufferTexture(gl, [width, height])
