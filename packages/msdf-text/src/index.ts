@@ -2,8 +2,9 @@ import glyphVertexShader from './shaders/glyph/glyph.vertex.glsl';
 import glyphFragmentShader from './shaders/glyph/glyph.fragment.glsl';
 import chain, {WindowUniformsPlugin, createTexture} from '@webglify/chain'
 
-const calculateCanvasTextData = (textRows, config, letterSpacing) => {
+const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
 
+  const {letterSpacing, closeSpace} = opts
   const {chars, info: {padding}} = config
   const [pt, pr, lb, pl] = padding
   const rowWidthes = []
@@ -45,12 +46,6 @@ const calculateCanvasTextData = (textRows, config, letterSpacing) => {
       atlasPosistions.push(atlasPos)
             
       // glyph pos in text      
-      const nextChar = text[j + 1]
-      const nextG = nextChar && chars.get(nextChar.charCodeAt(0))
-      
-      const prevChar = text[j - 1]
-      
-      const prevG = prevChar && chars.get(prevChar.charCodeAt(0)) || {}
       
       const isFirstLetter = j === 0
       const isLastLetter = text.length - 1 === j
@@ -69,8 +64,7 @@ const calculateCanvasTextData = (textRows, config, letterSpacing) => {
       
       // prepate value for next x
       rowGlyphX += letterSpace
-      console.log('rowGlyphX', rowGlyphX)
-
+      
       // glyph
       const glyphPos = [
         // aGlyphStart
@@ -97,7 +91,7 @@ const calculateCanvasTextData = (textRows, config, letterSpacing) => {
       
       // first x stays the same
       let dx = 0;
-      if(!isFirstLetter) {
+      if(closeSpace && !isFirstLetter) {
           // calculate previos z
           const pd = glyphPositions[j-1];
           const pg = chars.get(text.charCodeAt(j -1));
@@ -108,7 +102,7 @@ const calculateCanvasTextData = (textRows, config, letterSpacing) => {
       }
       let dz = 0;
       // last z stays the same
-      if(!isLastLetter) {
+      if(closeSpace && !isLastLetter) {
         // calculate next x
         
         const currentZ = x + g.width
@@ -139,15 +133,25 @@ const calculateCanvasTextData = (textRows, config, letterSpacing) => {
 
 }
 
-export const renderCanvasText = (canvas: HTMLCanvasElement, text: string, config, letterSpace: number = 1) => {
+type CanvasTextOptions = {
+  letterSpacing: number
+  closeSpace: boolean
+}
+
+const defaultCanvasTextOptions: CanvasTextOptions = {
+  letterSpacing: 1,
+  closeSpace: false
+
+}
+
+export const renderCanvasText = (canvas: HTMLCanvasElement, text: string, config, options?: Partial<CanvasTextOptions>) => {
 
   const textRows = text.split('\n')
+  const opts = {...defaultCanvasTextOptions, ...options}
 
-
-  const {res,...p} = calculateCanvasTextData(textRows, config, letterSpace)
+  const {res,...p} = calculateCanvasTextData(textRows, config, opts)
 
   console.log('p', p)
-
   const gl = canvas.getContext('webgl2')
   canvas.width = res.canvasWidth
   canvas.height = res.canvasHeight

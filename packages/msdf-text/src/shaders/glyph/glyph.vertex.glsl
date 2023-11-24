@@ -38,7 +38,7 @@ void main(){
   vec2 end = aGlyphStart + vec2(aGlyphSize.x, height);
   end.x += diffs.y;
   
-  float xSpaceDelta = (diffs.y - diffs.x)/aGlyphSize.x;
+  
   
   
   
@@ -76,9 +76,12 @@ void main(){
   gpos.y +=  p.y / aGlyphSize.y;
 
   // diff delta
-
+  float xSpaceDelta = (diffs.y - diffs.x)/aGlyphSize.x;
+  float leftSpaceDelta = (diffs.x)/aGlyphSize.x;
   gpos.x *= 1. + xSpaceDelta;
-  gpos.x -= xSpaceDelta * .5;
+  
+  float d = leftSpaceDelta;
+  gpos.x += d;
 
   glyphUV = mix((ab.xy)/ar, ab.zw/ar, gpos);
 
