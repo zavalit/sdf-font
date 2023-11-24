@@ -16,7 +16,6 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
 
   
   textRows.forEach((text, i) => {
-    let rowWidth = 0
   
     
 
@@ -28,7 +27,7 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
     
     let rowGlyphX = alignToStart * -1;
     
-    
+
     text.split('').forEach((char, j) => {
       
       const unicode = char.charCodeAt(0)
@@ -50,20 +49,16 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
       const isFirstLetter = j === 0
       const isLastLetter = text.length - 1 === j
       const letterSpace = isLastLetter
-      ? g.width
+      ? g.width + g.xoffset
       : g.xadvance * letterSpacing;
-      
-      rowWidth += isLastLetter 
-      ? g.width 
-      : letterSpace
-      
-      
+                
 
       const x = rowGlyphX + g.xoffset     
       const y = i * lineHeight
       
       // prepate value for next x
       rowGlyphX += letterSpace
+              
       
       // glyph
       const glyphPos = [
@@ -117,7 +112,8 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
 
     })
   
-    rowWidthes.push(rowWidth )
+    //rowWidthes.push(rowWidth - 30  ) // bW
+    rowWidthes.push(rowGlyphX)
 
   })
 

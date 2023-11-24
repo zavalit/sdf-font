@@ -15,7 +15,7 @@ import {renderCanvasText} from '../src'
   // fu = travelNextUrl
   fu = cairoBlackFontUrl
 
-  const text = "pj@"
+  const text = "bW"
   const input = {
     fontUrl: fu,
     chars: text,
@@ -27,13 +27,14 @@ import {renderCanvasText} from '../src'
 
   const config = await renderAtlas(input)
 
+  console.log('config', config)
 
   const canvas = document.createElement('canvas')
 
-  const letterSpacing = 1.2
+  const letterSpacing = 1.
   renderCanvasText(canvas, text, config, {
     letterSpacing,    
-    closeSpace: true
+    //closeSpace: true
   })
 
   document.body.appendChild(canvas)
