@@ -2,18 +2,22 @@ import glyphVertexShader from './shaders/glyph/glyph.vertex.glsl';
 import glyphFragmentShader from './shaders/glyph/glyph.fragment.glsl';
 import chain, {WindowUniformsPlugin, createTexture} from '@webglify/chain'
 
-const calculateCanvasTextData = (textRows, config) => {
+const calculateCanvasTextData = (textRows, config, letterSpacing) => {
 
-  const {chars} = config
+  const {chars, info: {padding}} = config
+  const [pt, pr, lb, pl] = padding
   const rowWidthes = []
   const lineHeight = config.common.lineHeight
   
   const glyphPositions = []
+  const spaceDiffs = []
   const atlasPosistions = []
+
+  
   textRows.forEach((text, i) => {
     let rowWidth = 0
   
-    let rowGlyphX = 0
+    
 
     
     const firstGlyph = chars.get(text.charCodeAt(0));
@@ -21,20 +25,15 @@ const calculateCanvasTextData = (textRows, config) => {
     // to align on left border
     const alignToStart = firstGlyph.xoffset
     
-
+    let rowGlyphX = alignToStart * -1;
+    
+    
     text.split('').forEach((char, j) => {
       
       const unicode = char.charCodeAt(0)
       const g = chars.get(unicode)
-      const nextChar = text[j + 1]
-      const nextG = nextChar && chars.get(nextChar.charCodeAt(0))
-      
-      const prevChar = text[j - 1]
-      
-      const prevG = prevChar && chars.get(prevChar.charCodeAt(0)) || {}
-            
-      rowWidth += g.xadvance 
-      
+
+
       // atlas
       const atlasPos = [
         g.x, 
@@ -44,30 +43,39 @@ const calculateCanvasTextData = (textRows, config) => {
       ]
 
       atlasPosistions.push(atlasPos)
+            
+      // glyph pos in text      
+      const nextChar = text[j + 1]
+      const nextG = nextChar && chars.get(nextChar.charCodeAt(0))
+      
+      const prevChar = text[j - 1]
+      
+      const prevG = prevChar && chars.get(prevChar.charCodeAt(0)) || {}
+      
+      const isFirstLetter = j === 0
+      const isLastLetter = text.length - 1 === j
+      const letterSpace = isLastLetter
+      ? g.width
+      : g.xadvance * letterSpacing;
+      
+      rowWidth += isLastLetter 
+      ? g.width 
+      : letterSpace
       
       
 
-      const x = rowGlyphX + g.xoffset - alignToStart     
+      const x = rowGlyphX + g.xoffset     
       const y = i * lineHeight
-      const z = rowGlyphX + g.width + g.xoffset - alignToStart
-      const w = (i + 1) + lineHeight
-
-      rowGlyphX += g.xadvance
-
-      let altZ = z
-      if(nextG) {
-         const nextX = rowGlyphX + nextG.xoffset
-         altZ = (z + nextX) * .5
-         
-      }
       
+      // prepate value for next x
+      rowGlyphX += letterSpace
+      console.log('rowGlyphX', rowGlyphX)
+
       // glyph
       const glyphPos = [
-        // aGlyphBounds
-        x, //+ (altZ - z),
+        // aGlyphStart
+        x, 
         y,
-        z,
-        w,
         
         // aGlyphSize
         g.width,
@@ -77,16 +85,45 @@ const calculateCanvasTextData = (textRows, config) => {
         g.xoffset,
         g.yoffset,
         
-        // Channel
+        // aChannel
         g.chnl
       ]
 
       glyphPositions.push(glyphPos)
 
+      // close space
+
+      // change x and z
+      
+      // first x stays the same
+      let dx = 0;
+      if(!isFirstLetter) {
+          // calculate previos z
+          const pd = glyphPositions[j-1];
+          const pg = chars.get(text.charCodeAt(j -1));
+
+          const prevZ = pd[0] + pg.width
+          
+          dx = (prevZ - x) * .5                
+      }
+      let dz = 0;
+      // last z stays the same
+      if(!isLastLetter) {
+        // calculate next x
+        
+        const currentZ = x + g.width
+        const ng = chars.get(text.charCodeAt(j+1));
+
+        const nextX = rowGlyphX + ng.xoffset 
+        
+        dz = (nextX - currentZ) * .5                
+      }
+
+      spaceDiffs.push([dx, dz])
 
     })
   
-    rowWidthes.push(rowWidth - alignToStart)
+    rowWidthes.push(rowWidth )
 
   })
 
@@ -97,16 +134,17 @@ const calculateCanvasTextData = (textRows, config) => {
     res: {canvasWidth, canvasHeight},
     atlasPosistions,
     glyphPositions,
+    spaceDiffs,
   }
 
 }
 
-export const renderCanvasText = (canvas: HTMLCanvasElement, text: string, config) => {
+export const renderCanvasText = (canvas: HTMLCanvasElement, text: string, config, letterSpace: number = 1) => {
 
   const textRows = text.split('\n')
 
 
-  const {res,...p} = calculateCanvasTextData(textRows, config)
+  const {res,...p} = calculateCanvasTextData(textRows, config, letterSpace)
 
   console.log('p', p)
 
@@ -160,20 +198,20 @@ export const renderCanvasText = (canvas: HTMLCanvasElement, text: string, config
           gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(p.glyphPositions.flat()), gl.STATIC_DRAW)
           
           
-          gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 9*4, 0);
+          gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 7*4, 0);
           gl.enableVertexAttribArray(1);
           gl.vertexAttribDivisor(1,1);
           
-          gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 9*4, 4*4);
+          gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 7*4, 2*4);
           gl.enableVertexAttribArray(2);
           gl.vertexAttribDivisor(2,1);
 
-          gl.vertexAttribPointer(3, 2, gl.FLOAT, false, 9*4, 6*4);
+          gl.vertexAttribPointer(3, 2, gl.FLOAT, false, 7*4, 4*4);
           gl.enableVertexAttribArray(3);
           gl.vertexAttribDivisor(3,1);
 
 
-          gl.vertexAttribPointer(4, 1, gl.FLOAT, false, 9*4, 8*4);
+          gl.vertexAttribPointer(4, 1, gl.FLOAT, false, 7*4, 6*4);
           gl.enableVertexAttribArray(4);
           gl.vertexAttribDivisor(4,1);
 
@@ -188,7 +226,15 @@ export const renderCanvasText = (canvas: HTMLCanvasElement, text: string, config
           gl.enableVertexAttribArray(5);
           gl.vertexAttribDivisor(5,1);
 
-
+          // space diffs
+          const sp = gl.createBuffer()
+          gl.bindBuffer(gl.ARRAY_BUFFER, sp);
+          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(p.spaceDiffs.flat()), gl.STATIC_DRAW)
+          
+          
+          gl.vertexAttribPointer(6, 2, gl.FLOAT, false, 0, 0);
+          gl.enableVertexAttribArray(6);
+          gl.vertexAttribDivisor(6,1);
 
           return vao
         },

@@ -18,22 +18,26 @@ void main () {
 
   vec2 uv = glyphUV;
 
+  vec3 bg = vec3(0);
   
   float mask = texture(uTexture0, uv).a;
   if(vGlyphChannel==0.){
     mask = texture(uTexture0, uv).r;
+    bg.r = 1.;
   }
   else if(vGlyphChannel==1.){
     mask = texture(uTexture0, uv).g;
+    bg.g = 1.;
   }
   if(vGlyphChannel==2.){
     mask = texture(uTexture0, uv).b;
+    bg.b = 1.;
   }
   
   float d = fwidth(mask);
   float edge = smoothstep(border.x - d, border.y + d, mask);
   
-  vec3 color = vec3(0.5) * edge;
+  vec3 color = mix(bg, vec3(0.5), edge);
   
   
   fragColor = vec4(color, edge);

@@ -229,7 +229,7 @@ export const renderAtlas = async ({fontUrl, chars, options}: AtlasInput) => {
     const a = channelIndex === 3
 
     const x = prevX[channelIndex];
-   // prevX[channelIndex] += width
+    prevX[channelIndex] += width
     
     const stack = Math.floor(i/4) * lineHeight * .5
     const y = prevY[channelIndex] - height - stack;
