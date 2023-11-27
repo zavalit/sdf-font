@@ -5,11 +5,12 @@ layout(location=0) in vec2 aPosition;
 layout(location=1) in vec2 aGlyphStart;
 layout(location=2) in vec2 aGlyphSize;
 layout(location=3) in vec2 aGlyphOffset;
-layout(location=4) in float aGlyphChannel;
+layout(location=4) in float aGlyphAdvance;
+layout(location=5) in float aGlyphChannel;
 
-layout(location=5) in vec4 aAtlasBounds;
+layout(location=6) in vec4 aAtlasBounds;
 
-layout(location=6) in vec2 aSpaceDiffs;
+layout(location=7) in vec2 aSpaceDiffs;
 
 out vec2 glyphUV;
 out float vGlyphChannel;
@@ -18,15 +19,19 @@ out float vS;
 
 uniform vec2 uAtlasResolution;
 uniform vec2 uResolution;
+uniform vec2 uResolutionInPx;
 uniform float uLineHeight;
 uniform float uBaseLine;
 uniform vec4 uPadding;
+uniform float uFontSize;
 
 void main(){
 
   vec2 pos = aPosition;
   vec2 r = uResolution;
   float height = uLineHeight;
+  float width = aGlyphSize.x;
+  
   //height *=  .6;
   float base = uBaseLine;
   //base *= .7;
@@ -35,18 +40,20 @@ void main(){
 
   vec2 start = aGlyphStart;
   start.x += diffs.x;
-  vec2 end = aGlyphStart + vec2(aGlyphSize.x, height);
+  vec2 end = aGlyphStart + vec2(width, height);
   end.x += diffs.y;
   
   
   
   
+    
+  pos = mix(start, end, pos);
   
-  pos = mix(start/r, end/r, pos);
-  
+  pos *= uFontSize/r;
   
   
   pos = mix(vec2(-1.), vec2(1.), pos);
+
   gl_Position = vec4(pos, 0.,1.);
 
 
@@ -67,13 +74,13 @@ void main(){
   // move scaled pos up to the base
   gpos.y -= (1. - (base)/height) * heightScale;
     
-  // // offset y
+  // offset y
   gpos.y -= aGlyphOffset.y/height * heightScale;
 
-  
   // padding 
   vec2 p = uPadding.xy * .5;
-  gpos.y +=  p.y / aGlyphSize.y;
+  gpos +=  p / aGlyphSize;
+  
 
   // diff delta
   float xSpaceDelta = (diffs.y - diffs.x)/aGlyphSize.x;

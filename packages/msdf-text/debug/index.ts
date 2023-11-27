@@ -6,21 +6,21 @@ import cairoBlackFontUrl from 'url:./fonts/Cairo/static/Cairo-Black.ttf'
 import baseneueFontUrl from 'url:./fonts/BaseNeue-Trial/web/WOFF/BaseNeueTrial-Regular.ttf'
 import travelNextUrl from 'url:./fonts/TT-Travels-Next/TT Travels Next Regular.ttf'
 import bluescreensTrialUrl from 'url:./fonts/ttbluescreens_trial/TT Bluescreens Trial Regular.ttf'
-import {renderCanvasText} from '../src'
+import {renderCanvasText, calculateFontSizeByCanvas} from '../src'
 
 
 (async() => {
 
   let fu = fontUrl
-  fu = travelNextUrl
+  //fu = travelNextUrl
   //fu = cairoBlackFontUrl
 
-  const text = "W@jogt´"
+  const text = "Rj"
   const input = {
     fontUrl: fu,
     chars: text,
     options: {
-      padding: 100,
+      padding: 10,
       sdfExponent: 50,
       unitPerEmFactor: 1.
     }
@@ -28,18 +28,30 @@ import {renderCanvasText} from '../src'
 
   const config = await renderAtlas(input)
 
-  console.log('config', config)
+  
 
   const canvas = document.createElement('canvas')
 
-  const letterSpacing = 1.1
+  const letterSpacing = 1.
   renderCanvasText(canvas, text, config, {
     letterSpacing,    
     alignBounds: true,
-    fontSize: 300
+    fontSize: 200
   })
 
   document.body.appendChild(canvas)
+
+
+
+  const canvas2 = document.createElement('canvas')
+  
+  const f = calculateFontSizeByCanvas(canvas2, text, config, {
+    letterSpacing,    
+    //alignBounds: true,
+    
+  })
+
+  console.log('calculated font size', f)
 
 
 
@@ -49,6 +61,6 @@ import {renderCanvasText} from '../src'
   atlasCanvas.style.width = `${atlasCanvas.width  / dpr }px`
   atlasCanvas.style.height = `${atlasCanvas.height / dpr }px`
 
-  document.body.appendChild(atlasCanvas)
+//  document.body.appendChild(atlasCanvas)
 
 })()
