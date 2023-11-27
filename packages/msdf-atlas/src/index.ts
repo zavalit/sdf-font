@@ -64,7 +64,7 @@ const vertexArrayObject  = (gl: W2, vaoMap: VAOBufferMap) => {
 
 
 const getWhitspaceConfigChar = (ag: AtlasGlyph) => {
-  const {glyph} = ag.obtainCharData(` `)
+  const glyph = ag.obtainCharData(` `)
   
   return {
     id: glyph.unicode,
@@ -102,11 +102,13 @@ const calculateCavasSize = (atlasGlyph: AtlasGlyph, charset: string[], padding: 
 export type AtlasRenderOptions = {
   sdfExponent: number
   padding: number
+  unitPerEmFactor: number
 }
 
 const defaultAtlasRenderOptions: AtlasRenderOptions = {
   sdfExponent: 10,
   padding: 50,
+  unitPerEmFactor: 1.
 }
 
 export type AtlasInput = {
@@ -119,7 +121,7 @@ export const renderAtlas = async ({fontUrl, chars, options}: AtlasInput) => {
 
   const aOptions = {...defaultAtlasRenderOptions, ...options}
   
-  const atlasGlyph: AtlasGlyph = await AtlasGlyph.init(fontUrl)
+  const atlasGlyph: AtlasGlyph = await AtlasGlyph.init(fontUrl, aOptions)
   const canvas = document.createElement('canvas')  
   const gl = canvas.getContext('webgl2', {premultipliedAlpha: false})!;
   
@@ -181,7 +183,7 @@ export const renderAtlas = async ({fontUrl, chars, options}: AtlasInput) => {
     chars: new Map(),
     info: {
       face: atlasGlyph.fontName,
-      size: undefined,
+      size: atlasGlyph.fontSize,
       bold: undefined,
       italic: undefined,
       charset,
@@ -193,8 +195,8 @@ export const renderAtlas = async ({fontUrl, chars, options}: AtlasInput) => {
       spacing: [0, 0]      
     },
     common: {
-      lineHeight,
-      base: atlasGlyph.font.ascender,
+      lineHeight: lineHeight * aOptions.unitPerEmFactor,
+      base: atlasGlyph.font.ascender  * aOptions.unitPerEmFactor,
       scaleW: width,
       scaleH: height,
       pages: 1,
@@ -215,8 +217,8 @@ export const renderAtlas = async ({fontUrl, chars, options}: AtlasInput) => {
 
     const charData = atlasGlyph.obtainCharData(char)
     
-    const {glyphBounds: [_x,_y,_z,_w], glyph, bbox: {minX, minY}} = charData
-
+    const {glyphBounds: [_x,_y,_z,_w], bbox: {minX, minY}, ...glyph} = charData
+    
     const width = _z - _x + aOptions.padding
     const height = _w - _y + aOptions.padding
     
@@ -320,8 +322,6 @@ export const renderAtlas = async ({fontUrl, chars, options}: AtlasInput) => {
 
 
   })
-
-  console.log('prevX', prevX, prevY)
 
   // add whitespace data
   const wsCC = getWhitspaceConfigChar(atlasGlyph)

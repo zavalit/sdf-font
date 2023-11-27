@@ -4,26 +4,29 @@ import chain, {WindowUniformsPlugin, createTexture} from '@webglify/chain'
 
 const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
 
-  const {letterSpacing, closeSpace} = opts
-  const {chars, info: {padding}} = config
-  const [pt, pr, lb, pl] = padding
-  const rowWidthes = []
-  const lineHeight = config.common.lineHeight
+  const {letterSpacing, alignBounds} = opts
+  const {chars} = config
   
+  const rowWidthes = []
+  
+  const ff = opts.fontSize/(config.info.size * 2.)
+  
+  const lineHeight = config.common.lineHeight * ff 
+  const base = config.common.base * ff
+  const padding = config.info.padding.map(p => p * ff)
+
+
   const glyphPositions = []
   const spaceDiffs = []
   const atlasPosistions = []
 
   
   textRows.forEach((text, i) => {
-  
-    
-
     
     const firstGlyph = chars.get(text.charCodeAt(0));
 
     // to align on left border
-    const alignToStart = firstGlyph.xoffset
+    const alignToStart = firstGlyph.xoffset * ff
     
     let rowGlyphX = alignToStart * -1;
     
@@ -33,6 +36,7 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
       const unicode = char.charCodeAt(0)
       const g = chars.get(unicode)
 
+      console.log('g', g)
 
       // atlas
       const atlasPos = [
@@ -49,11 +53,11 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
       const isFirstLetter = j === 0
       const isLastLetter = text.length - 1 === j
       const letterSpace = isLastLetter
-      ? g.width + g.xoffset
-      : g.xadvance * letterSpacing;
+      ? (g.width + g.xoffset) * ff
+      : g.xadvance * letterSpacing * ff;
                 
 
-      const x = rowGlyphX + g.xoffset     
+      const x = rowGlyphX + g.xoffset * ff     
       const y = i * lineHeight
       
       // prepate value for next x
@@ -67,12 +71,12 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
         y,
         
         // aGlyphSize
-        g.width,
-        g.height,
+        g.width * ff,
+        g.height * ff,
         
         // aGlyphOffset
-        g.xoffset,
-        g.yoffset,
+        g.xoffset * ff,
+        g.yoffset * ff,
         
         // aChannel
         g.chnl
@@ -86,24 +90,24 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
       
       // first x stays the same
       let dx = 0;
-      if(closeSpace && !isFirstLetter) {
+      if(alignBounds && !isFirstLetter) {
           // calculate previos z
           const pd = glyphPositions[j-1];
           const pg = chars.get(text.charCodeAt(j -1));
 
-          const prevZ = pd[0] + pg.width
+          const prevZ = pd[0] + pg.width * ff
           
           dx = (prevZ - x) * .5                
       }
       let dz = 0;
       // last z stays the same
-      if(closeSpace && !isLastLetter) {
+      if(alignBounds && !isLastLetter) {
         // calculate next x
         
-        const currentZ = x + g.width
+        const currentZ = x + g.width * ff
         const ng = chars.get(text.charCodeAt(j+1));
 
-        const nextX = rowGlyphX + ng.xoffset 
+        const nextX = rowGlyphX + ng.xoffset * ff
         
         dz = (nextX - currentZ) * .5                
       }
@@ -125,18 +129,23 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
     atlasPosistions,
     glyphPositions,
     spaceDiffs,
+    lineHeight,
+    base,
+    padding
   }
 
 }
 
 type CanvasTextOptions = {
   letterSpacing: number
-  closeSpace: boolean
+  alignBounds: boolean
+  fontSize: number
 }
 
 const defaultCanvasTextOptions: CanvasTextOptions = {
   letterSpacing: 1,
-  closeSpace: false
+  alignBounds: false,
+  fontSize: 100
 
 }
 
@@ -170,9 +179,9 @@ export const renderCanvasText = (canvas: HTMLCanvasElement, text: string, config
         textures: [atlasTexture],
         uniforms(gl, locs) {
           gl.uniform2fv(locs.uAtlasResolution, atlasRes);
-          gl.uniform1f(locs.uLineHeight, config.common.lineHeight);
-          gl.uniform1f(locs.uBaseLine, config.common.base);
-          gl.uniform4fv(locs.uPadding, config.info.padding);
+          gl.uniform1f(locs.uLineHeight, p.lineHeight);
+          gl.uniform1f(locs.uBaseLine, p.base);
+          gl.uniform4fv(locs.uPadding, p.padding);
           
   
         },

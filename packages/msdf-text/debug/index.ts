@@ -12,16 +12,17 @@ import {renderCanvasText} from '../src'
 (async() => {
 
   let fu = fontUrl
-  // fu = travelNextUrl
-  fu = cairoBlackFontUrl
+  fu = travelNextUrl
+  //fu = cairoBlackFontUrl
 
-  const text = "bW"
+  const text = "W@jogt´"
   const input = {
     fontUrl: fu,
     chars: text,
     options: {
       padding: 100,
       sdfExponent: 50,
+      unitPerEmFactor: 1.
     }
   }
 
@@ -31,10 +32,11 @@ import {renderCanvasText} from '../src'
 
   const canvas = document.createElement('canvas')
 
-  const letterSpacing = 1.
+  const letterSpacing = 1.1
   renderCanvasText(canvas, text, config, {
     letterSpacing,    
-    //closeSpace: true
+    alignBounds: true,
+    fontSize: 300
   })
 
   document.body.appendChild(canvas)

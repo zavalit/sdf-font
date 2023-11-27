@@ -14,7 +14,7 @@ import {renderAtlas} from '../src'
 let fu = fontUrl;
 fu = travelNextUrl
  //fu = baseneueFontUrl
- //fu = cairoBlackFontUrl
+ fu = cairoBlackFontUrl
 
 
 export const calculateSvgSize = (boundingBox, desiredWidth) => {
@@ -39,16 +39,16 @@ function segmentsToSvgPaths(segments) {
 }
 
 (async() => {
-// render SVG
+//render SVG
 	{
 
-		const ag = await AtlasGlyph.init(fu)
-		const glyph = ag.obtainCharData(`j`, true)
-		
+		const ag = await AtlasGlyph.init(fu, {unitPerEmFactor: 1.})
+		const glyph = ag.obtainCharData(`q`, true)
+		console.log('svg glyph', glyph)
 					
 	
 		const bb = glyph.bbox
-		const res = calculateSvgSize(bb, glyph.bbox.width * .5)
+		const res = calculateSvgSize(bb, glyph.bbox.width)
 		// Create SVG element
 		const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
 		svg.setAttribute("width", res.svgWidth);
@@ -76,7 +76,7 @@ function segmentsToSvgPaths(segments) {
 	}
 
 	
-	// render SDF
+	// //render SDF
 
 	// {
 
@@ -85,9 +85,10 @@ function segmentsToSvgPaths(segments) {
 
 	// 	const altasInput = {
 	// 		fontUrl: fu,
-	// 		chars: '12345678',
+	// 		chars: 'W',
 	// 		options: {
-	// 			padding: 100
+	// 			padding: 100,
+	// 			unitPerEmFactor: 1.
 	// 		}
 	// 	}
 	// 	const config = await renderAtlas(altasInput)

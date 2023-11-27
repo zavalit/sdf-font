@@ -104,55 +104,91 @@ type WSDFGlyph = {
 
   glyphBounds: [number, number, number, number]
   segments: number[]
-  glyph: Font.Glyph  
   bbox: BBox
+  advanceWidth: number,
+  unicode: number,
+  index: number
+ 
   svgPath?: string
   path?: Font.Path
   baselineCommands?: []
 }
 
+
+
+type AtlasGlyphOptions = {
+  fontName?: string
+  unitPerEmFactor: number
+}
+
+const defaultAtlasGlyphOptions = {
+  unitPerEmFactor: 1
+}
+
+
 export class AtlasGlyph {
   
   font: Font
   fontName?: string
+  fontSize: number
+  unitPerEmFactor: number
 
-  constructor (font: Font, fontName?: string) {
+  constructor (font: Font, opts: AtlasGlyphOptions) {
     this.font = font
-    this.fontName = fontName
+    this.fontName = opts.fontName
+    this.unitPerEmFactor = opts.unitPerEmFactor || defaultAtlasGlyphOptions.unitPerEmFactor
+    this.fontSize = font.unitsPerEm * opts.unitPerEmFactor
   }
 
-  static async init(fontUrl: string) {
+  static async init(fontUrl: string, options?: AtlasGlyphOptions) {
     const buffer = fetch(fontUrl).then(res => res.arrayBuffer());
   
     // if running in async context:
     const font = await opentype.parse(await buffer)
-    return new AtlasGlyph(font);
+    const opts = {...defaultAtlasGlyphOptions, ...options}
+    return new AtlasGlyph(font, opts);
   }
   
   obtainCharData(char: string, debug?: boolean ): WSDFGlyph {
+
+      const uf = this.unitPerEmFactor
   
       const glyph = this.font.charToGlyph(char)
-      const path = glyph.getPath(0, 0, this.font.unitsPerEm)
+      console.log('glyph', glyph)
+      const path = glyph.getPath(0, 0, this.fontSize)
 
       const spaceToBaseline = glyph.yMax + glyph.yMin
+      
 
       const bCommands = riseToBaseLine(path.commands, spaceToBaseline)
       const fCommands =  flipCommandsOnYAxis(bCommands)
       
-      const svgPath = commandsToPathData(bCommands);
-      const bbox = calculateBoundingBox(bCommands);
-
+      const svgPath = commandsToPathData(fCommands);
+      const {xMin, xMax, yMin, yMax} = glyph
+      const [minX, maxX, minY, maxY] = [xMin, xMax, yMin, yMax].map(u => u*uf)
+      const bbox = {
+        minX,
+        maxX,
+        minY,
+        maxY,
+        width: maxX - minX,
+        height: maxY - minY
+      };
+      
+      
+      
       const required: WSDFGlyph = {
-        glyph,
         glyphBounds: [bbox.minX, bbox.minY, bbox.maxX, bbox.maxY],
         segments: segmentize(fCommands),
         bbox,
+        advanceWidth: glyph.advanceWidth * uf,
+        unicode: glyph.unicode,
+        index: glyph.index
       }
       
       return !debug 
       ? required 
       : {...required,
-        glyph,
         path,
         baselineCommands: bCommands,
         svgPath             
