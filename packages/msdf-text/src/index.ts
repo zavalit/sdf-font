@@ -51,6 +51,9 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
   const glyphPositions = []
   const spaceDiffs = []
 
+  const pad = padding[0]
+
+  let ii = 0;
   
   textRows.forEach((text, i) => {
     
@@ -59,7 +62,10 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
     
     let rowGlyphX = 0.;
     
+    const y = (textRows.length - i - 1 ) * lineHeight
+    console.log('Y', y)
     text.split('').forEach((char, j) => {
+
       
             
       // glyph pos in text      
@@ -75,7 +81,8 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
                 
 
       const x = rowGlyphX + g.xoffset * ff
-      const y = i * lineHeight
+      const width = g.width * ff - pad;
+      
       
       // prepate value for next x
       rowGlyphX += letterSpace
@@ -88,7 +95,7 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
         y,
         
         // aGlyphSize
-        g.width * ff,
+        width,
         g.height * ff,
         
         // aGlyphOffset
@@ -113,40 +120,51 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
       let dz = 0;
       
       if(alignBounds) {
-        const pad = padding[0]
+
         // dx
-        // first x sticks to canvas start
+        // first stick to start 
         if(isFirstLetter) {
-        
+          
           dx = Math.min(firstGlyph.xoffset * ff * -1., 0);
-        
-        }else {
-          // calculate previos z
-          const pd = glyphPositions[j-1];
-          const pg = chars.get(text.charCodeAt(j -1));
 
-          const prevZ = pd[0] + pg.width * ff
+        } else {          
           
-          dx = (prevZ - x) * .5 - pad * .5                
+          // prev z
+          const [prevX, _, prevWidth] = glyphPositions[ii - 1];
+          //const prevChar = chars.get(text.charCodeAt(j-1));
+
+          
+
+          const prevZ = prevX + prevWidth
+          console.log('prevX', prevX, prevWidth, prevZ, x)
+
+          dx = (prevZ - x) * .5 
         }
-        
-        // dz
-        if(isLastLetter) {
-          dz = rowGlyphX;
-        }else {
-          const currentZ = x + g.width * ff
-          const ng = chars.get(text.charCodeAt(j+1));
-  
-          const nextX = rowGlyphX + ng.xoffset * ff
-          
-          
 
-          dz = (nextX - currentZ) * .5 - pad * .5                
-        }      
-              
+        // dz
+        // last stick to end 
+        if(isLastLetter){
+          
+          dz = rowGlyphX - (x + width)
+
+        } else {
+          
+          const currentZ = x + width
+          
+          const nextChar = chars.get(text.charCodeAt(j+1));
+  
+          const nextX = rowGlyphX + nextChar.xoffset * ff
+
+          dz = (nextX - currentZ) * .5;
+
+
+        }
+
       } 
 
       spaceDiffs.push([dx, dz])
+      ii++; 
+
 
     })
   

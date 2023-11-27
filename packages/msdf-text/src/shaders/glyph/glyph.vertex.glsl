@@ -45,7 +45,6 @@ void main(){
   float width = end.x - start.x;
   
   
-  
     
   pos = mix(start, end, pos);
   
@@ -80,18 +79,25 @@ void main(){
   // padding 
   vec2 p = uPadding.xy * .5;
   gpos.y +=  p.y / aGlyphSize.y;
+  
   gpos.x +=  p.x / width;
+  gpos.x *= width/(width + uPadding.x);
+  
+  
+  
   
 
   // diff delta
-  float xSpaceDelta = (diffs.y - diffs.x)/aGlyphSize.x;
-  float leftSpaceDelta = (diffs.x)/aGlyphSize.x;
+  float xSpaceDelta = (diffs.y - diffs.x)/(width + uPadding.x);
+  float leftSpaceDelta = (diffs.x)/(width + uPadding.x);
   gpos.x *= 1. + xSpaceDelta;
   
   float d = leftSpaceDelta;
   gpos.x += d;
 
-  glyphUV = mix((ab.xy)/ar, ab.zw/ar, gpos);
+  vec2 from = (ab.xy)/ar;
+  vec2 to = ab.zw/ar;
+  glyphUV = mix(from, to, gpos);
 
   
   
