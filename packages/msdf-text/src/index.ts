@@ -70,7 +70,7 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
       const isFirstLetter = j === 0
       const isLastLetter = text.length - 1 === j
       const letterSpace = isLastLetter
-      ? g.xadvance * letterSpacing * ff//(g.width + g.xoffset) * ff
+      ? g.xadvance * ff//(g.width + g.xoffset) * ff
       : g.xadvance * letterSpacing * ff;
                 
 
@@ -108,30 +108,43 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
       // change x and z
       
       // first x sticks to canvas start
-      let dx = Math.min(firstGlyph.xoffset * ff * -1., 0);
-      if(alignBounds && !isFirstLetter) {
+      let dx = 0;
+      // last z sticks to line end
+      let dz = 0;
+      
+      if(alignBounds) {
+        const pad = padding[0]
+        // dx
+        // first x sticks to canvas start
+        if(isFirstLetter) {
+        
+          dx = Math.min(firstGlyph.xoffset * ff * -1., 0);
+        
+        }else {
           // calculate previos z
           const pd = glyphPositions[j-1];
           const pg = chars.get(text.charCodeAt(j -1));
 
           const prevZ = pd[0] + pg.width * ff
           
-          dx = (prevZ - x) * .5                
-      }
-      
-      // last z sticks to line end
-      let dz = rowGlyphX;
-      
-      if(alignBounds && !isLastLetter) {
-        // calculate next x
+          dx = (prevZ - x) * .5 - pad * .5                
+        }
         
-        const currentZ = x + g.width * ff
-        const ng = chars.get(text.charCodeAt(j+1));
+        // dz
+        if(isLastLetter) {
+          dz = rowGlyphX;
+        }else {
+          const currentZ = x + g.width * ff
+          const ng = chars.get(text.charCodeAt(j+1));
+  
+          const nextX = rowGlyphX + ng.xoffset * ff
+          
+          
 
-        const nextX = rowGlyphX + ng.xoffset * ff
-        
-        dz = (nextX - currentZ) * .5                
-      }
+          dz = (nextX - currentZ) * .5 - pad * .5                
+        }      
+              
+      } 
 
       spaceDiffs.push([dx, dz])
 
@@ -200,6 +213,7 @@ export const renderCanvasText = (canvas: HTMLCanvasElement, text: string, config
 
   const atlasPosistions = calculateAtlasPositions(textRows, config)
   const p = calculateCanvasTextData(textRows, config, opts)
+  console.log('p', p)
   
   const res = calculateCanvasRes(textRows, opts, p)
 

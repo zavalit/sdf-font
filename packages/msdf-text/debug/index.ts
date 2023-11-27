@@ -15,14 +15,14 @@ import {renderCanvasText, calculateFontSizeByCanvas} from '../src'
   //fu = travelNextUrl
   //fu = cairoBlackFontUrl
 
-  const text = "Rj"
+  const text = "Roboto"
   const input = {
     fontUrl: fu,
     chars: text,
     options: {
-      padding: 10,
+      padding: 500,
       sdfExponent: 50,
-      unitPerEmFactor: 1.
+      unitPerEmFactor: .5
     }
   }
 
@@ -47,7 +47,7 @@ import {renderCanvasText, calculateFontSizeByCanvas} from '../src'
   
   const f = calculateFontSizeByCanvas(canvas2, text, config, {
     letterSpacing,    
-    //alignBounds: true,
+    
     
   })
 

@@ -29,8 +29,6 @@ void main(){
 
   vec2 pos = aPosition;
   vec2 r = uResolution;
-  float height = uLineHeight;
-  float width = aGlyphSize.x;
   
   //height *=  .6;
   float base = uBaseLine;
@@ -40,9 +38,11 @@ void main(){
 
   vec2 start = aGlyphStart;
   start.x += diffs.x;
-  vec2 end = aGlyphStart + vec2(width, height);
+  vec2 end = aGlyphStart + vec2( aGlyphSize.x, uLineHeight);
   end.x += diffs.y;
   
+  float height = end.y - start.y;
+  float width = end.x - start.x;
   
   
   
@@ -79,7 +79,8 @@ void main(){
 
   // padding 
   vec2 p = uPadding.xy * .5;
-  gpos +=  p / aGlyphSize;
+  gpos.y +=  p.y / aGlyphSize.y;
+  gpos.x +=  p.x / width;
   
 
   // diff delta
