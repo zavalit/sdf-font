@@ -16,6 +16,8 @@ const calculateAtlasPositions = (textRows, config) => {
     text.split('').forEach((char) => {
       
       const unicode = char.charCodeAt(0)
+      if(unicode == 32) return
+      
       const g = chars.get(unicode)
 
       // atlas
@@ -33,6 +35,7 @@ const calculateAtlasPositions = (textRows, config) => {
 
     return atlasPosistions
 }
+
 
 const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
 
@@ -56,37 +59,40 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
   let ii = 0;
   
   textRows.forEach((text, i) => {
+  
     
-    const firstGlyph = chars.get(text.charCodeAt(0));
-
-    
-    let rowGlyphX = 0.;
-    
+    let rowGlyphX = 0.;  
     const y = (textRows.length - i - 1 ) * lineHeight
-    console.log('Y', y)
+
     text.split('').forEach((char, j) => {
 
-      
+      const prevUnicode = text.charCodeAt(j - 1)
+      const nextUnicode = text.charCodeAt(j + 1)  
             
       // glyph pos in text      
       const unicode = char.charCodeAt(0)
       const g = chars.get(unicode)
 
       
-      const isFirstLetter = j === 0
-      const isLastLetter = text.length - 1 === j
+      const isFirstLetter = j === 0 || prevUnicode == 32
+      const isLastLetter = text.length - 1 === j || nextUnicode == 32
+      
       const letterSpace = isLastLetter
       ? g.xadvance * ff//(g.width + g.xoffset) * ff
       : g.xadvance * letterSpacing * ff;
-                
-
-      const x = rowGlyphX + g.xoffset * ff
-      const width = g.width * ff - pad;
+                  
+      if(unicode == 32){
+        rowGlyphX += letterSpace        
+        glyphPositions[++ii] = undefined
+        return
+      }      
       
       
       // prepate value for next x
-      rowGlyphX += letterSpace
-              
+      const x = rowGlyphX + g.xoffset * ff
+      const width = g.width * ff - pad;
+    
+      rowGlyphX += letterSpace        
       
       // glyph
       const glyphPos = [
@@ -108,7 +114,7 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
         g.chnl
       ]
 
-      glyphPositions.push(glyphPos)
+      glyphPositions[ii] = glyphPos
 
       // close space
 
@@ -125,39 +131,30 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
         // first stick to start 
         if(isFirstLetter) {
           
-          dx = Math.min(firstGlyph.xoffset * ff * -1., 0);
+          dx = Math.min(g.xoffset * ff * -1., 0);
 
-        } else {          
+        } else if(prevUnicode !== 32) {          
           
-          // prev z
-          const [prevX, _, prevWidth] = glyphPositions[ii - 1];
-          //const prevChar = chars.get(text.charCodeAt(j-1));
-
-          
-
+          const [prevX, _, prevWidth] = glyphPositions[ii - 1]
           const prevZ = prevX + prevWidth
-          console.log('prevX', prevX, prevWidth, prevZ, x)
-
           dx = (prevZ - x) * .5 
         }
 
+          
         // dz
         // last stick to end 
         if(isLastLetter){
           
           dz = rowGlyphX - (x + width)
 
-        } else {
+        } else if (nextUnicode !== 32) {
           
           const currentZ = x + width
           
           const nextChar = chars.get(text.charCodeAt(j+1));
-  
           const nextX = rowGlyphX + nextChar.xoffset * ff
 
           dz = (nextX - currentZ) * .5;
-
-
         }
 
       } 
@@ -175,7 +172,7 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
 
   return {
     rowWidthes,
-    glyphPositions,
+    glyphPositions: glyphPositions.filter(p => p),
     spaceDiffs,
     lineHeight,
     base,

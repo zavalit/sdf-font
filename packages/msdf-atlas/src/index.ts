@@ -173,6 +173,7 @@ export const renderAtlas = async ({fontUrl, options}: AtlasInput) => {
   
   const uniqueChars = new Set(aOptions.chars.split(''))
   const charset = Array.from(uniqueChars).filter(c => c!= ' ' && c!='\n' && c!='\t')
+  
   const {res, altasCoords} = calculateCavasSize(atlasGlyph, charset, aOptions)
 
   
