@@ -154,7 +154,7 @@ export class AtlasGlyph {
       const uf = this.unitPerEmFactor
   
       const glyph = this.font.charToGlyph(char)
-      console.log('glyph', glyph)
+      
       const path = glyph.getPath(0, 0, this.fontSize)
 
       const spaceToBaseline = glyph.yMax + glyph.yMin

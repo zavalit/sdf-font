@@ -12,17 +12,18 @@ import {renderCanvasText, calculateFontSizeByCanvas} from '../src'
 (async() => {
 
   let fu = fontUrl
-  //fu = travelNextUrl
+  fu = travelNextUrl
   //fu = cairoBlackFontUrl
 
   const text = 
-`gq@
-gÄ@`
+`1234srs
+56
+werpeW@Super`
   const input = {
     fontUrl: fu,
-    chars: text,
     options: {
-      padding: 400,
+      padding: 110,
+     // chars: text,
       sdfExponent: 50,
       unitPerEmFactor: .15
     }
@@ -63,6 +64,6 @@ gÄ@`
   atlasCanvas.style.width = `${atlasCanvas.width  / dpr }px`
   atlasCanvas.style.height = `${atlasCanvas.height / dpr }px`
 
-//  document.body.appendChild(atlasCanvas)
+  document.body.appendChild(atlasCanvas)
 
 })()

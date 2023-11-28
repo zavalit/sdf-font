@@ -75,49 +75,95 @@ const getWhitspaceConfigChar = (ag: AtlasGlyph) => {
 }
 
 
-const calculateCavasSize = (atlasGlyph: AtlasGlyph, charset: string[], padding: number) => {
+const calculateCavasSize = (atlasGlyph: AtlasGlyph, charset: string[], opts: AtlasRenderOptions) => {
   
   const res = {
     width: 0,
-    height: 0
+    height: 0.
   }
 
-  const lineheight = atlasGlyph.font.ascender - atlasGlyph.font.descender
-  
+  const {padding, atlasApproximateWidth} = opts
+
+  const lineHeight = (atlasGlyph.font.ascender - atlasGlyph.font.descender) * atlasGlyph.unitPerEmFactor
+
+  let altasCoords = []
+
+  let prevX = [0, 0, 0, 0]
+  let prevY = [0, 0, 0, 0]
+
+  let maxHeight = 0
   charset.forEach((char, i) => { 
 
-    const {bbox: {width, height}} = atlasGlyph.obtainCharData(char)
-    res.width += width + padding 
+    const charData = atlasGlyph.obtainCharData(char)
+    const channelIndex = i%4
     
-    const heightStep = Math.floor(i/4);  
-    const stackHeight = heightStep * (1.5 * lineheight)
-    res.height = Math.max(stackHeight + height + padding, res.height)
+    const {glyphBounds: [_x,_y,_z,_w]} = charData
+    const width = _z - _x + padding
+    const height = _w - _y + padding
+  
+    maxHeight = Math.max(maxHeight, height)
+    
+    const x = prevX[channelIndex];
+    const y = prevY[channelIndex];
+    
+    const nextX = x + width     
+
+    res.width = Math.max(nextX, res.width) 
+    res.height = Math.max(y + height, res.height)
+
+    
+    if(nextX > atlasApproximateWidth) {
+      prevY[channelIndex] += Math.max(lineHeight, maxHeight)
+      prevX[channelIndex] = 0
+      maxHeight = 0
+    }else {
+      prevX[channelIndex] = nextX
+    }
+      
+    const coordsData = {channelIndex, width, height, x, y}    
+    altasCoords.push({charData, coordsData})
     
   
   })
 
-  return res
+  // flip Y
+  altasCoords = altasCoords.map(c => {
+    const coordsData = c.coordsData
+    coordsData.y = res.height - (coordsData.y + coordsData.height)
+    return {...c, coordsData}
+  })
+
+
+  return {res, altasCoords}
 }
 
 export type AtlasRenderOptions = {
   sdfExponent: number
   padding: number
   unitPerEmFactor: number
+  atlasApproximateWidth: number
+  chars: string
 }
+
+const defaultChars = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+const controlChars = ['\n', '\r', '\t'];
 
 const defaultAtlasRenderOptions: AtlasRenderOptions = {
   sdfExponent: 10,
   padding: 50,
-  unitPerEmFactor: 1.
+  unitPerEmFactor: 1.,
+  atlasApproximateWidth: 1024,
+  chars: defaultChars
+  
 }
 
 export type AtlasInput = {
   fontUrl: string,
-  chars: string,
   options?: Partial<AtlasRenderOptions>
 }
 
-export const renderAtlas = async ({fontUrl, chars, options}: AtlasInput) => {
+
+export const renderAtlas = async ({fontUrl, options}: AtlasInput) => {
 
   const aOptions = {...defaultAtlasRenderOptions, ...options}
   
@@ -125,13 +171,11 @@ export const renderAtlas = async ({fontUrl, chars, options}: AtlasInput) => {
   const canvas = document.createElement('canvas')  
   const gl = canvas.getContext('webgl2', {premultipliedAlpha: false})!;
   
-  const charset = chars.split('').filter(c => c!= ' ' && c!='\n' && c!='\t')
-  //const charset = '123456789'.split('').filter(c => c!= ' ' && c!='\n' && c!='\t')
-  const res = calculateCavasSize(atlasGlyph, charset, aOptions.padding)
+  const uniqueChars = new Set(aOptions.chars.split(''))
+  const charset = Array.from(uniqueChars).filter(c => c!= ' ' && c!='\n' && c!='\t')
+  const {res, altasCoords} = calculateCavasSize(atlasGlyph, charset, aOptions)
 
   
-  
-
   const width = res.width
   const height = res.height
   const canvasWidth = width 
@@ -210,33 +254,24 @@ export const renderAtlas = async ({fontUrl, chars, options}: AtlasInput) => {
       distanceRange: undefined
     }
   }
-  let prevX = [0, 0, 0,0];
-  let prevY = [canvasHeight, canvasHeight, canvasHeight,canvasHeight];
   // render a gpyph sprite
-  charset.forEach((char, i) => { 
+  altasCoords.forEach((coords, i) => { 
 
-    const charData = atlasGlyph.obtainCharData(char)
+    const {charData, coordsData} = coords
     
-    const {glyphBounds: [_x,_y,_z,_w], bbox: {minX, minY}, ...glyph} = charData
-    
-    const width = _z - _x + aOptions.padding
-    const height = _w - _y + aOptions.padding
+    const {channelIndex, width, height, x, y} = coordsData
+    const {bbox: {minX, minY}, ...glyph} = charData
     
     
-    const channelIndex = i%4
+    
+    
 
     const r = channelIndex === 0
     const g = channelIndex === 1 
     const b = channelIndex === 2
     const a = channelIndex === 3
 
-    const x = prevX[channelIndex];
-    prevX[channelIndex] += width
-    
-    const stack = Math.floor(i/4) * lineHeight * .5
-    const y = prevY[channelIndex] - height - stack;
-    prevY[channelIndex] = y;
-
+  
     const segmentsFBO = createFramebufferTexture(gl, [width, height])
     
 //     // segments
@@ -307,7 +342,7 @@ export const renderAtlas = async ({fontUrl, chars, options}: AtlasInput) => {
     const cc = {
       id: glyph.unicode,
       index: glyph.index,
-      char: char,
+      char: String.fromCharCode(glyph.unicode),
       width: width,
       height: height,
       xoffset: minX,

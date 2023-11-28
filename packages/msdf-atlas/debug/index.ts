@@ -39,69 +39,68 @@ function segmentsToSvgPaths(segments) {
 }
 
 (async() => {
-//render SVG
-	{
+// //render SVG
+// 	{
 
-		const ag = await AtlasGlyph.init(fu, {unitPerEmFactor: 1.})
-		const glyph = ag.obtainCharData(`q`, true)
-		console.log('svg glyph', glyph)
+// 		const ag = await AtlasGlyph.init(fu, {unitPerEmFactor: 1.})
+// 		const glyph = ag.obtainCharData(`q`, true)
+// 		console.log('svg glyph', glyph)
 					
 	
-		const bb = glyph.bbox
-		const res = calculateSvgSize(bb, glyph.bbox.width)
-		// Create SVG element
-		const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-		svg.setAttribute("width", res.svgWidth);
-		svg.setAttribute("height", res.svgHeight as any);
-		svg.setAttribute("viewBox", `${bb.minX} ${bb.minY} ${bb.width} ${bb.height}`);
+// 		const bb = glyph.bbox
+// 		const res = calculateSvgSize(bb, glyph.bbox.width)
+// 		// Create SVG element
+// 		const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+// 		svg.setAttribute("width", res.svgWidth);
+// 		svg.setAttribute("height", res.svgHeight as any);
+// 		svg.setAttribute("viewBox", `${bb.minX} ${bb.minY} ${bb.width} ${bb.height}`);
 	
-		const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+// 		const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
 
-		console.log('glyph.baselineCommands', glyph.baselineCommands)
-		const segPath = segmentsToSvgPaths(segmentize(glyph.baselineCommands))
+// 		console.log('glyph.baselineCommands', glyph.baselineCommands)
+// 		const segPath = segmentsToSvgPaths(segmentize(glyph.baselineCommands))
 	
-		const d = commandsToPathData(glyph.baselineCommands);
-		// Set the path data
-		path.setAttribute("d", d);
-		//path.setAttribute("d", segPath)
-		path.setAttribute("stroke", "black");
-		path.setAttribute("fill", "white");
+// 		const d = commandsToPathData(glyph.baselineCommands);
+// 		// Set the path data
+// 		path.setAttribute("d", d);
+// 		//path.setAttribute("d", segPath)
+// 		path.setAttribute("stroke", "black");
+// 		path.setAttribute("fill", "white");
 	
-		// Append the path to the SVG
-		svg.appendChild(path);
+// 		// Append the path to the SVG
+// 		svg.appendChild(path);
 	
 	
-		// Append the SVG to the body or any other container element
-		document.body.appendChild(svg);  
-	}
+// 		// Append the SVG to the body or any other container element
+// 		document.body.appendChild(svg);  
+// 	}
 
 	
 	// //render SDF
 
-	// {
+	{
 
-	// 	// initiate canvas
+		// initiate canvas
 		
 
-	// 	const altasInput = {
-	// 		fontUrl: fu,
-	// 		chars: 'W',
-	// 		options: {
-	// 			padding: 100,
-	// 			unitPerEmFactor: 1.
-	// 		}
-	// 	}
-	// 	const config = await renderAtlas(altasInput)
-	// 	console.log('config', config)
+		const altasInput = {
+			fontUrl: fu,
+			options: {
+				padding: 100,
+				unitPerEmFactor: 1.
+			}
+		}
+		const config = await renderAtlas(altasInput)
+		console.log('config', config)
 		
-	// 	const canvas = config.pages[0] as HTMLCanvasElement
-	// 	const dpr = Math.min(2, window.devicePixelRatio)
-	// 	canvas.style.width = `${canvas.width  / dpr }px`
-  // 	canvas.style.height = `${canvas.height / dpr }px`
+		const canvas = config.pages[0] as HTMLCanvasElement
+		const dpr = Math.min(2, window.devicePixelRatio)
+		canvas.style.width = `${canvas.width  / dpr }px`
+  	canvas.style.height = `${canvas.height / dpr }px`
   
-	// 	document.body.appendChild(config.pages[0])
+		document.body.appendChild(config.pages[0])
 		
-	// }
+	}
 
 
 
