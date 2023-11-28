@@ -6,7 +6,7 @@ import cairoBlackFontUrl from 'url:./fonts/Cairo/static/Cairo-Black.ttf'
 import baseneueFontUrl from 'url:./fonts/BaseNeue-Trial/web/WOFF/BaseNeueTrial-Regular.ttf'
 import travelNextUrl from 'url:./fonts/TT-Travels-Next/TT Travels Next Regular.ttf'
 import bluescreensTrialUrl from 'url:./fonts/ttbluescreens_trial/TT Bluescreens Trial Regular.ttf'
-import {renderCanvasText, calculateFontSizeByCanvas} from '../src'
+import {MSDFText, calculateFontSizeByCanvas} from '../src'
 
 
 (async() => {
@@ -28,41 +28,52 @@ qe @`
     }
   }
 
-  const config = await renderAtlas(input)
+  const atlasData = await renderAtlas(input)
 
+  // atlas
+  {
+
+    const atlasCanvas = atlasData.pages[0] as HTMLCanvasElement
+    const dpr = Math.min(2, window.devicePixelRatio)
+    atlasCanvas.style.width = `${atlasCanvas.width  / dpr }px`
+    atlasCanvas.style.height = `${atlasCanvas.height / dpr }px`
   
+    //document.body.appendChild(atlasCanvas)
+  }
 
-  const canvas = document.createElement('canvas')
-
+  // canvas text
   const letterSpacing = 1.
-  renderCanvasText(canvas, text, config, {
+   
+  const canvasOpts = {
     letterSpacing,    
     alignBounds: true,
-    fontSize: 400
-  })
-
-  document.body.appendChild(canvas)
-
-
-
-  const canvas2 = document.createElement('canvas')
+    fontSize: 200
+  }
   
-  const f = calculateFontSizeByCanvas(canvas2, text, config, {
-    letterSpacing,    
+  const mt = MSDFText.init(text, atlasData, canvasOpts)
+  {
+    const canvas = document.createElement('canvas')
+  
+    mt.renderCanvasText(canvas)
+  
+    document.body.appendChild(canvas)
+  
+    const canvas2 = document.createElement('canvas')
     
-    
-  })
+    const f = calculateFontSizeByCanvas(canvas, text, atlasData, {
+      letterSpacing,              
+    })
+  
+    console.log('calculated font size', f)
 
-  console.log('calculated font size', f)
+  }
 
+  // canvas text pass
+  {
 
+  }
+  
 
-
-  const atlasCanvas = config.pages[0] as HTMLCanvasElement
-  const dpr = Math.min(2, window.devicePixelRatio)
-  atlasCanvas.style.width = `${atlasCanvas.width  / dpr }px`
-  atlasCanvas.style.height = `${atlasCanvas.height / dpr }px`
-
-  //document.body.appendChild(atlasCanvas)
+  
 
 })()

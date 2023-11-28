@@ -183,13 +183,6 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
 
 
 
-const calculateCanvasRes = (textRows, opts, {rowWidthes, lineHeight}) => {
-  
-  const canvasWidth = Math.max(...rowWidthes) * opts.fontSize
-  const canvasHeight = textRows.length * lineHeight * opts.fontSize;
-
-  return {canvasWidth, canvasHeight}
-}
 
 type CanvasTextOptions = {
   letterSpacing: number
@@ -218,46 +211,32 @@ export const calculateFontSizeByCanvas = (canvas: HTMLCanvasElement, text: strin
   const fontSize = canvas.width / maxRowWidth
 
   return fontSize
+
 }
 
+const passRenderer = (gl: WebGL2RenderingContext, shaderData) => {
 
-export const renderCanvasText = (canvas: HTMLCanvasElement, text: string, config, options?: Partial<CanvasTextOptions>) => {
+  const {glyphData, 
+    atlasMap,
+    atlasCanvas,
+    fontSize, 
+    passGLSL: {vertexShader, fragmentShader}} = shaderData
 
-  const textRows = text.split('\n')
-  const opts = {...defaultCanvasTextOptions, ...options}
-
-  const atlasPosistions = calculateAtlasPositions(textRows, config)
-  const p = calculateCanvasTextData(textRows, config, opts)
-  console.log('p', p)
-  
-  const res = calculateCanvasRes(textRows, opts, p)
-
-  const gl = canvas.getContext('webgl2')
-  canvas.width = res.canvasWidth
-  canvas.height = res.canvasHeight
-  const dpr = Math.min(2., window.devicePixelRatio)
-  canvas.style.width = `${res.canvasWidth / dpr}px`
-  canvas.style.height = `${res.canvasHeight / dpr}px`
-  
-
-  const atlasCanvas = config.pages[0]
   const atlasTexture = createTexture(gl, atlasCanvas)
   const atlasRes = [atlasCanvas.width, atlasCanvas.height]
 
-  
-
-  const r = chain(gl,
+  return chain(gl,
     [
       {
-        vertexShader: glyphVertexShader,
-        fragmentShader: glyphFragmentShader,
+        vertexShader,
+        fragmentShader,
         textures: [atlasTexture],
         uniforms(gl, locs) {
           gl.uniform2fv(locs.uAtlasResolution, atlasRes);
-          gl.uniform1f(locs.uLineHeight, p.lineHeight);
-          gl.uniform1f(locs.uBaseLine, p.base);
-          gl.uniform4fv(locs.uPadding, p.padding);
-          gl.uniform1f(locs.uFontSize, opts.fontSize);
+          gl.uniform1f(locs.uLineHeight, glyphData.lineHeight);
+          gl.uniform1f(locs.uBaseLine, glyphData.base);
+          gl.uniform4fv(locs.uPadding, glyphData.padding);
+          gl.uniform1f(locs.uFontSize, fontSize);
           
   
         },
@@ -280,7 +259,7 @@ export const renderCanvasText = (canvas: HTMLCanvasElement, text: string, config
           // text pos
           const b2 = gl.createBuffer()
           gl.bindBuffer(gl.ARRAY_BUFFER, b2);
-          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(p.glyphPositions.flat()), gl.STATIC_DRAW)
+          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(glyphData.glyphPositions.flat()), gl.STATIC_DRAW)
           
           
           gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 8*4, 0);
@@ -307,7 +286,7 @@ export const renderCanvasText = (canvas: HTMLCanvasElement, text: string, config
           // atlas pos
           const ap = gl.createBuffer()
           gl.bindBuffer(gl.ARRAY_BUFFER, ap);
-          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(atlasPosistions.flat()), gl.STATIC_DRAW)
+          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(atlasMap.flat()), gl.STATIC_DRAW)
           
           
           gl.vertexAttribPointer(6, 4, gl.FLOAT, false, 0, 0);
@@ -317,7 +296,7 @@ export const renderCanvasText = (canvas: HTMLCanvasElement, text: string, config
           // space diffs
           const sp = gl.createBuffer()
           gl.bindBuffer(gl.ARRAY_BUFFER, sp);
-          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(p.spaceDiffs.flat()), gl.STATIC_DRAW)
+          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(glyphData.spaceDiffs.flat()), gl.STATIC_DRAW)
           
           
           gl.vertexAttribPointer(7, 2, gl.FLOAT, false, 0, 0);
@@ -330,15 +309,102 @@ export const renderCanvasText = (canvas: HTMLCanvasElement, text: string, config
 
           gl.enable(gl.BLEND)
           gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
-          gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, p.glyphPositions.length)
+          gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, glyphData.glyphPositions.length)
         }
       },
 
     ], [new WindowUniformsPlugin(gl)]
   )
 
-  r.renderFrame(0)
-
-
-
 }
+
+type GlyphData = {
+  lineHeight: number
+  glyphPositions: number[][]
+  rowWidthes: number[]
+}
+
+type ShaderData = {
+  glyphData: GlyphData,
+  atlasMap: number[][]
+  fontSize: number,
+  passGLSL: PassGLSL
+  atlasCanvas: HTMLCanvasElement
+}
+
+type AtlasConfig = {
+  pages: HTMLCanvasElement[]
+}
+
+
+
+type PassGLSL = {
+  vertexShader: string,
+  fragmentShader: string
+}
+
+const defatulPassGLSL: PassGLSL = {
+  vertexShader: glyphVertexShader,
+  fragmentShader: glyphFragmentShader
+}
+
+export class MSDFText {
+  textRows: string[]
+  opts: CanvasTextOptions
+  shaderData: ShaderData
+  
+  constructor (textRows: string[], shaderData: ShaderData, opts: CanvasTextOptions) {
+
+    this.textRows = textRows
+    this.opts = opts
+    this.shaderData = shaderData
+
+  }
+
+  static init(text: string, config, options?: Partial<CanvasTextOptions>) {
+    
+    const textRows = text.split('\n')
+    const opts = {...defaultCanvasTextOptions, ...options}
+    
+    const atlasMap = calculateAtlasPositions(textRows, config)
+    const glyphData = calculateCanvasTextData(textRows, config, opts)
+    
+    const shaderData = {
+      atlasMap,
+      glyphData,
+      fontSize: opts.fontSize,
+      passGLSL: defatulPassGLSL,
+      atlasCanvas: config.pages[0]
+    }
+    return new MSDFText(textRows, shaderData, opts)
+  }
+
+  renderCanvasText (canvas: HTMLCanvasElement)  {
+    
+    const {rowWidthes, lineHeight} = this.shaderData.glyphData
+    const {fontSize} = this.opts
+    const canvasWidth = Math.max(...rowWidthes) * fontSize
+    const canvasHeight = this.textRows.length * lineHeight * fontSize;
+  
+    const gl = canvas.getContext('webgl2')
+    canvas.width = canvasWidth
+    canvas.height = canvasHeight
+    const dpr = Math.min(2., window.devicePixelRatio)
+    canvas.style.width = `${canvasWidth / dpr}px`
+    canvas.style.height = `${canvasHeight / dpr}px`
+    
+    const r = passRenderer(gl, this.shaderData)
+    
+    r.renderFrame(0)
+  }
+
+  canvasTextPass (gl: WebGL2RenderingContext, passGLSL?: Partial<PassGLSL>) {
+
+    this.shaderData.passGLSL = {...defatulPassGLSL, ...passGLSL}    
+    return passRenderer(gl, this.shaderData)    
+  
+  }
+}
+
+
+
