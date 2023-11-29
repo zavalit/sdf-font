@@ -1,11 +1,12 @@
 {
   "name": "@webglify/msdf-atlas",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "private": false,
   "main": "lib/index.js",
   "directories": {
     "dist": "lib"
   },
+  "files": ["lib"],
   "scripts": {
     "build": "ncp src/ lib/ && tsc",
     "watch": "nodemon -e ts,js --watch ./src -x 'npm run build' "

@@ -13,11 +13,10 @@ import {MSDFText, calculateFontSizeByCanvas} from '../src'
 
   let fu = fontUrl
   //fu = travelNextUrl
-  //fu = cairoBlackFontUrl
+  fu = cairoBlackFontUrl
 
   const text = 
-`Roboto
-Ljüb\`@`
+`TYPOg`
   
 const input = {
     fontUrl: fu,
@@ -32,6 +31,7 @@ const input = {
   console.time('atlas')
   const atlasData = await renderAtlas(input)
   console.timeEnd('atlas')
+  console.log('atlasData', atlasData)
 
   // atlas
   {
@@ -48,7 +48,8 @@ const input = {
   const letterSpacing = 1.
    
   const canvasOpts = {
-    letterSpacing,    
+    letterSpacing,
+    lineHeight: 1.1,    
     alignBounds: true,
     fontSize: 100
   }

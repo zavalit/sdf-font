@@ -6,7 +6,7 @@ type W2 = WebGL2RenderingContext
 export type DrawData = {[key:string]: number[]}
 export type UnirformLocationsMap =   {[key: string]: WebGLUniformLocation}
 
-type UniformSignature = (gl:W2, locs: UnirformLocationsMap) => void
+export type UniformSignature = (gl:W2, locs: UnirformLocationsMap) => void
 type FramebufferChainProp = [WebGLFramebuffer | null, null?]
 
 export type BufferMap = {[key: string]: WebGLBuffer}

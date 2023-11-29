@@ -5,12 +5,13 @@ layout(location=0) in vec2 aPosition;
 layout(location=1) in vec2 aGlyphStart;
 layout(location=2) in vec2 aGlyphSize;
 layout(location=3) in vec2 aGlyphOffset;
-layout(location=4) in float aGlyphAdvance;
-layout(location=5) in float aGlyphChannel;
+layout(location=4) in vec2 aGlyphRowColumn;
+layout(location=5) in vec2 aGlyphRowColumnNormalized;
+layout(location=6) in float aGlyphChannel;
 
-layout(location=6) in vec4 aAtlasBounds;
+layout(location=7) in vec4 aAtlasBounds;
 
-layout(location=7) in vec2 aSpaceDiffs;
+layout(location=8) in vec2 aSpaceDiffs;
 
 out vec2 glyphUV;
 out float vGlyphChannel;
@@ -33,7 +34,6 @@ void main(){
   
   //height *=  .6;
   float base = uBaseLine;
-  //base *= .7;
   
   vec2 diffs = aSpaceDiffs;
 

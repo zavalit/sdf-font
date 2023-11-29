@@ -48,8 +48,13 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
 
   const ff = 1./(config.info.size)
   
-  const lineHeight = config.common.lineHeight * ff 
-  const base = config.common.base * ff
+  const fontLineHeight = config.common.lineHeight * ff 
+  const lineHeight = opts.lineHeight || fontLineHeight
+  const lhFactor = fontLineHeight/lineHeight
+  
+  // orient base line, depending on line height
+  const base = config.common.base * ff / lhFactor
+  
   const padding = config.info.padding.map(p => p * ff)
 
 
@@ -110,8 +115,14 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
         g.xoffset * ff,
         g.yoffset * ff,
         
-        // aGlyphAdvance
-        g.xadvance * ff,
+        // aGlyphRowColumn
+        i,
+        j,
+
+        // aGlyphRowColumnNormalized
+        i/(textRows.length - 1),
+        j/(text.length - 1),
+
         // aChannel
         g.chnl
       ]
@@ -192,6 +203,7 @@ type CanvasTextOptions = {
   letterSpacing: number
   alignBounds: boolean
   fontSize: number
+  lineHeight?: number
 }
 
 const defaultCanvasTextOptions: CanvasTextOptions = {
@@ -220,20 +232,19 @@ export const calculateFontSizeByCanvas = (canvas: HTMLCanvasElement, text: strin
 
 }
 
-const passRenderer = (gl: WebGL2RenderingContext, shaderData) => {
+const canvasTextPass = (gl: WebGL2RenderingContext, shaderData: ShaderData) => {
 
   const {glyphData, 
     atlasMap,
     atlasCanvas,
     fontSize, 
-    passGLSL: {vertexShader, fragmentShader}} = shaderData
+    passGLSL: {vertexShader, fragmentShader, uniforms},
+  } = shaderData
 
   const atlasTexture = createTexture(gl, atlasCanvas)
   const atlasRes = [atlasCanvas.width, atlasCanvas.height]
 
-  return chain(gl,
-    [
-      {
+  return {
         vertexShader,
         fragmentShader,
         textures: [atlasTexture],
@@ -243,8 +254,9 @@ const passRenderer = (gl: WebGL2RenderingContext, shaderData) => {
           gl.uniform1f(locs.uBaseLine, glyphData.base);
           gl.uniform4fv(locs.uPadding, glyphData.padding);
           gl.uniform1f(locs.uFontSize, fontSize);
-          
-  
+
+          uniforms && uniforms(gl, locs)
+    
         },
         vertexArrayObject(gl){
           const vao = gl.createVertexArray()!
@@ -266,28 +278,32 @@ const passRenderer = (gl: WebGL2RenderingContext, shaderData) => {
           const b2 = gl.createBuffer()
           gl.bindBuffer(gl.ARRAY_BUFFER, b2);
           gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(glyphData.glyphPositions.flat()), gl.STATIC_DRAW)
+          const stride = glyphData.glyphPositions[0].length * 4
           
-          
-          gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 8*4, 0);
+          gl.vertexAttribPointer(1, 2, gl.FLOAT, false, stride, 0);
           gl.enableVertexAttribArray(1);
           gl.vertexAttribDivisor(1,1);
           
-          gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 8*4, 2*4);
+          gl.vertexAttribPointer(2, 2, gl.FLOAT, false, stride, 2*4);
           gl.enableVertexAttribArray(2);
           gl.vertexAttribDivisor(2,1);
 
-          gl.vertexAttribPointer(3, 2, gl.FLOAT, false, 8*4, 4*4);
+          gl.vertexAttribPointer(3, 2, gl.FLOAT, false, stride, 4*4);
           gl.enableVertexAttribArray(3);
           gl.vertexAttribDivisor(3,1);
 
 
-          gl.vertexAttribPointer(4, 1, gl.FLOAT, false, 8*4, 6*4);
+          gl.vertexAttribPointer(4, 2, gl.FLOAT, false, stride, 6*4);
           gl.enableVertexAttribArray(4);
           gl.vertexAttribDivisor(4,1);
 
-          gl.vertexAttribPointer(5, 1, gl.FLOAT, false, 8*4, 7*4);
+          gl.vertexAttribPointer(5, 2, gl.FLOAT, false, stride, 8*4);
           gl.enableVertexAttribArray(5);
           gl.vertexAttribDivisor(5,1);
+
+          gl.vertexAttribPointer(6, 1, gl.FLOAT, false, stride, 10*4);
+          gl.enableVertexAttribArray(6);
+          gl.vertexAttribDivisor(6,1);
 
           // atlas pos
           const ap = gl.createBuffer()
@@ -295,9 +311,9 @@ const passRenderer = (gl: WebGL2RenderingContext, shaderData) => {
           gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(atlasMap.flat()), gl.STATIC_DRAW)
           
           
-          gl.vertexAttribPointer(6, 4, gl.FLOAT, false, 0, 0);
-          gl.enableVertexAttribArray(6);
-          gl.vertexAttribDivisor(6,1);
+          gl.vertexAttribPointer(7, 4, gl.FLOAT, false, 0, 0);
+          gl.enableVertexAttribArray(7);
+          gl.vertexAttribDivisor(7,1);
 
           // space diffs
           const sp = gl.createBuffer()
@@ -305,9 +321,9 @@ const passRenderer = (gl: WebGL2RenderingContext, shaderData) => {
           gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(glyphData.spaceDiffs.flat()), gl.STATIC_DRAW)
           
           
-          gl.vertexAttribPointer(7, 2, gl.FLOAT, false, 0, 0);
-          gl.enableVertexAttribArray(7);
-          gl.vertexAttribDivisor(7,1);
+          gl.vertexAttribPointer(8, 2, gl.FLOAT, false, 0, 0);
+          gl.enableVertexAttribArray(8);
+          gl.vertexAttribDivisor(8,1);
 
           return vao
         },
@@ -317,17 +333,17 @@ const passRenderer = (gl: WebGL2RenderingContext, shaderData) => {
           gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
           gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, glyphData.glyphPositions.length)
         }
-      },
-
-    ], [new WindowUniformsPlugin(gl)]
-  )
+      }
 
 }
 
 type GlyphData = {
   lineHeight: number
   glyphPositions: number[][]
+  spaceDiffs: number[][]
   rowWidthes: number[]
+  base: number
+  padding: number[]
 }
 
 type ShaderData = {
@@ -336,6 +352,8 @@ type ShaderData = {
   fontSize: number,
   passGLSL: PassGLSL
   atlasCanvas: HTMLCanvasElement
+  
+
 }
 
 type AtlasConfig = {
@@ -345,8 +363,9 @@ type AtlasConfig = {
 
 
 type PassGLSL = {
-  vertexShader: string,
+  vertexShader: string
   fragmentShader: string
+  uniforms?: (gl: WebGL2RenderingContext, locs) => void,
 }
 
 const defatulPassGLSL: PassGLSL = {
@@ -400,8 +419,13 @@ export class MSDFText {
     canvas.style.width = `${canvasWidth}px`
     canvas.style.height = `${canvasHeight}px`
     
-    const r = passRenderer(gl, this.shaderData)
-    
+    const pass = canvasTextPass(gl, this.shaderData)
+
+    const r = chain(gl,
+      [pass], 
+      [new WindowUniformsPlugin(gl)]
+    )
+
     r.renderFrame(0)
   }
 
@@ -417,11 +441,14 @@ export class MSDFText {
 
     return fontSize
   }
-  
+
+  updateFontSize (fontSize: number) {
+    this.shaderData.fontSize = fontSize
+  }
   canvasTextPass (gl: WebGL2RenderingContext, passGLSL?: Partial<PassGLSL>) {
 
     this.shaderData.passGLSL = {...defatulPassGLSL, ...passGLSL}    
-    return passRenderer(gl, this.shaderData)    
+    return canvasTextPass(gl, this.shaderData)    
   
   }
 }
