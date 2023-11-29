@@ -9,7 +9,7 @@ import travelNextUrl from 'url:./fonts/TT-Travels-Next/TT Travels Next Regular.t
 import bluescreensTrialUrl from 'url:./fonts/ttbluescreens_trial/TT Bluescreens Trial Regular.ttf'
 import {segmentize} from '../src/segmetizer'
 import {AtlasGlyph, commandsToPathData} from '../src/glyph'
-import {renderAtlas} from '../src'
+import {renderAtlas, defaultChars} from '../src'
 
 let fu = fontUrl;
 fu = travelNextUrl
@@ -102,6 +102,12 @@ function segmentsToSvgPaths(segments) {
 		
 	}
 
+
+	console.log('defaultChars', defaultChars)
+
+	// const r = [...Array(256- 161).keys()];
+	// const ch = r.map(r => String.fromCharCode(r + 161))
+	// console.log('ch', ch.join(''))
 
 
 

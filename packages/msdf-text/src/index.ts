@@ -44,6 +44,8 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
   
   const rowWidthes = []
   
+  
+
   const ff = 1./(config.info.size)
   
   const lineHeight = config.common.lineHeight * ff 
@@ -165,10 +167,12 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
 
     })
   
+
     rowWidthes.push(rowGlyphX)
 
   })
 
+  
 
   return {
     rowWidthes,
@@ -207,8 +211,10 @@ export const calculateFontSizeByCanvas = (canvas: HTMLCanvasElement, text: strin
   const {rowWidthes} = calculateCanvasTextData(textRows, config, opts)
   
   const maxRowWidth = Math.max(...rowWidthes)
+  
+  const dpr = Math.min(2., window.devicePixelRatio)
 
-  const fontSize = canvas.width / maxRowWidth
+  const fontSize = canvas.width / (maxRowWidth * dpr)
 
   return fontSize
 
@@ -387,17 +393,31 @@ export class MSDFText {
     const canvasHeight = this.textRows.length * lineHeight * fontSize;
   
     const gl = canvas.getContext('webgl2')
-    canvas.width = canvasWidth
-    canvas.height = canvasHeight
     const dpr = Math.min(2., window.devicePixelRatio)
-    canvas.style.width = `${canvasWidth / dpr}px`
-    canvas.style.height = `${canvasHeight / dpr}px`
+    canvas.width = canvasWidth * dpr
+    canvas.height = canvasHeight * dpr
+    
+    canvas.style.width = `${canvasWidth}px`
+    canvas.style.height = `${canvasHeight}px`
     
     const r = passRenderer(gl, this.shaderData)
     
     r.renderFrame(0)
   }
 
+  calculateFontSizeByCanvas (canvas: HTMLCanvasElement)  {
+
+    const {rowWidthes} = this.shaderData.glyphData
+
+    const dpr = Math.min(2., window.devicePixelRatio)
+
+    const maxRowWidth = Math.max(...rowWidthes)
+
+    const fontSize = canvas.width / (maxRowWidth * dpr)
+
+    return fontSize
+  }
+  
   canvasTextPass (gl: WebGL2RenderingContext, passGLSL?: Partial<PassGLSL>) {
 
     this.shaderData.passGLSL = {...defatulPassGLSL, ...passGLSL}    

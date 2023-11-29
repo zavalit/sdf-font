@@ -37,7 +37,7 @@ void main () {
   float d = fwidth(mask);
   float edge = smoothstep(border.x - d, border.y + d, mask);
   
-  vec3 color = mix(bg, vec3(0.5), edge);
+  vec3 color = uColor * edge;
   
   
   fragColor = vec4(color, edge);

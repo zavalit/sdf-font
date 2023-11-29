@@ -12,23 +12,26 @@ import {MSDFText, calculateFontSizeByCanvas} from '../src'
 (async() => {
 
   let fu = fontUrl
-  fu = travelNextUrl
+  //fu = travelNextUrl
   //fu = cairoBlackFontUrl
 
   const text = 
-`s wd
-qe @`
-  const input = {
+`Roboto
+Ljüb\`@`
+  
+const input = {
     fontUrl: fu,
     options: {
-      padding: 110,
+      padding: 100,
      // chars: text,
-      sdfExponent: 50,
-      unitPerEmFactor: .15
+      sdfExponent: 30,
+      unitPerEmFactor: .2
     }
   }
 
+  console.time('atlas')
   const atlasData = await renderAtlas(input)
+  console.timeEnd('atlas')
 
   // atlas
   {
@@ -47,22 +50,22 @@ qe @`
   const canvasOpts = {
     letterSpacing,    
     alignBounds: true,
-    fontSize: 200
+    fontSize: 100
   }
   
   const mt = MSDFText.init(text, atlasData, canvasOpts)
   {
     const canvas = document.createElement('canvas')
-  
-    mt.renderCanvasText(canvas)
-  
     document.body.appendChild(canvas)
+  
+    console.time('text')
+
+    mt.renderCanvasText(canvas)
+    console.timeEnd('text')
   
     const canvas2 = document.createElement('canvas')
     
-    const f = calculateFontSizeByCanvas(canvas, text, atlasData, {
-      letterSpacing,              
-    })
+    const f = mt.calculateFontSizeByCanvas(canvas)
   
     console.log('calculated font size', f)
 

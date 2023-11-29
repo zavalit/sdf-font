@@ -29,6 +29,7 @@ void main(){
 
   vec2 pos = aPosition;
   vec2 r = uResolution;
+  vec2 rp = uResolutionInPx;
   
   //height *=  .6;
   float base = uBaseLine;
@@ -48,7 +49,7 @@ void main(){
     
   pos = mix(start, end, pos);
   
-  pos *= uFontSize/r;
+  pos *= uFontSize/rp;
   
   
   pos = mix(vec2(-1.), vec2(1.), pos);
