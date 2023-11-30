@@ -26,14 +26,12 @@ uniform float uBaseLine;
 uniform vec4 uPadding;
 uniform float uFontSize;
 
-void main(){
+#define FONT_SCALE uFontSize/uResolutionInPx
+#define SCALED_LINE_HEIGHT uFontSize/uResolutionInPx.y
 
-  vec2 pos = aPosition;
-  vec2 r = uResolution;
-  vec2 rp = uResolutionInPx;
-  
-  //height *=  .6;
-  float base = uBaseLine;
+
+
+vec4 getBounds () {
   
   vec2 diffs = aSpaceDiffs;
 
@@ -42,26 +40,33 @@ void main(){
   vec2 end = aGlyphStart + vec2( aGlyphSize.x, uLineHeight);
   end.x += diffs.y;
   
-  float height = end.y - start.y;
-  float width = end.x - start.x;
-  
-  
+  return vec4(start, end);
+}
+
+
+vec2 getPosition(){
+  vec2 pos = aPosition;
+
+  vec4 bounds = getBounds();
     
-  pos = mix(start, end, pos);
-  
-  pos *= uFontSize/rp;
-  
-  
-  pos = mix(vec2(-1.), vec2(1.), pos);
+  pos = mix(bounds.xy, bounds.zw, pos);
 
-  gl_Position = vec4(pos, 0.,1.);
+  pos *= FONT_SCALE;
+  return pos;
 
+}
 
+vec2 getUV () {
+  
   vec4 ab = aAtlasBounds;
   vec2 ar = uAtlasResolution;
   
 
   vec2 gpos = aPosition;
+
+  vec4 bounds = getBounds();
+  float height = bounds.w - bounds.y;
+  float width = bounds.z - bounds.x;
   
   // offset y
   float glyphHeight = aGlyphSize.y;
@@ -72,6 +77,8 @@ void main(){
   
 
   // move scaled pos up to the base
+  float base = uBaseLine;
+
   gpos.y -= (1. - (base)/height) * heightScale;
     
   // offset y
@@ -84,11 +91,9 @@ void main(){
   gpos.x +=  p.x / width;
   gpos.x *= width/(width + uPadding.x);
   
-  
-  
-  
 
   // diff delta
+  vec2 diffs = aSpaceDiffs;
   float xSpaceDelta = (diffs.y - diffs.x)/(width + uPadding.x);
   float leftSpaceDelta = (diffs.x)/(width + uPadding.x);
   gpos.x *= 1. + xSpaceDelta;
@@ -98,11 +103,24 @@ void main(){
 
   vec2 from = (ab.xy)/ar;
   vec2 to = ab.zw/ar;
-  glyphUV = mix(from, to, gpos);
+  vec2 uv = mix(from, to, gpos);
+
+
+  return uv;
+
+}
+
+void main(){
 
   
+  vec2 pos = getPosition();
   
-  
+  pos = mix(vec2(-1.), vec2(1.), pos);
+
+  gl_Position = vec4(pos, 0.,1.);
+
+  glyphUV = getUV();
+ 
   vGlyphChannel = aGlyphChannel;
   
 }

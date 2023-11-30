@@ -16,7 +16,8 @@ import {MSDFText, calculateFontSizeByCanvas} from '../src'
   fu = cairoBlackFontUrl
 
   const text = 
-`TYPOg`
+`TYPOg
+sdd l`
   
 const input = {
     fontUrl: fu,
@@ -51,7 +52,8 @@ const input = {
     letterSpacing,
     lineHeight: 1.1,    
     alignBounds: true,
-    fontSize: 100
+    fontSize: 100,
+    instances: 2
   }
   
   const mt = MSDFText.init(text, atlasData, canvasOpts)
