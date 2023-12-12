@@ -3,7 +3,7 @@ import { getForStatement, isForStatement, obtainForCursorScope } from './stateme
 import { getIfStatement, isIfStatement, obtainIfCursorScope } from './statements/if'
 import { getUpdateExpressions, getMemberExpression, MemberExpression } from './expressions'
 import { getSwitchStatement, isSwitchStatement, obtainSwitchCursorScope } from './statements/switch'
-import { getVariableDeclarations, getVariableDefinition } from './declarations'
+import { getPragmaImportDeclaration, getVariableDeclarations, getVariableDefinition } from './declarations'
 import { getWhileStatement, isWhileStatement, obtainWhileCursorScope } from './statements/while'
 
 
@@ -135,10 +135,14 @@ export default ({
     return this
   },
   
-  parseProgram(id: ProgramId, type: ProgramType){
+  parseProgram(opts: ProgramOptions){
 
-    const program = new Program(id, type, this.tokens)
+    const program = new Program(opts.id, opts.type, this.tokens)    
     program.version = this.version
+    
+    if(opts.expressionEffects) {      
+      program.expressionEffects = opts.expressionEffects
+    }
 
     return parseProgram(program, this.cursor)
   },
@@ -155,6 +159,13 @@ export default ({
 type ProgramId = string
 type ProgramType = 'vertex' | 'fragment'
 
+type ExpressionEffect = (expr: any, node: any) => void
+type ProgramOptions = {
+  id: ProgramId,
+  type: ProgramType,
+  expressionEffects?: ExpressionEffect[]
+
+}
 export class ProgramAST  {
   version: string
   body: any[]  
@@ -169,6 +180,9 @@ export class Program {
   version
   tokens
   body = []
+  expressionEffects: ExpressionEffect[] = []
+  expressions: any[] = []
+  
 
   constructor(id: ProgramId, type: ProgramType, tokens, body?){
     this.id = id
@@ -177,6 +191,7 @@ export class Program {
     if(body){
       this.body = body
     }
+    
   }
 
   get ast(): ProgramAST {
@@ -192,6 +207,12 @@ export class Program {
   pt(c: Cursor) {
     return this.tokens[c.prev]
   }
+
+
+  passExpr(expr: any){
+    this.expressions.push(expr);
+    return expr
+  }
  
   removeNode(index) {
     this.body.splice(index, 1)
@@ -200,6 +221,12 @@ export class Program {
   addNode(node, index?){
     const start = index || this.body.length
     this.body.splice(start, 0, node)
+    // run side effects
+    this.expressionEffects.forEach(effect => {
+      this.expressions.forEach(expr => {
+        effect(expr, node)
+      })
+    })
   }
 
   clone(){
@@ -470,7 +497,7 @@ const getStructDeclaration = (program, cursor): false | [Cursor, StructDeclarati
   sd.setDeclarations(declarations)
 
   
-  return [_restCursor.forward(), sd]
+  return [_restCursor.forward(), program.passExpr(sd)]
 }
 
 
@@ -532,7 +559,7 @@ const getAssignmentExpression = (program, cursor: Cursor) => {
   
   const ae = new AssignmentExpression(ct.data, leftStmt, rightStmt)
 
-  return [restCursor, ae]
+  return [restCursor, program.passExpr(ae)]
 }
 
 const parseProgram = (program:Program, cursor) => {
@@ -621,37 +648,6 @@ const parseProgram = (program:Program, cursor) => {
   return parseProgram(program, cursor.forward())
 }
 
-export class ImportDeclaration {
-  functionNames
-  src
-  constructor(functionNames, src){
-    this.functionNames = functionNames
-    this.src = src
-  }
- }
-
-
-
-const getPragmaImportDeclaration = (program, cursor): false | [Cursor, ImportDeclaration] => {
-
-  const ct = program.tokens[cursor.current]
-  
-  if(ct.type !== 'preprocessor') return false
-
-  const importBlock = ct.data.match(/#pragma\:?\s?import\s+(.*)/)
-
-  if(!importBlock || importBlock.length<2) return false
-  
-  const funcSrcPaar = importBlock[1].match(/\{(.*)\}\s+from\s+(.*)/)
-  
-  if(!funcSrcPaar && funcSrcPaar.length < 3) return false
-
-  const functionNames = funcSrcPaar[1].split(',').map(f => f.trim())
-  const src = funcSrcPaar[2];
-  
-  
-  return [cursor.forward(), new ImportDeclaration(functionNames, src)]
-}
 
 export class DefineDeclaration {
   ident: string
@@ -676,9 +672,12 @@ const getDefineDeclaration = (program, cursor): false | [Cursor, DefineDeclarati
   const [_, ident, value] = defineBlock
 
   const d= new DefineDeclaration(ident, value)
+
+  program.passExpr(d)
   
   return [cursor.forward(), d]
 }
+
 export class PrecisionQualifierDeclaration {
   precisionQualifier
   dataType
@@ -913,7 +912,7 @@ const addBinaryExpression = (program, cursor, bo) => {
     return [_cursor, pb]
   }
 
-  const me = getMemberExpression(program, cursor.clone().forward())
+  const me = getMemberExpression(program, cursor.clone().forward(), null)
   if(me){
     const [_cursor, _aggr] = me
     
@@ -1031,7 +1030,7 @@ const addFunctionCall = (program, cursor): [Cursor, FunctionCall|ConstructorCall
         fc.addArgument(arg)
       })
 
-    return [c2, fc]
+    return [c2, program.passExpr(fc)]
   
 }
 
@@ -1102,10 +1101,16 @@ export class Identifier implements StmtNode {
 export const getIdentifier = (program, cursor): false | [Cursor, Identifier] => {
 
   const ct = program.ct(cursor)
+  const pt = program.pt(cursor)
 
   if(!['ident','builtin'].includes(ct.type)) return false
-  
-  return [cursor.forward(), new Identifier(ct.data)]
+
+  let name = ct.data
+  if(pt && pt.data === '!') {
+    name = `!${name}`
+  }
+
+  return [cursor.forward(), new Identifier(name)]
 
   
 }
@@ -1307,13 +1312,12 @@ const getVariableDeclaration = (program, cursor, qualifier?) : false | [Cursor, 
     
   }
 
-  
-  return [cursorToReturn, new QualifiedVariableDeclaration(dataType, name, storageQualifier, {
+  const v = new QualifiedVariableDeclaration(dataType, name, storageQualifier, {
     qualifier,
     precisionQualifier,
     initializer
-  }
-  )]
+  })
+  return [cursorToReturn, program.passExpr(v)]
 
 }
 
@@ -1387,7 +1391,7 @@ const addLogicalExpression = (program, cursor, stmt: any) => {
     return [_cursor, expr]
   }
 
-  const me = getMemberExpression(program, cursor.clone().forward())
+  const me = getMemberExpression(program, cursor.clone().forward(), null)
   if(me){
     const [_cursor, right] = me
     
@@ -1406,7 +1410,11 @@ const addLogicalExpression = (program, cursor, stmt: any) => {
   }
 
 
-  const right = parseBodyTokens(program, cursor.forward(), null)
+  let right = parseBodyTokens(program, cursor.forward(), null)
+  // special case a && b ? c : d
+  if(right.constructor === ConditionalExpression) {
+    right = right.test
+  }
   const expr = new LogicalExpression(ct.data, stmt, right)
 
   return [cursor, expr]
@@ -1467,6 +1475,8 @@ const getConditionalExpression = (program, cursor, stmt) :  false | [Cursor, Con
   if(ct.data !== '?') return false
   
   const tokenCursor = findTokenCursor(program, cursor, { type: 'operator', data: ':' })
+  
+
   if(!tokenCursor) return false
 
   const [conseq, alter] = tokenCursor.split()
@@ -1479,14 +1489,38 @@ const getConditionalExpression = (program, cursor, stmt) :  false | [Cursor, Con
   const expr = new ConditionalExpression(stmt, conseqStmt, alterStmt)
   
 
-  return [alter, expr]
+  return [alter.toEof(), expr]
 }
+
+
+export class UnaryExpression {
+  operator
+  arg
+  constructor(operator, arg) {
+    this.operator = operator
+    this.arg  = arg
+  }
+}
+
+// const addUnaryExpression = (program, cursor) => {
+
+//   const ct = program.ct(cursor)
+//   let arg = parseBodyTokens(program, cursor.forward(), null)
+//   if(arg.constructor === ConditionalExpression) {
+//     arg = arg.test
+//   }
+
+//   return [cursor.forward(), new UnaryExpression(ct.data, arg)]
+
+// }
 
 export const parseBodyTokens = (program, cursor, stmt: any) => {
 
     if(cursor.eof) return stmt
 
     const currentToken = program.tokens[cursor.current]
+
+    
 
     const ue = getUpdateExpressions(program, cursor, stmt);
     if(ue) {
@@ -1527,7 +1561,13 @@ export const parseBodyTokens = (program, cursor, stmt: any) => {
       const [_cursor, _stmt] = addReturnStatement(program, cursor)
       return parseBodyTokens(program, _cursor, _stmt)
     }
-    
+
+    const vd = getVariableDefinition(program, cursor); 
+    if(vd) {
+      const [_cursor, _stmt] = vd
+      return parseBodyTokens(program, _cursor, _stmt)
+    }
+
     if(isFunctionCallToken(program, cursor)){
       const [_cursor, _stmt] = addFunctionCall(program, cursor)
       return parseBodyTokens(program, _cursor, _stmt)
@@ -1535,7 +1575,7 @@ export const parseBodyTokens = (program, cursor, stmt: any) => {
 
 
 
-    const me = getMemberExpression(program, cursor)
+    const me = getMemberExpression(program, cursor, stmt)
     if(me) {
       const [_cursor, _stmt] = me
       return parseBodyTokens(program, _cursor, _stmt)
@@ -1592,6 +1632,12 @@ export const parseBodyTokens = (program, cursor, stmt: any) => {
       const [_cursor, _stmt] = addLogicalExpression(program, cursor, stmt)
       return parseBodyTokens(program, _cursor, _stmt)
     }
+    // // unaryExpression
+    // if(['!'].includes(currentToken.data)) {
+    //   const [_cursor, _stmt] = addUnaryExpression(program, cursor)
+    //   console.log('unary _stmt', _stmt)
+    //   return parseBodyTokens(program, _cursor, _stmt)
+    // }
 
     const id = getIdentifier(program, cursor)
     if(id) {

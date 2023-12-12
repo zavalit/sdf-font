@@ -4,6 +4,11 @@ import edgeSegmentsFragment from './shaders/edge/edge.segments.fragment.glsl'
 import groupVertexShader from './shaders/edge/edge.group.vertex.glsl'
 import groupFragmentShader from './shaders/edge/edge.group.fragment.glsl'
 
+// console.log('edgeSegmentsVertex', edgeSegmentsVertex)
+// console.log('edgeSegmentsFragment', edgeSegmentsFragment)
+// console.log('groupVertexShader', groupVertexShader)
+// console.log('groupFragmentShader', groupFragmentShader)
+
 import { AtlasGlyph } from './glyph'
 type W2 = WebGL2RenderingContext
 type ConfigChar = {

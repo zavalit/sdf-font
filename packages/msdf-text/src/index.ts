@@ -1,5 +1,5 @@
-import glyphVertexShader from './shaders/glyph/glyph.vertex.glsl';
-import glyphFragmentShader from './shaders/glyph/glyph.fragment.glsl';
+import glyphVertexShader from './shaders/glyph.vertex.glsl';
+import glyphFragmentShader from './shaders/glyph.fragment.glsl';
 import chain, {WindowUniformsPlugin, createTexture} from '@webglify/chain'
 
 
@@ -8,11 +8,9 @@ const calculateAtlasPositions = (textRows, config) => {
   
   const {chars} = config
   const atlasPosistions = []
-
-
-  textRows.forEach((text, i) => {
-    
-
+  
+  textRows.forEach((text) => {
+  
     text.split('').forEach((char) => {
       
       const unicode = char.charCodeAt(0)
@@ -194,9 +192,6 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
     padding
   }
 }
-
-
-
 
 
 type CanvasTextOptions = {
@@ -452,6 +447,3 @@ export class MSDFText {
   
   }
 }
-
-
-

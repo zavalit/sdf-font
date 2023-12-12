@@ -39,7 +39,6 @@ void main() {
     fragColor = vec4(crossingUp ? 1.0 / channelMax : 0.0, crossing && !crossingUp ? 1.0 / channelMax  : 0.0, 0.0, val);
 
     
-
     
     
     

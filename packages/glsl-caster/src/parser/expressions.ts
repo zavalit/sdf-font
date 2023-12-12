@@ -1,4 +1,4 @@
-import { Cursor, Identifier, Literal, obtainParenthesesScopeCursor, Program, parseBodyTokens, getIdentifier } from "."
+import { Cursor, Identifier, Literal, obtainParenthesesScopeCursor, Program, parseBodyTokens, getIdentifier, FunctionCall } from "."
 
 export class MemberExpression {
   object: Identifier
@@ -12,12 +12,18 @@ export class MemberExpression {
   }
 
 }
-export const getMemberExpression = (program, cursor): false | [Cursor, MemberExpression] => {
+export const getMemberExpression = (program, cursor, agg?): false | [Cursor, MemberExpression] => {
+
   const ct = program.tokens[cursor.current]
-  if(ct.type !== 'ident') return  false
+  
+  if(!(agg && agg.constructor === FunctionCall) && ct.type !== 'ident') return  false
+
+  const object = (agg && agg.constructor === FunctionCall && agg) || new Identifier(ct.data)
+  
   
   const nt = program.tokens[cursor.next]
   if(!nt || !['.', '['].includes(nt.data)) return false
+
 
   const c2 = cursor.clone().forward().forward()
   const c2t = program.tokens[c2.current]
@@ -27,7 +33,7 @@ export const getMemberExpression = (program, cursor): false | [Cursor, MemberExp
   if(nt.data === '.') return [
     c2.forward(), 
     new MemberExpression(
-      new Identifier(ct.data),
+      object,
       new Identifier(c2t.data),
       false)
   ]
@@ -38,7 +44,7 @@ export const getMemberExpression = (program, cursor): false | [Cursor, MemberExp
   return [
     pc2.forward(), 
     new MemberExpression(
-      new Identifier(ct.data),
+      object,
       property,
       true)
   ]
@@ -76,7 +82,7 @@ const getUpdateExpression = (program: Program, cursor: Cursor, arg): false | [Cu
   
   if(isValidArg) return [cursor, new UpdateExpression(ct.data, arg, false)]
 
-  const cArg = getMemberExpression(program, cursor) || getIdentifier(program, cursor)
+  const cArg = getMemberExpression(program, cursor, null) || getIdentifier(program, cursor)
   if(!cArg) {
       throw new UpdateExpressionError('update expression have be applied to member expression or identifier')
     } 
@@ -103,7 +109,7 @@ export const getUpdateExpressions = (program: Program, cursor: Cursor, arg) : fa
         if(ct.data === ',') {
           _cursor.forward()
 
-          const cArg = getMemberExpression(program, _cursor) || getIdentifier(program, _cursor)
+          const cArg = getMemberExpression(program, _cursor, null) || getIdentifier(program, _cursor)
           const arg = cArg ? cArg[1] : null
           return parseUpdateExpreesion(program, _cursor, arg, ues)
         }

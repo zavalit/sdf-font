@@ -1,18 +1,19 @@
 {
   "name": "@webglify/glsl-caster",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "glsl AST pasrer, sertializer, importer",
   "main": "lib/index.js",
   "directories": {
     "dist": "lib"
   },
-  "files": ["lib"],
+  "files": [
+    "lib"
+  ],
   "scripts": {
     "test": "jest",
     "build": "ncp src/ lib/ && tsc",
     "watch": "nodemon -e ts,js --watch ./src -x 'npm run build' "
   },
-  
   "jest": {
     "transform": {
       "^.+\\.tsx?$": "ts-jest"
@@ -32,7 +33,9 @@
   "devDependencies": {
     "@types/jest": "^29.5.5",
     "@types/node": "^20.8.2",
+    "@webglify/msdf-text": "^0.0.4",
     "jest": "^29.7.0",
+    "mock-fs": "^5.2.0",
     "ts-jest": "^29.1.1",
     "typescript": "^5.2.2"
   },

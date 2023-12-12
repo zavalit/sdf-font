@@ -63,9 +63,10 @@ export const getVariableDeclarations = (program, cursor): false | [Cursor, Varia
   if(isStruct){
   
     const [_cursor, init] = obtainStuctVariableInitialiser(program, cursor)
-    return [_cursor, VariableDeclarations.from([
+    const vd = VariableDeclarations.from([
       new VariableDeclaration(dataType, identifier, init)
-    ])]
+    ])
+    return [_cursor, program.passExpr(vd)]
   
   } else {
 
@@ -79,7 +80,8 @@ export const getVariableDeclarations = (program, cursor): false | [Cursor, Varia
       return vd
     })
 
-    return [cursor.toEof(), VariableDeclarations.from(vds)]
+    
+    return [cursor.toEof(),  program.passExpr(VariableDeclarations.from(vds))]
   }
 
 
@@ -91,9 +93,12 @@ export const getVariableDefinition = (program, cursor): false | [Cursor, Variabl
   if(!isVariableDefinitionToken(program, cursor)) return false
 
   const dataType = program.tokens[cursor.prev].data
+  if(dataType === 'return') return false;
+  
   const identifier = program.tokens[cursor.current].data
   
-  return [cursor.forward(), new VariableDeclaration(dataType, identifier)]
+  const v = new VariableDeclaration(dataType, identifier)
+  return [cursor.forward(), program.passExpr(v)]
   
 }
 
@@ -114,4 +119,38 @@ const obtainStuctVariableInitialiser = (program, cursor): [Cursor, StructInitial
     })
 
   return [restCursor.forward(), si]
+}
+
+export class ImportDeclaration {
+  functionNames
+  src
+  constructor(functionNames, src){
+    this.functionNames = functionNames
+    this.src = src
+  }
+ }
+
+
+
+export const getPragmaImportDeclaration = (program, cursor): false | [Cursor, ImportDeclaration] => {
+
+  const ct = program.tokens[cursor.current]
+  
+  if(ct.type !== 'preprocessor') return false
+
+  const importBlock = ct.data.match(/#pragma\:?\s?import\s+(.*)/)
+
+  if(!importBlock || importBlock.length<2) return false
+  
+  const funcSrcPaar = importBlock[1].match(/\{(.*)\}\s+from\s+(.+)/)
+  
+  
+  if(!funcSrcPaar && funcSrcPaar.length < 3) return false
+
+
+  const functionNames = funcSrcPaar[1].split(',').map(f => f.trim())
+  const src = funcSrcPaar[2].replace(/^['"]|['"]$/g, '');
+  
+  
+  return [cursor.forward(), new ImportDeclaration(functionNames, src)]
 }

@@ -21,7 +21,12 @@ import { WhileStatement } from "../src/parser/statements/while";
 
 
 const locTestCases = [
-  
+  {
+    string: `
+    vec3 color;
+    `,
+    shouldAST: new VariableDeclaration('vec3', 'color')
+  },
   {
     string: `
     a * (b + c) - (d * f)
@@ -376,7 +381,60 @@ i++;
         UpdateExpressions.from([new UpdateExpression('++', new Identifier('i'), false)])
       ])
     )
-  }
+  },
+  {
+    string: `
+    vec4(crossingUp ? 1.0 / channelMax : 0.0, crossing && !crossingUp ? 1.0 / channelMax : 0.1, 0.2, val)
+    `,
+    
+    shouldAST: new ConstructorCall('vec4', [
+      new ConditionalExpression(
+          new Identifier('crossingUp'),
+          new BinaryExpression({operator: '/', left: new Literal('1.0', 'float'), right: new Identifier('channelMax')}),
+          new Literal('0.0', 'float')
+          ),
+      new ConditionalExpression(
+            new LogicalExpression(
+                '&&',
+                new Identifier('crossing'),
+                new Identifier('!crossingUp')
+            ),
+            new BinaryExpression({operator: '/', left: new Literal('1.0', 'float'), right: new Identifier('channelMax')}),
+            new Literal('0.1', 'float')
+            ),
+      new Literal('0.2', 'float'),
+      new Identifier('val')
+    ])
+  },
+{
+  string: `
+    texture(uTexture0, uv).a
+  `,
+  shouldAST: new MemberExpression(
+    new FunctionCall('texture', [new Identifier('uTexture0'), new Identifier('uv')]),
+    new Identifier('a'),
+    false
+  )
+},
+{
+  string: `
+  float val = inside ? 1.0 - color.a : color.a;
+  `,
+  shouldAST: VariableDeclarations.from([
+    new VariableDeclaration('float', 'val', new ConditionalExpression(
+      new Identifier('inside'),
+      new BinaryExpression({operator: '-', left: new Literal('1.0', 'float'), right: new MemberExpression(new Identifier('color'), new Identifier('a'), false)}),
+      new MemberExpression(new Identifier('color'), new Identifier('a'), false)
+    ))
+  ])
+},
+{
+  string: `
+  return gitter;
+  `,
+  shouldAST: new ReturnStatement( new Identifier('gitter'))
+
+}
 
 
 
@@ -450,7 +508,7 @@ describe('Parser and Serializer', () => {
   // A helper function to run the common logic
   const runProgramTest = (string, shouldAST) => {
     Parser.version = '300 es'
-    const AST = Parser.tokenize(string).parseProgram().ast;
+    const AST = Parser.tokenize(string).parseProgram({}).ast;
     console.log('AST', util.inspect(AST, {showHidden: false, depth: null, colors: false}))
 
     
@@ -487,11 +545,11 @@ describe('Parser and Serializer', () => {
       runLocTest(testCase.string, testCase.shouldAST);
     });
   });
-  completeTestCases.forEach((testCase, i) => {
-    it(testCase.string.trim(), () => {
-      runProgramTest(testCase.string, testCase.shouldAST);
-    });
-  });
+  // completeTestCases.forEach((testCase, i) => {
+  //   it(testCase.string.trim(), () => {
+  //     runProgramTest(testCase.string, testCase.shouldAST);
+  //   });
+  // });
 
   [...locTestCases, ...completeTestCases].forEach((testCase, i) => {
     it(testCase.string.trim(), () => {
