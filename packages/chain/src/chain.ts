@@ -59,6 +59,7 @@ export type ChainDrawProps = {
  
   renderFrame: (time: number) => void
   programs: ProgramsMapType
+  gl: W2
 }
 
 
@@ -215,6 +216,7 @@ export default (
   });
 
   const chainDraw: ChainDrawProps = {
+    gl,
     programs: calls.reduce((acc, {chainDrawCall, program: {passId, program}}) => {
         return {...acc, [passId]: {
           chainDrawCall, program
@@ -325,7 +327,7 @@ export const createProgramm = (gl: W2, {vertexShader, fragmentShader}: {vertexSh
      gl.shaderSource(shader, shaderSource);
      gl.compileShader(shader);
      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      throw new Error(`${shaderType}: ${gl.getShaderInfoLog(shader)}`);       
+      throw new Error(`${shaderType === gl.FRAGMENT_SHADER ? 'fragment' : 'vertex' } shader: ${gl.getShaderInfoLog(shader)}`);       
      }
      gl.attachShader(prog, shader);
    };
