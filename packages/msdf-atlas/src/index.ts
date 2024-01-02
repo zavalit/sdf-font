@@ -4,10 +4,7 @@ import edgeSegmentsFragment from './shaders/edge/edge.segments.fragment.glsl'
 import groupVertexShader from './shaders/edge/edge.group.vertex.glsl'
 import groupFragmentShader from './shaders/edge/edge.group.fragment.glsl'
 
-// console.log('edgeSegmentsVertex', edgeSegmentsVertex)
-// console.log('edgeSegmentsFragment', edgeSegmentsFragment)
-// console.log('groupVertexShader', groupVertexShader)
-// console.log('groupFragmentShader', groupFragmentShader)
+
 
 import { AtlasGlyph } from './glyph'
 type W2 = WebGL2RenderingContext
@@ -100,6 +97,7 @@ const calculateCavasSize = (atlasGlyph: AtlasGlyph, charset: string[], opts: Atl
   charset.forEach((char, i) => { 
 
     const charData = atlasGlyph.obtainCharData(char)
+    charData.unicode = char.charCodeAt(0)
     const channelIndex = i%4
     
     const {glyphBounds: [_x,_y,_z,_w]} = charData

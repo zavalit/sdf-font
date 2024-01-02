@@ -87,7 +87,7 @@ function segmentsToSvgPaths(segments) {
 			fontUrl: fu,
 			options: {
 				padding: 100,
-				unitPerEmFactor: 1.
+				unitPerEmFactor: 1.			
 			}
 		}
 		const config = await renderAtlas(altasInput)
