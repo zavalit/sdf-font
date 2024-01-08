@@ -1,6 +1,6 @@
 import glyphVertexShader from './shaders/glyph.vertex.glsl';
 import glyphFragmentShader from './shaders/glyph.fragment.glsl';
-import chain, {WindowUniformsPlugin, createTexture} from '@webglify/chain'
+import chain, { ChainPassPops, WindowUniformsPlugin, createTexture, FramebufferChainProp} from '@webglify/chain'
 
 
  
@@ -17,7 +17,7 @@ const calculateAtlasPositions = (textRows, config) => {
       if(unicode == 32) return
       
       const g = chars.get(unicode)
-
+       
       // atlas
       const atlasPos = [
         g.x, 
@@ -227,22 +227,25 @@ export const calculateFontSizeByCanvas = (canvas: HTMLCanvasElement, text: strin
 
 }
 
-const canvasTextPass = (gl: WebGL2RenderingContext, shaderData: ShaderData) => {
+const canvasTextPass = (gl: WebGL2RenderingContext, shaderData: ShaderData): ChainPassPops => {
 
   const {glyphData, 
     atlasMap,
     atlasCanvas,
     fontSize, 
-    passGLSL: {vertexShader, fragmentShader, uniforms},
+    passGLSL: {vertexShader, fragmentShader, uniforms, framebuffer},
   } = shaderData
 
   const atlasTexture = createTexture(gl, atlasCanvas)
   const atlasRes = [atlasCanvas.width, atlasCanvas.height]
 
+  console.log('framebuffer', framebuffer)
+
   return {
-        vertexShader,
-        fragmentShader,
+        vertexShader: vertexShader || glyphVertexShader,
+        fragmentShader: fragmentShader || glyphFragmentShader,
         textures: [atlasTexture],
+        framebuffer,
         uniforms(gl, locs) {
           gl.uniform2fv(locs.uAtlasResolution, atlasRes);
           gl.uniform1f(locs.uLineHeight, glyphData.lineHeight);
@@ -351,16 +354,14 @@ type ShaderData = {
 
 }
 
-type AtlasConfig = {
-  pages: HTMLCanvasElement[]
-}
 
 
 
 type PassGLSL = {
-  vertexShader: string
-  fragmentShader: string
+  vertexShader?: string
+  fragmentShader?: string
   uniforms?: (gl: WebGL2RenderingContext, locs) => void,
+  framebuffer?: FramebufferChainProp
 }
 
 const defatulPassGLSL: PassGLSL = {
@@ -443,6 +444,9 @@ export class MSDFText {
   canvasTextPass (gl: WebGL2RenderingContext, passGLSL?: Partial<PassGLSL>) {
 
     this.shaderData.passGLSL = {...defatulPassGLSL, ...passGLSL}    
+    console.log(
+      'msdf text', this
+    )
     return canvasTextPass(gl, this.shaderData)    
   
   }
