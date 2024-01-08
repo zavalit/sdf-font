@@ -1,6 +1,6 @@
 {
   "name": "@webglify/glslim",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "glsl AST pasrer, sertializer, importer",
   "main": "lib/index.js",
   "directories": {
@@ -11,7 +11,7 @@
   ],
   "scripts": {
     "test": "jest",
-    "build": "ncp src/ lib/ && tsc",
+    "build": "ncp src/ lib/ --filter=\"^(?!.*\\.ts$).*\" && tsc",
     "watch": "nodemon -e ts,js --watch ./src -x 'npm run build' "
   },
   "jest": {

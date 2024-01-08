@@ -151,7 +151,6 @@ export default ({
     const program = new Program(id, type, this.tokens)
     return parseBodyTokens(program, this.cursor, null)
   }
-
 })
 
 
@@ -1093,8 +1092,10 @@ export class Literal implements StmtNode {
 }
 export class Identifier implements StmtNode {
   name
-  constructor(name){
+  builtin
+  constructor(name, builtin: boolean = false){
     this.name = name
+    this.builtin = builtin
   }
 }
 

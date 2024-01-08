@@ -16,9 +16,9 @@ export const getMemberExpression = (program, cursor, agg?): false | [Cursor, Mem
 
   const ct = program.tokens[cursor.current]
   
-  if(!(agg && agg.constructor === FunctionCall) && ct.type !== 'ident') return  false
+  if(!(agg && agg.constructor === FunctionCall) && (ct.type !== 'ident' && ct.type !== 'builtin')) return  false
 
-  const object = (agg && agg.constructor === FunctionCall && agg) || new Identifier(ct.data)
+  const object = (agg && agg.constructor === FunctionCall && agg) || new Identifier(ct.data, ct.type == 'builtin')
   
   
   const nt = program.tokens[cursor.next]
