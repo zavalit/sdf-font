@@ -16,14 +16,13 @@ import {MSDFText, calculateFontSizeByCanvas} from '../src'
   fu = cairoBlackFontUrl
 
   const text = 
-`TYPOg
-sdd l`
+`s`
   
 const input = {
     fontUrl: fu,
     options: {
       padding: 100,
-     // chars: text,
+      chars: text,
       sdfExponent: 30,
       unitPerEmFactor: .2
     }

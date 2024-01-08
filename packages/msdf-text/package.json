@@ -8,7 +8,7 @@
   },
   "files": ["lib"],
   "scripts": {
-    "build": "ncp src/ lib/ && tsc",
+    "build": "ncp src/ lib/ --filter=\"^(?!.*\\.ts$).*\" && tsc",
     "watch": "nodemon -e ts,js --watch ./src -x 'npm run build' "
   },
   "dependencies": {
@@ -16,7 +16,7 @@
     "opentype.js": "^1.3.4"
   },
   "devDependencies": {
-    "@webglify/msdf-atlas": "^0.0.1",
+    "@webglify/msdf-atlas": "^0.0.5",
     "ncp": "^2.0.0",
     "typescript": ">=3.0.0"
   }

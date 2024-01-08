@@ -7,7 +7,7 @@ export type DrawData = {[key:string]: number[]}
 export type UnirformLocationsMap =   {[key: string]: WebGLUniformLocation}
 
 export type UniformSignature = (gl:W2, locs: UnirformLocationsMap) => void
-type FramebufferChainProp = [WebGLFramebuffer | null, null?]
+export type FramebufferChainProp = [WebGLFramebuffer | null, null?]
 
 export type BufferMap = {[key: string]: WebGLBuffer}
 export type VAOBufferMap = Map<WebGLVertexArrayObject, BufferMap>;
