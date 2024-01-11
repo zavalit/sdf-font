@@ -48,7 +48,6 @@ vec2 getPosition(){
   vec2 pos = aPosition;
 
   vec4 bounds = getBounds();
-    
   pos = mix(bounds.xy, bounds.zw, pos);
 
   pos *= FONT_SCALE;
@@ -65,7 +64,7 @@ vec2 getUV () {
   vec2 gpos = aPosition;
 
   vec4 bounds = getBounds();
-  float height = bounds.w - bounds.y;
+  float height = (bounds.w - bounds.y);
   float width = bounds.z - bounds.x;
   
   // offset y

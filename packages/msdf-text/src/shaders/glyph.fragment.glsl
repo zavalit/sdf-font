@@ -61,7 +61,7 @@ void main () {
   
   
   fragColor = vec4(color, edge);
-  // fragColor.a += .5;
+   //fragColor.a += .5;
   // fragColor.rgb += .1 * bg;
   
   

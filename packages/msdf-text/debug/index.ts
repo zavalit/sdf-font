@@ -12,11 +12,11 @@ import {MSDFText, calculateFontSizeByCanvas} from '../src'
 (async() => {
 
   let fu = fontUrl
-  //fu = travelNextUrl
+  fu = travelNextUrl
   fu = cairoBlackFontUrl
 
   const text = 
-`s`
+`@eq`
   
 const input = {
     fontUrl: fu,
@@ -24,7 +24,7 @@ const input = {
       padding: 100,
       chars: text,
       sdfExponent: 30,
-      unitPerEmFactor: .2
+      unitPerEmFactor: 1.
     }
   }
 
@@ -51,8 +51,8 @@ const input = {
     letterSpacing,
     lineHeight: 1.1,    
     alignBounds: true,
+    alignHeight: true,
     fontSize: 100,
-    instances: 2
   }
   
   const mt = MSDFText.init(text, atlasData, canvasOpts)

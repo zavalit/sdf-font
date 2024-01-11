@@ -35,28 +35,23 @@ const calculateAtlasPositions = (textRows, config) => {
 }
 
 
-const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
+const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions): GlyphData => {
 
   const {letterSpacing, alignBounds} = opts
   const {chars} = config
   
   const rowWidthes = []
   
-  
-
   const ff = 1./(config.info.size)
   
   const fontLineHeight = config.common.lineHeight * ff 
-  const lineHeight = opts.lineHeight || fontLineHeight
-  const lhFactor = fontLineHeight/lineHeight
-  
-  // orient base line, depending on line height
-  const base = config.common.base * ff / lhFactor
+  const lineHeight = opts.lineHeight || fontLineHeight  
   
   const padding = config.info.padding.map(p => p * ff)
 
 
   const glyphPositions = []
+  const heightBounds = []
   const spaceDiffs = []
 
   const pad = padding[0]
@@ -124,6 +119,7 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
         // aChannel
         g.chnl
       ]
+      heightBounds[ii] = [glyphPos[5], glyphPos[3] + glyphPos[5] - pad]
 
       glyphPositions[ii] = glyphPos
 
@@ -181,11 +177,20 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
 
   })
 
-  
 
+  // position base line, depending on the line height or/and height align
+  const gb = Math.min(...heightBounds.map(g => g[0]))
+  const gt = Math.max(...heightBounds.map(g => g[1]))
+
+  const base = opts.alignHeight
+  ? lineHeight + gb - (gt - gb)* (lineHeight - 1.) * .5
+  : config.common.base * ff * lineHeight / fontLineHeight
+  
+  
   return {
     rowWidthes,
     glyphPositions: glyphPositions.filter(p => p),
+    heightBounds: [gb, gt],
     spaceDiffs,
     lineHeight,
     base,
@@ -197,6 +202,7 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions) => {
 type CanvasTextOptions = {
   letterSpacing: number
   alignBounds: boolean
+  alignHeight: boolean,
   fontSize: number
   lineHeight?: number
 }
@@ -204,6 +210,7 @@ type CanvasTextOptions = {
 const defaultCanvasTextOptions: CanvasTextOptions = {
   letterSpacing: 1,
   alignBounds: false,
+  alignHeight: false,
   fontSize: 100
 
 }
@@ -233,19 +240,19 @@ const canvasTextPass = (gl: WebGL2RenderingContext, shaderData: ShaderData): Cha
     atlasMap,
     atlasCanvas,
     fontSize, 
-    passGLSL: {vertexShader, fragmentShader, uniforms, framebuffer},
+    passGLSL: {vertexShader, fragmentShader, uniforms, framebuffer, viewport},
   } = shaderData
 
   const atlasTexture = createTexture(gl, atlasCanvas)
   const atlasRes = [atlasCanvas.width, atlasCanvas.height]
 
-  console.log('framebuffer', framebuffer)
-
+  console.log('glyphData', glyphData)
   return {
         vertexShader: vertexShader || glyphVertexShader,
         fragmentShader: fragmentShader || glyphFragmentShader,
         textures: [atlasTexture],
         framebuffer,
+        viewport,
         uniforms(gl, locs) {
           gl.uniform2fv(locs.uAtlasResolution, atlasRes);
           gl.uniform1f(locs.uLineHeight, glyphData.lineHeight);
@@ -338,6 +345,7 @@ const canvasTextPass = (gl: WebGL2RenderingContext, shaderData: ShaderData): Cha
 type GlyphData = {
   lineHeight: number
   glyphPositions: number[][]
+  heightBounds: [number, number]
   spaceDiffs: number[][]
   rowWidthes: number[]
   base: number
@@ -357,12 +365,7 @@ type ShaderData = {
 
 
 
-type PassGLSL = {
-  vertexShader?: string
-  fragmentShader?: string
-  uniforms?: (gl: WebGL2RenderingContext, locs) => void,
-  framebuffer?: FramebufferChainProp
-}
+type PassGLSL = Pick<ChainPassPops, "vertexShader" | "fragmentShader" | "uniforms" | "framebuffer" | "viewport">
 
 const defatulPassGLSL: PassGLSL = {
   vertexShader: glyphVertexShader,
@@ -373,13 +376,32 @@ export class MSDFText {
   textRows: string[]
   opts: CanvasTextOptions
   shaderData: ShaderData
-  
+  nWidth: number
+  nHeight: number
+  nBottom: number
+  nTop: number
+
   constructor (textRows: string[], shaderData: ShaderData, opts: CanvasTextOptions) {
 
     this.textRows = textRows
     this.opts = opts
     this.shaderData = shaderData
 
+    // calculate normalised width & height
+    const {rowWidthes, lineHeight, heightBounds} = this.shaderData.glyphData
+
+    this.nBottom = heightBounds[0]
+    this.nTop = heightBounds[1]
+
+    this.nWidth = Math.max(...rowWidthes)
+
+    if(opts.alignHeight) {
+      this.nHeight = (this.nTop - this.nBottom) * lineHeight * this.textRows.length;
+    } else {
+      this.nHeight = this.textRows.length * lineHeight;
+    }
+
+    
   }
 
   static init(text: string, config, options?: Partial<CanvasTextOptions>) {
@@ -402,10 +424,10 @@ export class MSDFText {
 
   renderCanvasText (canvas: HTMLCanvasElement)  {
     
-    const {rowWidthes, lineHeight} = this.shaderData.glyphData
     const {fontSize} = this.opts
-    const canvasWidth = Math.max(...rowWidthes) * fontSize
-    const canvasHeight = this.textRows.length * lineHeight * fontSize;
+    
+    const canvasWidth = this.nWidth * fontSize
+    const canvasHeight = this.nHeight * fontSize;
   
     const gl = canvas.getContext('webgl2')
     const dpr = Math.min(2., window.devicePixelRatio)
@@ -427,26 +449,31 @@ export class MSDFText {
 
   calculateFontSizeByCanvas (canvas: HTMLCanvasElement)  {
 
-    const {rowWidthes} = this.shaderData.glyphData
-
     const dpr = Math.min(2., window.devicePixelRatio)
 
-    const maxRowWidth = Math.max(...rowWidthes)
-
-    const fontSize = canvas.width / (maxRowWidth * dpr)
-
-    return fontSize
+    const wFontSize = canvas.width / (this.nWidth * dpr)
+    const hFontSize = canvas.height / (this.nHeight * dpr)
+    
+    return Math.min(wFontSize, hFontSize)
   }
+
+  static calculateDrawingBufferSizeByFontSize (mt: MSDFText, fontSize: number): [number, number] {
+    const dpr = Math.min(2., window.devicePixelRatio)
+    const w = mt.nWidth * fontSize * dpr;
+    const h = mt.nHeight * fontSize * dpr;
+  
+    return [w, h]
+  }
+
+  
 
   updateFontSize (fontSize: number) {
     this.shaderData.fontSize = fontSize
   }
+
   canvasTextPass (gl: WebGL2RenderingContext, passGLSL?: Partial<PassGLSL>) {
 
     this.shaderData.passGLSL = {...defatulPassGLSL, ...passGLSL}    
-    console.log(
-      'msdf text', this
-    )
     return canvasTextPass(gl, this.shaderData)    
   
   }
