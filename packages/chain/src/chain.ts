@@ -21,13 +21,13 @@ export type CustomChainPassPops = Partial<ChainPassPops>;
 export type ChainPassPops = {
   vertexShader: string;
   fragmentShader: string;
-  resolution?: [number, number];
   passId?: string,
-  
+
   devicePixelRatio?: number;
   textures?: WebGLTexture[]
   framebuffer?: FramebufferChainProp
-  vertexArrayObject?: (gl:W2, vaoMap?:VAOBufferMap) => WebGLVertexArrayObject
+  viewport?: [number, number, number, number]
+  vertexArrayObject?: (gl:W2, defaultVAO: WebGLVertexArrayObject, vaoMap?:VAOBufferMap) => WebGLVertexArrayObject
   uniforms?: UniformSignature
   
   drawCall?: DrawCallSignature
@@ -78,7 +78,7 @@ export default (
   const calls = callsProps
   // init programms
   .map(({ vertexShader, fragmentShader, devicePixelRatio=2, ...props }, index:number) => {
-    const passId = props.passId || `${index}`
+    const passId = props.passId || `${index}`
 
     
     const program = createProgramm(gl, {vertexShader, fragmentShader})
@@ -90,13 +90,13 @@ export default (
   .map(({program, passId, ...props}) => {
 
      
-    const [width, height] = props.resolution || [gl.drawingBufferWidth, gl.drawingBufferHeight]
+    const [x, y, width, height] = props.viewport || [0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight]
     
   
 
     // provide attributes and uniforms
     const vao = props.vertexArrayObject 
-    ? props.vertexArrayObject(gl, vaoMap) 
+    ? props.vertexArrayObject(gl, addDefaultVertexArrayObject(gl), vaoMap) 
     : addDefaultVertexArrayObject (gl)    
    
    
@@ -158,7 +158,7 @@ export default (
 
     const beforeDrawCall = () => {
 
-      gl.viewport(0, 0, width, height);
+      gl.viewport(x, y, width, height);
 
       startFramebuffer()
       
@@ -369,10 +369,10 @@ const addDefaultVertexArrayObject = (gl: W2): WebGLVertexArrayObject => {
     const vertexBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
-      -1, 1,
-      -1, -1,
+      0, 1,
+      0, 0,
       1, 1,
-      1, -1
+      1, 0
     ]), gl.STATIC_DRAW);
 
     // Set up the vertex attribute pointers
