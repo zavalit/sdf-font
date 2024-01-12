@@ -23,12 +23,9 @@ type ConfigChar = {
   page?: number
 }
 
-const vertexArrayObject  = (gl: W2, vaoMap: VAOBufferMap) => {
+const vertexArrayObject  = (gl: W2, vao: WebGLVertexArrayObject, vaoMap: VAOBufferMap) => {
 
-  const vao = gl.createVertexArray()!;
-  gl.bindVertexArray(vao);
   
-
   const pb = gl.createBuffer()!;
   {
     gl.bindBuffer(gl.ARRAY_BUFFER, pb);
