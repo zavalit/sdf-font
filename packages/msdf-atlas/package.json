@@ -12,7 +12,7 @@
     "watch": "nodemon -e ts,js --watch ./src -x 'npm run build' "
   },
   "dependencies": {
-    "@webglify/chain": "^0.1.1"
+    "@webglify/chain": "^0.1.4"
   },
   "devDependencies": {
     "ncp": "^2.0.0",

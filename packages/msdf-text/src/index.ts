@@ -246,7 +246,6 @@ const canvasTextPass = (gl: WebGL2RenderingContext, shaderData: ShaderData): Cha
   const atlasTexture = createTexture(gl, atlasCanvas)
   const atlasRes = [atlasCanvas.width, atlasCanvas.height]
 
-  console.log('glyphData', glyphData)
   return {
         vertexShader: vertexShader || glyphVertexShader,
         fragmentShader: fragmentShader || glyphFragmentShader,
@@ -446,6 +445,14 @@ export class MSDFText {
 
     r.renderFrame(0)
   }
+
+  calculateFontSizeByWidth(width: number)  {
+
+    const dpr = Math.min(2., window.devicePixelRatio)
+
+    return width / (this.nWidth * dpr)
+  }
+
 
   calculateFontSizeByCanvas (canvas: HTMLCanvasElement)  {
 
