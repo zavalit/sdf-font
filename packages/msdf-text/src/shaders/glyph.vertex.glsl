@@ -28,7 +28,6 @@ uniform float uFontSize;
 #define SCALED_LINE_HEIGHT uFontSize/uResolutionInPx.y
 
 
-
 vec4 getBounds () {
   
   vec2 diffs = aSpaceDiffs;
@@ -37,6 +36,7 @@ vec4 getBounds () {
   start.x += diffs.x;
   vec2 end = aGlyphStart + vec2( aGlyphSize.x, uLineHeight);
   end.x += diffs.y;
+  
   
   return vec4(start, end);
 }
@@ -47,7 +47,7 @@ vec2 getPosition(){
 
   vec4 bounds = getBounds();
   pos = mix(bounds.xy, bounds.zw, pos);
-
+  
   pos *= FONT_SCALE;
   return pos;
 
@@ -67,11 +67,11 @@ vec2 getUV () {
   
   // offset y
   float glyphHeight = aGlyphSize.y;
-  float heightScale = height/glyphHeight; 
+  float heightScale = height /glyphHeight; 
   
   // fix height scaling
   gpos.y *= heightScale;
-  
+  //gpos.y += .06;
 
   // move scaled pos up to the base
   float base = uBaseLine;

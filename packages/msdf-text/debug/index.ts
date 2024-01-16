@@ -7,6 +7,7 @@ import baseneueFontUrl from 'url:./fonts/BaseNeue-Trial/web/WOFF/BaseNeueTrial-R
 import travelNextUrl from 'url:./fonts/TT-Travels-Next/TT Travels Next Regular.ttf'
 import bluescreensTrialUrl from 'url:./fonts/ttbluescreens_trial/TT Bluescreens Trial Regular.ttf'
 import {MSDFText, calculateFontSizeByCanvas} from '../src'
+import chain, { WindowUniformsPlugin } from "@webglify/chain";
 
 
 (async() => {
@@ -16,7 +17,7 @@ import {MSDFText, calculateFontSizeByCanvas} from '../src'
   fu = cairoBlackFontUrl
 
   const text = 
-`@eq`
+`Poq@`
   
 const input = {
     fontUrl: fu,
@@ -64,9 +65,7 @@ const input = {
 
     mt.renderCanvasText(canvas)
     console.timeEnd('text')
-  
-    const canvas2 = document.createElement('canvas')
-    
+      
     const f = mt.calculateFontSizeByCanvas(canvas)
   
     console.log('calculated font size', f)
@@ -75,6 +74,47 @@ const input = {
 
   // canvas text pass
   {
+
+    const canvas = document.createElement('canvas')
+
+    const size = [400, 300]
+    canvas.style.width = `${size[0]}px`
+    canvas.style.height = `${size[1]}px`
+
+    const dpr = Math.min(window.devicePixelRatio, 2)
+    canvas.width = size[0] * dpr
+    canvas.height = size[1] * dpr
+
+
+    document.body.appendChild(canvas)
+  
+    console.time('text pass')
+
+    const canvasOpts = {
+      letterSpacing,
+      lineHeight: 1.1,    
+      alignBounds: true,
+      alignHeight: true,
+      fontSize: 100,
+    }
+    
+
+    const mt = MSDFText.init(text, atlasData, canvasOpts)
+     
+    const f = mt.calculateFontSizeByCanvas(canvas)
+    console.log('fontsize', f, canvas.width)
+    mt.updateFontSize(f)
+   
+
+    const gl = canvas.getContext('webgl2')!
+    const pass = mt.canvasTextPass(gl)
+
+    
+    console.log('calculated font size', f)
+   
+    chain(gl, [pass], [new WindowUniformsPlugin(gl)]).renderFrame(0)
+
+    console.timeEnd('text pass')
 
   }
   
