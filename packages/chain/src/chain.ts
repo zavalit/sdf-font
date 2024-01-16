@@ -376,9 +376,8 @@ const addDefaultVertexArrayObject = (gl: W2): WebGLVertexArrayObject => {
     ]), gl.STATIC_DRAW);
 
     // Set up the vertex attribute pointers
-    const location = 0
-    gl.enableVertexAttribArray(location);
-    gl.vertexAttribPointer(location, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 
     return vao;
 
@@ -396,13 +395,11 @@ export const createHTMLCanvasContext = (size: number | [number, number], options
 
   const [width, height] = (typeof size == 'object') ? [size[0], size[1]]: [size, size]
   
-  const _dpr = dpr || Math.min(window.devicePixelRatio, 2.)
+  const _dpr = dpr || Math.min(window.devicePixelRatio, 2.)
   canvas.width = width * _dpr
   canvas.height = height * _dpr
   canvas.style.width = `${width}px`
   canvas.style.height = `${height}px`
-
-
   return {canvas, gl};
 
 }
