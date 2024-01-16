@@ -8,9 +8,7 @@ layout(location=3) in vec2 aGlyphOffset;
 layout(location=4) in vec2 aGlyphRowColumn;
 layout(location=5) in vec2 aGlyphRowColumnNormalized;
 layout(location=6) in float aGlyphChannel;
-
 layout(location=7) in vec4 aAtlasBounds;
-
 layout(location=8) in vec2 aSpaceDiffs;
 
 out vec2 glyphUV;

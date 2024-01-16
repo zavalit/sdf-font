@@ -11,23 +11,17 @@ uniform sampler2D uTexture0;
 uniform vec3 uColor;
 
 
-float loadMSDFTexture() {
-  vec2 uv = glyphUV;
-
-  vec3 bg = vec3(0);
+float obtainMSDFTextureMask(vec2 uv, float chnl) {
   
   float mask = texture(uTexture0, uv).a;
-  if(vGlyphChannel==0.){
+  if(chnl==0.){
     mask = texture(uTexture0, uv).r;
-    bg.r = 1.;
   }
-  else if(vGlyphChannel==1.){
+  else if(chnl==1.){
     mask = texture(uTexture0, uv).g;
-    bg.g = 1.;
   }
-  if(vGlyphChannel==2.){
+  if(chnl==2.){
     mask = texture(uTexture0, uv).b;
-    bg.b = 1.;
   }
   return mask;
 }
@@ -36,23 +30,7 @@ void main () {
 
   vec2 border = vec2(.5);
 
-  vec2 uv = glyphUV;
-
-  vec3 bg = vec3(0);
-  
-  float mask = texture(uTexture0, uv).a;
-  if(vGlyphChannel==0.){
-    mask = texture(uTexture0, uv).r;
-    bg.r = 1.;
-  }
-  else if(vGlyphChannel==1.){
-    mask = texture(uTexture0, uv).g;
-    bg.g = 1.;
-  }
-  if(vGlyphChannel==2.){
-    mask = texture(uTexture0, uv).b;
-    bg.b = 1.;
-  }
+  float mask = obtainMSDFTextureMask(glyphUV, vGlyphChannel);
   
   float d = fwidth(mask);
   float edge = smoothstep(border.x - d, border.y + d, mask);
