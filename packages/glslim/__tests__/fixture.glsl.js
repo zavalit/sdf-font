@@ -193,5 +193,64 @@ Light myLight1 = {vec3(1.), vec3(1.), .1};
 glslConst: `
 const float leftPadding = 0.;
 
-`
+`,
+
+glslImportVertexRequester: `
+#version 300 es
+
+
+#pragma import {getPosition, getUV} from '@webglify/msdf-text/shaders/glyph.vertex.glsl'
+
+
+void main(){
+  
+  vec2 pos = getPosition();
+  gl_Position = vec4(mix(vec2(-1.), vec2(1.), pos), 0.,1.);
+
+}`,
+glslImportFragmentRequester: `
+#version 300 es
+
+precision mediump float;
+
+out vec4 fragColor;
+
+#pragma import {obtainMSDFTextureMask} from '@webglify/msdf-text/shaders/glyph.fragment.glsl'
+
+in vec2 glyphUV;
+in float vGlyphChannel;
+
+void main () {
+
+  float mask = obtainMSDFTextureMask(glyphUV, vGlyphChannel);
+
+  fragColor = vec4(vec3(mask), 1.);
+}`,
+
+glslImportFragmentResult: `#version 300 es
+precision mediump float;
+in float vS;
+uniform sampler2D uTexture0;
+uniform vec3 uColor;
+out vec4 fragColor;
+float obtainMSDFTextureMask(vec2 uv, float chnl) {
+  float mask = texture(uTexture0, uv).a;
+  if(chnl == 0.) {
+ mask = texture(uTexture0, uv).r;
+} else if(chnl == 1.) {
+ mask = texture(uTexture0, uv).g;
+}
+  if(chnl == 2.) {
+ mask = texture(uTexture0, uv).b;
+}
+  return mask;
+}
+
+in vec2 glyphUV;
+in float vGlyphChannel;
+void main() {
+  float mask = obtainMSDFTextureMask(glyphUV, vGlyphChannel);
+  fragColor = vec4(vec3(mask), 1.);
+}`
+
 }

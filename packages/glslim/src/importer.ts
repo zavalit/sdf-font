@@ -1,4 +1,4 @@
-import {Program, FunctionDeclaration, FunctionCall, QualifiedVariableDeclaration, DefineDeclaration} from './parser'
+import {Program, FunctionDeclaration, FunctionCall, QualifiedVariableDeclaration, DefineDeclaration, PrecisionQualifierDeclaration} from './parser'
 import {ImportDeclaration} from './parser/declarations'
 
 import path from 'path'
@@ -45,32 +45,41 @@ const readSrc = (src, dstDir) => {
   
 }
 
+type IndexedDecl = [number, ImportDeclaration]
+type IndexedFunctionDecl = [number, FunctionDeclaration]
 const Importer = ({
   filterImportDeclarations (ast: Program){
-    const importDecls: ImportDeclaration[] = 
-    ast.body.filter((d) => (d instanceof ImportDeclaration))
-  
+    const importDecls: IndexedDecl[] = 
+    ast.body.map((d, index):IndexedDecl => [index, d]).filter((d) => {
+      
+      return (d[1] instanceof ImportDeclaration)
+    })
     return importDecls;
   }, 
+  findPrecicionDeclIndex (ast: Program) {
+    const index = ast.body.findIndex((d) => (d instanceof PrecisionQualifierDeclaration))
+    return index;
+  },
   import(dstCode: string, dirname: string) {
     
     const dstAST = Parser.tokenize(dstCode).parseProgram({})
-    const importDecls = this.filterImportDeclarations(dstAST)
+    const importIndexedDecls = this.filterImportDeclarations(dstAST)
 
     const resultAST = dstAST.clone()
-    
-    const destVars = resultAST.body.filter(v => v.constructor === QualifiedVariableDeclaration)
+    const destVars = resultAST.body.filter(v => (v.constructor === QualifiedVariableDeclaration))
     const srcVars = []
 
     const destDefs = resultAST.body.filter(v => v.constructor === DefineDeclaration)
     const srcDefs = []
 
-    const importDeclsStmts = []
+    
+    const importDeclsStmts: IndexedFunctionDecl[] = []
 
     // Resolve the path to the package's main file
-    importDecls.forEach((decl: ImportDeclaration)=> {
+    importIndexedDecls.forEach((decl: IndexedDecl)=> {
 
-      const {src, functionNames} = decl
+      const {src, functionNames} = decl[1]
+      const desctIndex = decl[0]
     
       const code = readSrc(src, dirname)
 
@@ -114,37 +123,34 @@ const Importer = ({
       // add functions
       const decls = [...functionNames, ...Array.from(depFunctions)]
       const declsStmts = srcAST.body.filter(n => (n.constructor === FunctionDeclaration) && decls.includes(n.name))
-      importDeclsStmts.push(...declsStmts)
-
-      
-      
-    }
-    )
-
-    if (importDeclsStmts.length > 0) {
-      // add imported functions
-      importDecls.forEach(decl => {
-        const declIndex = resultAST.body.findIndex((_decl: ImportDeclaration) => decl === _decl) || 1
-        resultAST.removeNode(declIndex)
-        
-        const amount = decl.functionNames.length
-        const declToImport = importDeclsStmts.slice(0, amount)
-        importDeclsStmts.splice(0, amount)
-        declToImport.forEach((f, i) => {
-          resultAST.addNode(f)
-        })
+      declsStmts.forEach(decl => {
+        importDeclsStmts.push([desctIndex, decl])  
       })
+            
+    })
 
+   
+    if (importDeclsStmts.length > 0) {
+      
+      importDeclsStmts.reduce((acc, [dstInex, f]) => {      
+        resultAST.addNode(f, dstInex + acc)
+        return acc + 1
+      }, 0)
+
+      
+      // add global scope variables
+      const pIndex = this.findPrecicionDeclIndex(resultAST)
+      const lastVarPos = srcVars.reduce((acc, v) => {
+        resultAST.addNode(v, acc)
+        return acc + 1      
+      }, pIndex + 1)
 
       // add definitions
-      srcDefs.forEach((v, i) => {
-        resultAST.addNode(v, i+1)      
-      })
+      srcDefs.reduce((acc, v, i) => {
+        resultAST.addNode(v, acc) 
+        return acc + 1
+      }, lastVarPos)
 
-      // add global scope variables
-      srcVars.forEach((v, i) => {
-        resultAST.addNode(v, i+1)      
-      })
 
     }
    

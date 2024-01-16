@@ -218,8 +218,9 @@ export class Program {
   }
 
   addNode(node, index?){
-    const start = index || this.body.length
+    const start = index !== undefined ? index : this.body.length
     this.body.splice(start, 0, node)
+   
     // run side effects
     this.expressionEffects.forEach(effect => {
       this.expressions.forEach(expr => {

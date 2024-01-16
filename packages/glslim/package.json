@@ -1,6 +1,6 @@
 {
   "name": "@webglify/glslim",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "glsl AST pasrer, sertializer, importer",
   "main": "lib/index.js",
   "directories": {
