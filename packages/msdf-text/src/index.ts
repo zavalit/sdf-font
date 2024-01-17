@@ -63,21 +63,23 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions): Gly
         const unicode = char.charCodeAt(0)
         const g = chars.get(unicode)
         heightBounds[ii] = [g.yoffset * ff, g.height * ff + g.yoffset * ff - pad ]
+        ii++;
     })})
 
   // position base line, depending on the line height or/and height align
   const gb = Math.min(...heightBounds.map(g => g[0]))
   const gt = Math.max(...heightBounds.map(g => g[1]))
 
-
   const fontLineHeight = config.common.lineHeight * ff 
+  
   const lineHeight = opts.alignHeight 
-  ? (gt - gb) * opts.lineHeight
-  : fontLineHeight * opts.lineHeight
-
+  ? (gt - gb) * (opts.lineHeight || 1)
+  : fontLineHeight * (opts.lineHeight || 1)
+  
     
 
-  
+  ii = 0;
+
   textRows.forEach((text, i) => {
   
     
@@ -130,12 +132,12 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions): Gly
         g.yoffset * ff,
         
         // aGlyphRowColumn
-        i,
         j,
+        i,
 
         // aGlyphRowColumnNormalized
-        i/(textRows.length - 1),
         j/(text.length - 1),
+        i/(textRows.length - 1),
 
         // aChannel
         g.chnl
@@ -199,13 +201,11 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions): Gly
 
 
   
-  const ln = lineHeight + gb - (gt - gb)* (opts.lineHeight - 1.) * .5;
+  const ln = lineHeight + gb - (gt - gb)* ((opts.lineHeight || 1) - 1.) * .5;
   const base = opts.alignHeight
   ? ln
   : config.common.base * ff * lineHeight / fontLineHeight
-  
-  console.log('gb, gt', gb, gt, (gt - gb)* (lineHeight - 1.) * .5)
-  
+    
   return {
     rowWidthes,
     glyphPositions: glyphPositions.filter(p => p),
@@ -415,7 +415,6 @@ export class MSDFText {
 
     if(opts.alignHeight) {
       this.nHeight = (this.nTop - this.nBottom) * lineHeight * this.textRows.length;
-      
     } else {
       this.nHeight = this.textRows.length * lineHeight;
     }
@@ -479,8 +478,8 @@ export class MSDFText {
     const dpr = Math.min(2., window.devicePixelRatio)
 
     const wFontSize = canvas.width / (this.nWidth * dpr)
-    const hFontSize = canvas.height / (this.nHeight * dpr)
-    
+    const f = this.opts.alignHeight ? this.shaderData.glyphData.lineHeight : 1.
+    const hFontSize = (canvas.height / (this.nHeight * dpr)) *  f / (this.opts.lineHeight || 1)
     return Math.min(wFontSize, hFontSize)
   }
 
