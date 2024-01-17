@@ -414,7 +414,8 @@ export class MSDFText {
     this.nWidth = Math.max(...rowWidthes)
 
     if(opts.alignHeight) {
-      this.nHeight = (this.nTop - this.nBottom) * lineHeight * this.textRows.length;
+
+      this.nHeight = (this.nTop - this.nBottom) * (opts.lineHeight || 1) * this.textRows.length;
     } else {
       this.nHeight = this.textRows.length * lineHeight;
     }
@@ -478,8 +479,7 @@ export class MSDFText {
     const dpr = Math.min(2., window.devicePixelRatio)
 
     const wFontSize = canvas.width / (this.nWidth * dpr)
-    const f = this.opts.alignHeight ? this.shaderData.glyphData.lineHeight : 1.
-    const hFontSize = (canvas.height / (this.nHeight * dpr)) *  f / (this.opts.lineHeight || 1)
+    const hFontSize = (canvas.height / (this.nHeight * dpr))
     return Math.min(wFontSize, hFontSize)
   }
 

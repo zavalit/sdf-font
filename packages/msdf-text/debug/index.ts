@@ -67,6 +67,9 @@ const input = {
     console.timeEnd('text')
       
     const f = mt.calculateFontSizeByCanvas(canvas)
+    const res = MSDFText.calculateDrawingBufferSizeByFontSize(mt, f)
+    console.log('text calculated font size', f, 'res', res)
+   
   
     console.log('calculated font size', f)
 
@@ -115,8 +118,8 @@ const input = {
     
     const pass = mt.canvasTextPass(gl)
 
-    
-    console.log('calculated font size', f)
+    const res = MSDFText.calculateDrawingBufferSizeByFontSize(mt, f)
+    console.log('calculated font size', f, 'res', res)
    
     chain(gl, [pass], [new WindowUniformsPlugin(gl)]).renderFrame(0)
 
