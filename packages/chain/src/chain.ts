@@ -45,12 +45,14 @@ export type ProgramsMapType = {
 export type PluginCallProps = {
   program: WebGLProgram
   passId: string,
-  time: number
+  time: number,
+  uniformLocations: UnirformLocationsMap
+  gl: W2
 }
 export interface ChainPlugin {
   onInit?: (props: ProgramsMapType) => void;
-  beforeDrawCall: (props: PluginCallProps) => void;
-  afterDrawCall: (props: PluginCallProps) => void;
+  beforeDrawCall?: (props: PluginCallProps) => void;
+  afterDrawCall?: (props: PluginCallProps) => void;
 }
 
 
@@ -186,7 +188,7 @@ export default (
 
       beforeDrawCall()
 
-      plugins.forEach(plugin => plugin.beforeDrawCall({passId, time, program}))
+      plugins.forEach(p => p.beforeDrawCall && p.beforeDrawCall({gl, passId, time, program, uniformLocations}))
 
       const drawProps = {buffers: vaoMap.get(vao), uniformLocations};
       
@@ -198,7 +200,7 @@ export default (
 
       
       // Call the function to start checking for the query result asynchronously
-      plugins.forEach(plugin => plugin.afterDrawCall({passId, time, program}))
+      plugins.forEach(p => p.afterDrawCall && p.afterDrawCall({gl, passId, time, program, uniformLocations}))
       
 
       afterDrawCall()

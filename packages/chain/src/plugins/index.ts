@@ -1,2 +1,2 @@
-export {WindowUniformsPlugin} from './window_uniforms'
+export {CanvasUniformsPlugin} from './canvas_uniforms'
 export {PerformancePlugin} from './performance'
