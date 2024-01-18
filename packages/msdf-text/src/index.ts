@@ -1,6 +1,6 @@
 import glyphVertexShader from './shaders/glyph.vertex.glsl';
 import glyphFragmentShader from './shaders/glyph.fragment.glsl';
-import chain, { ChainPassPops, WindowUniformsPlugin, createTexture, FramebufferChainProp} from '@webglify/chain'
+import chain, { ChainPassPops, CanvasUniformsPlugin, createTexture} from '@webglify/chain'
 
 
  
@@ -460,7 +460,7 @@ export class MSDFText {
 
     const r = chain(gl,
       [pass], 
-      [new WindowUniformsPlugin(gl)]
+      [new CanvasUniformsPlugin(canvas)]
     )
 
     r.renderFrame(0)

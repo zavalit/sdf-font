@@ -6,8 +6,8 @@ import cairoBlackFontUrl from 'url:./fonts/Cairo/static/Cairo-Black.ttf'
 import baseneueFontUrl from 'url:./fonts/BaseNeue-Trial/web/WOFF/BaseNeueTrial-Regular.ttf'
 import travelNextUrl from 'url:./fonts/TT-Travels-Next/TT Travels Next Regular.ttf'
 import bluescreensTrialUrl from 'url:./fonts/ttbluescreens_trial/TT Bluescreens Trial Regular.ttf'
-import {MSDFText, calculateFontSizeByCanvas} from '../src'
-import chain, { WindowUniformsPlugin } from "@webglify/chain";
+import {MSDFText} from '../src'
+import chain, { ChainPlugin, PluginCallProps, CanvasUniformsPlugin } from "@webglify/chain";
 
 
 (async() => {
@@ -111,17 +111,35 @@ const input = {
 
     const gl = canvas.getContext('webgl2')!
 
-    // Set clear color to black, fully opaque
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
-    // Clear the color buffer with specified clear color
-    gl.clear(gl.COLOR_BUFFER_BIT);
+   
+
+    class CP implements ChainPlugin {
+
+      gl
+      constructor(gl: WebGL2RenderingContext) {
+        this.gl = gl
+      }
+
+      beforeDrawCall(_: PluginCallProps){
+          // Set clear color to black, fully opaque
+          gl.clearColor(1.0, 0.0, 0.0, 1.0);
+          // Clear the color buffer with specified clear color
+          gl.clear(gl.COLOR_BUFFER_BIT);
+      }
+
+      afterDrawCall (_: PluginCallProps) {
+
+      }
+
+    }
+    
     
     const pass = mt.canvasTextPass(gl)
 
     const res = MSDFText.calculateDrawingBufferSizeByFontSize(mt, f)
     console.log('calculated font size', f, 'res', res)
    
-    chain(gl, [pass], [new WindowUniformsPlugin(gl)]).renderFrame(0)
+    chain(gl, [pass], [new CanvasUniformsPlugin(gl.canvas), new CP(gl)]).renderFrame(0)
 
     console.timeEnd('text pass')
 
