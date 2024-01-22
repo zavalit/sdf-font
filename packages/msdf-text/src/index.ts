@@ -99,9 +99,9 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions): Gly
       const isFirstLetter = j === 0 || prevUnicode == 32
       const isLastLetter = text.length - 1 === j || nextUnicode == 32
       
-      const letterSpace =  g.xadvance * letterSpacing * ff
-      // ? g.xadvance * ff//(g.width + g.xoffset) * ff
-      // : g.xadvance * letterSpacing * ff;
+      const letterSpace =  isLastLetter
+       ? g.xadvance * ff
+       : g.xadvance * letterSpacing * ff;
                   
       if(unicode == 32){
         rowGlyphX += letterSpace        
@@ -112,7 +112,6 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions): Gly
       
       // prepate value for next x
       const x = rowGlyphX + g.xoffset * ff
-      console.log('g.width', g.width)
       const width = g.width * ff - pad;
     
       rowGlyphX += letterSpace        
@@ -175,7 +174,6 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions): Gly
         // last stick to end 
         if(isLastLetter){
           
-          console.log('rowGlyphX', rowGlyphX, x, width)
           dz = rowGlyphX - (x + width)
 
         } else if (nextUnicode !== 32) {
@@ -189,7 +187,6 @@ const calculateCanvasTextData = (textRows, config, opts: CanvasTextOptions): Gly
         }
 
       } 
-      console.log(char, 'dx', dx, 'dz', dz )
 
       spaceDiffs.push([dx, dz])
       ii++; 
@@ -342,7 +339,6 @@ const canvasTextPass = (gl: WebGL2RenderingContext, shaderData: ShaderData): Cha
           gl.vertexAttribDivisor(7,1);
 
           // space diffs
-          console.log('glyphData.spaceDiffs', glyphData.spaceDiffs)
           const sp = gl.createBuffer()
           gl.bindBuffer(gl.ARRAY_BUFFER, sp);
           gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(glyphData.spaceDiffs.flat()), gl.STATIC_DRAW)

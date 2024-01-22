@@ -49,7 +49,7 @@ const input = {
   const letterSpacing = 1.
    
   const canvasOpts = {
-    letterSpacing,
+    letterSpacing: 1.1,
     //lineHeight: 1.3,    
     alignBounds: true,
     //alignHeight: true,
@@ -95,7 +95,7 @@ const input = {
     console.time('text pass')
 
     const canvasOpts = {
-      letterSpacing,
+      letterSpacing: 1,
       lineHeight: 1.2,    
       alignBounds: true,
       alignHeight: true,
