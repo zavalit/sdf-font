@@ -1,6 +1,6 @@
 {
   "name": "@webglify/chain",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "draw call chain api",
   "keywords": [
     "webgl"

@@ -16,11 +16,14 @@ export class CanvasUniformsPlugin implements ChainPlugin {
   }
 
   private listenToMouseMove = ( ev: MouseEvent)=> {
-    const {top, bottom, left} =  (this.canvas as HTMLCanvasElement).getBoundingClientRect()
+    const {clientWidth, clientHeight} = this.canvas
+    const {top, bottom, left} =  this.canvas.getBoundingClientRect()
+
     const height = bottom - top;
     const fromTop = ev.clientY - top;
-    this.MOUSE_COORDS.x = (left - ev.clientX) * devicePixelRatio
-    this.MOUSE_COORDS.y = (fromTop - height) * devicePixelRatio  
+    this.MOUSE_COORDS.x = (ev.clientX - left) / clientWidth
+    this.MOUSE_COORDS.y = (height - fromTop ) / clientHeight
+    
   }
   
   
