@@ -11,6 +11,8 @@
       font-family: 'Roboto';
       font-size: 100;
       width: fit-content;
+      opacity: .5;
+      color: red;
     }
     p.cairo-black {
       font-family: 'Cairo';
@@ -18,15 +20,21 @@
       width: fit-content;
       line-height: 1;
     }
+    canvas {
+      position: absolute;
+      left:0px;
+      top:0px;
+      opacity: .4;
+    }
   </style>
 
 </head>
 <body>
   <p class="roboto">
-    Roboto
+    Headline
   </p>
   <p class="cairo-black">
-    TYPOg <br/> 
+    li <br/> 
     
   </p>
   <script src="./index.ts" type="module"></script>

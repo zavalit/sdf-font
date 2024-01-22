@@ -93,11 +93,11 @@ vec2 getUV () {
   vec2 diffs = aSpaceDiffs;
   float xSpaceDelta = (diffs.y - diffs.x)/(width + uPadding.x);
   float leftSpaceDelta = (diffs.x)/(width + uPadding.x);
-  gpos.x *= 1. + xSpaceDelta;
-  
   float d = leftSpaceDelta;
-  gpos.x += d;
-
+  gpos.x += leftSpaceDelta;
+  gpos.x *= 1./(1. - xSpaceDelta);
+  
+  
   vec2 from = (ab.xy)/ar;
   vec2 to = ab.zw/ar;
   vec2 uv = mix(from, to, gpos);

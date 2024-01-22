@@ -31,16 +31,17 @@ void main () {
   vec2 border = vec2(.5);
 
   float mask = obtainMSDFTextureMask(glyphUV, vGlyphChannel);
-  
+  float ch = vGlyphChannel;
+  vec3 bg = vec3(ch==0. ? 1.: 0., ch==1. ? 1.: 0., ch==2. ? 1.: 0.);
   float d = fwidth(mask);
   float edge = smoothstep(border.x - d, border.y + d, mask);
   
   vec3 color = uColor * edge;
-  
+  //color = vec3(mask);
   
   fragColor = vec4(color, edge);
-  //fragColor.a += .5;
-  // fragColor.rgb += .1 * bg;
+  fragColor.a += .5;
+  fragColor.rgb += .5 * bg;
   
   
 }
