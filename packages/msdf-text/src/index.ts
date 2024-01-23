@@ -264,13 +264,12 @@ const canvasTextPass = (gl: WebGL2RenderingContext, shaderData: ShaderData): Cha
 
   const atlasTexture = createTexture(gl, atlasCanvas)
   const atlasRes = [atlasCanvas.width, atlasCanvas.height]
-
+  const count = glyphData.glyphPositions.length
   return {
         vertexShader: vertexShader || glyphVertexShader,
         fragmentShader: fragmentShader || glyphFragmentShader,
         textures: [atlasTexture],
         framebuffer,
-        viewport,
         uniforms(gl, locs) {
           gl.uniform2fv(locs.uAtlasResolution, atlasRes);
           gl.uniform1f(locs.uLineHeight, glyphData.lineHeight);
@@ -298,6 +297,7 @@ const canvasTextPass = (gl: WebGL2RenderingContext, shaderData: ShaderData): Cha
           gl.enableVertexAttribArray(0);
 
           // text pos
+          { 
           const b2 = gl.createBuffer()
           gl.bindBuffer(gl.ARRAY_BUFFER, b2);
           gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(glyphData.glyphPositions.flat()), gl.STATIC_DRAW)
@@ -347,14 +347,14 @@ const canvasTextPass = (gl: WebGL2RenderingContext, shaderData: ShaderData): Cha
           gl.vertexAttribPointer(8, 2, gl.FLOAT, false, 0, 0);
           gl.enableVertexAttribArray(8);
           gl.vertexAttribDivisor(8,1);
-
+          }
           return vao
         },
         drawCall(gl) {
 
           gl.enable(gl.BLEND)
           gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
-          gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, glyphData.glyphPositions.length)
+          gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, count)
         }
       }
 

@@ -7,7 +7,13 @@ import baseneueFontUrl from 'url:./fonts/BaseNeue-Trial/web/WOFF/BaseNeueTrial-R
 import travelNextUrl from 'url:./fonts/TT-Travels-Next/TT Travels Next Regular.ttf'
 import bluescreensTrialUrl from 'url:./fonts/ttbluescreens_trial/TT Bluescreens Trial Regular.ttf'
 import {MSDFText, calculateFontSizeByCanvas} from '../src'
-import chain, { ChainPlugin, PluginCallProps, CanvasUniformsPlugin } from "@webglify/chain";
+import chain, { animationFactory, PerformancePlugin, CanvasUniformsPlugin } from "@webglify/chain";
+import {Pane} from 'tweakpane'
+
+export const PARAMS = {
+  PROGRESS: 0,
+  Performance: 0
+};
 
 
 (async() => {
@@ -35,25 +41,24 @@ const input = {
   console.log('atlasData', atlasData)
 
   // atlas
-  {
+  // {
 
-    const atlasCanvas = atlasData.pages[0] as HTMLCanvasElement
-    const dpr = Math.min(2, window.devicePixelRatio)
-    atlasCanvas.style.width = `${atlasCanvas.width  / dpr }px`
-    atlasCanvas.style.height = `${atlasCanvas.height / dpr }px`
+  //   const atlasCanvas = atlasData.pages[0] as HTMLCanvasElement
+  //   const dpr = Math.min(2, window.devicePixelRatio)
+  //   atlasCanvas.style.width = `${atlasCanvas.width  / dpr }px`
+  //   atlasCanvas.style.height = `${atlasCanvas.height / dpr }px`
   
-    document.body.appendChild(atlasCanvas)
-  }
+  //   document.body.appendChild(atlasCanvas)
+  // }
 
   // canvas text
-  const letterSpacing = 1.
    
   const canvasOpts = {
-    letterSpacing: 1.1,
+    letterSpacing: 1.,
     //lineHeight: 1.3,    
     alignBounds: true,
     //alignHeight: true,
-    fontSize: 200,
+    fontSize: 100,
   }
   
   const mt = MSDFText.init(text, atlasData, canvasOpts)
@@ -81,7 +86,7 @@ const input = {
 
     const canvas = document.createElement('canvas')
 
-    const size = [400, 300]
+    const size = [400, 100]
     canvas.style.width = `${size[0]}px`
     canvas.style.height = `${size[1]}px`
 
@@ -114,33 +119,25 @@ const input = {
 
    
 
-    class CP implements ChainPlugin {
-
-      gl
-      constructor(gl: WebGL2RenderingContext) {
-        this.gl = gl
-      }
-
-      beforeDrawCall(_: PluginCallProps){
-          // Set clear color to black, fully opaque
-          gl.clearColor(1.0, 0.0, 0.0, 1.0);
-          // Clear the color buffer with specified clear color
-          gl.clear(gl.COLOR_BUFFER_BIT);
-      }
-
-      afterDrawCall (_: PluginCallProps) {
-
-      }
-
-    }
-    
     
     const pass = mt.canvasTextPass(gl)
 
     const res = MSDFText.calculateDrawingBufferSizeByFontSize(mt, f)
     console.log('calculated font size', f, 'res', res)
+
+    const perf = new PerformancePlugin(gl)
    
-    chain(gl, [pass], [new CanvasUniformsPlugin(gl.canvas), new CP(gl)]).renderFrame(0)
+    const {renderFrame} = chain(gl, [pass], 
+      [
+        new CanvasUniformsPlugin(gl.canvas as HTMLCanvasElement),
+        perf
+      ])
+
+    const animate = animationFactory(renderFrame)
+
+    window.requestAnimationFrame((time) => animate(time, () => {
+        PARAMS.Performance = perf.stats[0].avg
+    }))
 
     console.timeEnd('text pass')
 
@@ -150,3 +147,15 @@ const input = {
   
 
 })()
+
+
+const pane = new Pane()
+pane.addBinding(PARAMS, 'PROGRESS', {min: 0, max: 1, step: .01});
+pane.addBinding(PARAMS, 'Performance', {
+  readonly: true,
+
+  view: 'graph',
+  min: 0,
+  max: 10,
+}); 
+  

@@ -56,10 +56,11 @@ export interface ChainPlugin {
 }
 
 
+export type RenderFrame = (frame: number) => void
 
 export type ChainDrawProps = {
  
-  renderFrame: (time: number) => void
+  renderFrame: RenderFrame
   programs: ProgramsMapType
   gl: W2
 }
@@ -92,8 +93,7 @@ export default (
   .map(({program, passId, ...props}) => {
 
      
-    const [x, y, width, height] = props.viewport || [0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight]
-    
+    const [x, y, width, height] = props.viewport || [0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight]    
   
 
     // provide attributes and uniforms
@@ -224,24 +224,50 @@ export default (
           chainDrawCall, program
         }}
     }, {}),
-    renderFrame: function (time: number){
+    renderFrame: function (frame: number){
 
       calls.forEach((c) => {
         // Perform the draw call 
-        c.chainDrawCall(time);         
+        c.chainDrawCall(frame);         
 
       })      
     }
   }
 
   // init plugins
-  plugins.forEach(p => p.onInit && p.onInit(chainDraw.programs))
+  plugins.forEach(p => p && p.onInit && p.onInit(chainDraw.programs))
 
   return chainDraw
 }
 
 
 // Utils functions
+
+export const animationFactory = (renderFrame: RenderFrame, fps: number = 60): (time: number, cb?:()=> void) => number => {
+
+  const frameDuration = 1000/fps
+  let frame = 0;
+  let lastTimeUpdate: null | number = null
+  const animate = (time: number, cb?: () => void) => {
+    
+    if (lastTimeUpdate === null) {
+      lastTimeUpdate = time;  
+    }
+          
+    const diff = (time - lastTimeUpdate) - frameDuration
+        
+    if(diff > 0) {
+      lastTimeUpdate = time - Math.min(diff, frameDuration)                
+      renderFrame(frame++)   
+      cb && cb()
+    }
+
+    const frameId: number = window.requestAnimationFrame((time) => animate(time, cb))
+    return frameId
+  }
+
+  return animate
+}
 
 
 function loadImage(url: string, callback: (i:HTMLImageElement) => void) {
