@@ -20,6 +20,7 @@ uniform vec2 uAtlasResolution;
 uniform vec2 uResolution;
 uniform vec2 uResolutionInPx;
 uniform float uFontLineHeight;
+uniform float uOriginLineHeight;
 uniform float uLineHeight;
 uniform float uBaseLine;
 uniform vec4 uPadding;
@@ -50,7 +51,7 @@ vec2 getPosition(){
   vec4 bounds = getBounds();
   
   // manage space between lines 
-  bounds.yw += aGlyphRowColumn.y * uFontLineHeight * (1. - uLineHeight);
+  bounds.yw += aGlyphRowColumn.y * uOriginLineHeight * (1. - uLineHeight);
   
   pos = mix(bounds.xy, bounds.zw, pos);
   

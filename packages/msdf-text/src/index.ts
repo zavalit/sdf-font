@@ -57,7 +57,7 @@ const calculateCanvasTextData = (
       // glyph pos in text
       const unicode = char.charCodeAt(0)
       const g = chars.get(unicode)
-      if(g.yoffset) {
+      if(typeof(g.yoffset) !== 'undefined') {
         heightBounds.push([g.yoffset * ff, g.height * ff + g.yoffset * ff - pad])
       }
       
@@ -183,7 +183,6 @@ const calculateCanvasTextData = (
     rowWidthes.push(rowGlyphX + paddingSide)
   })
 
-  //const ln = lineHeight + gb - (gt - gb) * ((opts.lineHeight || 1) - 1) * 0.5
   const fontLineHeight = opts.alignHeight ? (gt - gb) * paddingHeight : lineHeight;
   
   const basePadding =  (paddingHeight - 1.) * .5
@@ -198,6 +197,7 @@ const calculateCanvasTextData = (
     spaceDiffs,
     textLineHeight: opts.textLineHeight,
     fontLineHeight,
+    originLineHeight: lineHeight,
     base,
     padding
   }
@@ -269,6 +269,7 @@ const canvasTextPass = (
       gl.uniform2fv(locs.uAtlasResolution, atlasRes)
       gl.uniform1f(locs.uFontLineHeight, glyphData.fontLineHeight)
       gl.uniform1f(locs.uLineHeight, glyphData.textLineHeight)
+      gl.uniform1f(locs.uOriginLineHeight, glyphData.originLineHeight)
       gl.uniform1f(locs.uBaseLine, glyphData.base)
       gl.uniform4fv(locs.uPadding, glyphData.padding)
       gl.uniform1f(locs.uFontSize, fontSize)
@@ -364,6 +365,7 @@ const canvasTextPass = (
 interface GlyphData {
   fontLineHeight: number
   textLineHeight: number
+  originLineHeight: number
   glyphPositions: number[][]
   heightBounds: [number, number]
   spaceDiffs: number[][]
@@ -396,9 +398,7 @@ export class MSDFText {
   shaderData: ShaderData
   nWidth: number
   nHeight: number
-  nBottom: number
-  nTop: number
-
+  
   constructor (
     textRows: string[],
     shaderData: ShaderData,
@@ -409,21 +409,13 @@ export class MSDFText {
     this.shaderData = shaderData
 
     // calculate normalised width & height
-    const { rowWidthes, textLineHeight, fontLineHeight, heightBounds } = this.shaderData.glyphData
+    const { rowWidthes, originLineHeight } = this.shaderData.glyphData
 
-    this.nBottom = heightBounds[0]
-    this.nTop = heightBounds[1]
-
+    
     this.nWidth = Math.max(...rowWidthes)
 
-    if (opts.alignHeight) {
-      this.nHeight =
-        (this.nTop - this.nBottom) *
-        (opts.lineHeight || 1) *
-        this.textRows.length
-    } else {
-      this.nHeight = this.textRows.length * fontLineHeight
-    }
+    this.nHeight = this.textRows.length * originLineHeight
+    
   }
 
   static init (text: string, config, options?: Partial<CanvasTextOptions>) {
