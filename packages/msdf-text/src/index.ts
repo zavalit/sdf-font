@@ -70,8 +70,8 @@ const calculateCanvasTextData = (
   const gt = Math.max(...heightBounds.map((g) => g[1]))
 
   const coreLineHeight = config.common.lineHeight * ff;
-  const paddingHeight = 1 + opts.relativePaddingHeight
-  const paddingSide = coreLineHeight * opts.relativePaddingWidth * .5;
+  const paddingHeight = 1 + opts.paddingHeight
+  const paddingSide = coreLineHeight * opts.paddingWidth * .5;
   const lineHeight = coreLineHeight * paddingHeight
 
   ii = 0
@@ -207,8 +207,8 @@ interface CanvasTextOptions {
   letterSpacing: number
   alignBounds: boolean
   alignHeight: boolean
-  relativePaddingHeight: number
-  relativePaddingWidth: number
+  paddingHeight: number
+  paddingWidth: number
   fontSize: number
   textLineHeight: number
 
@@ -218,8 +218,8 @@ const defaultCanvasTextOptions: CanvasTextOptions = {
   letterSpacing: 1,
   alignBounds: false,
   alignHeight: false,
-  relativePaddingHeight: 0,
-  relativePaddingWidth: 0,
+  paddingHeight: 0,
+  paddingWidth: 0,
   fontSize: 100,
   textLineHeight: 1
 }
@@ -439,7 +439,7 @@ export class MSDFText {
     const { fontSize } = this.opts
 
     const canvasWidth = this.nWidth * fontSize
-    const canvasHeight = this.shaderData.glyphData.textLineHeight * fontSize
+    const canvasHeight = this.shaderData.glyphData.originLineHeight * fontSize
 
     const gl = canvas.getContext('webgl2')!
     const dpr = Math.min(2, window.devicePixelRatio)
