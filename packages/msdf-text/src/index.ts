@@ -37,19 +37,18 @@ const calculateCanvasTextData = (
   const { letterSpacing, alignBounds } = opts
   const { chars } = config
 
-  const rowWidthes = []
+  const rowWidthes: number[] = []
 
   const ff = 1 / config.info.size
 
   const padding = config.info.padding.map((p) => p * ff)
 
-  const glyphPositions: any[] = []
+  const wordGlyphPositions: any[] = []
   const heightBounds: Array<[number, number]> = []
   const spaceDiffs: any = []
 
   const pad = padding[0]
 
-  let ii = 0
 
   // find glyph min and max
   textRows.forEach((text, i) => {
@@ -74,113 +73,125 @@ const calculateCanvasTextData = (
   const paddingSide = coreLineHeight * opts.paddingWidth * .5;
   const lineHeight = coreLineHeight * paddingHeight
 
-  ii = 0
+  let wordGlyphId = 0
+  let wordId = -1
 
   textRows.forEach((text, i) => {
-    let rowGlyphX = paddingSide
     const y = (textRows.length - i - 1) * lineHeight
+    wordId++
 
-    text.split('').forEach((char, j) => {
-      const prevUnicode = text.charCodeAt(j - 1)
-      const nextUnicode = text.charCodeAt(j + 1)
+    let rowWordsX = paddingSide
+    const rowWords = text.split(' ').filter(w => w.length > 0)
+    rowWords.forEach((word, w) => {
+      if(rowWords[w - 1]) {
+        
+        const g = chars.get(32)
+        
+        rowWordsX +=  g.xadvance * ff
+        wordId++
 
-      // glyph pos in text
-      const unicode = char.charCodeAt(0)
-      const g = chars.get(unicode)
+      }
+      
+      word.split('').forEach((char, c) => {
+        
+        const unicode = char.charCodeAt(0)
 
-      const isFirstLetter = j === 0 || prevUnicode === 32
-      const isLastLetter = text.length - 1 === j || nextUnicode == 32
+        const g = chars.get(unicode)
 
-      const letterSpace = isLastLetter
+        const x = rowWordsX + g.xoffset * ff
+        const width = g.width * ff - pad
+
+        const isFirstLetter = c === 0
+        const isLastLetter = word.length - 1 === c 
+        
+        const letterSpace = isLastLetter
         ? g.xadvance * ff
         : g.xadvance * letterSpacing * ff
 
-      if (unicode == 32) {
-        rowGlyphX += letterSpace
-        glyphPositions[++ii] = undefined
-        return
-      }
+        rowWordsX +=  letterSpace
 
-      // prepate value for next x
-      const x = rowGlyphX + g.xoffset * ff
-      const width = g.width * ff - pad
+        // glyph
+        const glyphPos = [
+          // aGlyphStart
+          x,
+          y,
 
-      rowGlyphX += letterSpace
+          // aGlyphSize
+          width,
+          g.height * ff,
 
-      // glyph
-      const glyphPos = [
-        // aGlyphStart
-        x,
-        y,
+          // aGlyphOffset
+          g.xoffset * ff,
+          g.yoffset * ff,
 
-        // aGlyphSize
-        width,
-        g.height * ff,
+          // aWordRow
+          wordId,
+          i,
 
-        // aGlyphOffset
-        g.xoffset * ff,
-        g.yoffset * ff,
+          // aGlyphWordRowNormalized
+          c / Math.max(word.length - 1, 1),
+          w / Math.max(rowWords.length - 1, 1),
 
-        // aGlyphRowColumn
-        j,
-        i,
+          // aChannel
+          g.chnl,
 
-        // aGlyphRowColumnNormalized
-        j / (text.length - 1),
-        i / (textRows.length - 1),
+          
 
-        // aChannel
-        g.chnl
-      ]
+        ]
 
-      glyphPositions[ii] = glyphPos
-
-      // close space
-
-      // change x and z
-
-      let dx = 0;
-      // first x take a padding
-      if (isFirstLetter) {
-        dx = -paddingSide;
-      }
-      // last z sticks to line end
-      let dz = 0
-      // last z take a padding
-      if (isLastLetter) {
-        dz = paddingSide;
-      }
-
-      if (alignBounds) {
-        // dx
-        // first stick to start
+        wordGlyphPositions[wordGlyphId] = glyphPos
+      
+        // close space
+  
+        // change x and z
+  
+        let dx = 0;
+        // first x take a padding
         if (isFirstLetter) {
-          dx = Math.min(g.xoffset * ff * -1 - paddingSide, 0)
-        } else if (prevUnicode !== 32) {
-          const [prevX, , prevWidth] = glyphPositions[ii - 1]
-          const prevZ = prevX + prevWidth
-          dx = (prevZ - x) * 0.5
+          dx = -paddingSide;
         }
-
-        // dz
-        // last stick to end
+        // last z sticks to line end
+        let dz = 0
+        // last z take a padding
         if (isLastLetter) {
-          dz = rowGlyphX - (x + width) + paddingSide
-        } else if (nextUnicode !== 32) {
-          const currentZ = x + width
-
-          const nextChar = chars.get(text.charCodeAt(j + 1))
-          const nextX = rowGlyphX + nextChar.xoffset * ff
-
-          dz = (nextX - currentZ) * 0.5
+          dz = paddingSide;
         }
-      }
+  
+        if (alignBounds) {
+          // dx
+          // first stick to start
+          if (isFirstLetter) {
+            dx = Math.min(g.xoffset * ff * -1 - paddingSide, 0)
+          } else {
+            const [prevX, , prevWidth] = wordGlyphPositions[wordGlyphId - 1]
+            const prevZ = prevX + prevWidth
+            dx = (prevZ - x) * 0.5
+          }
+  
+          // dz
+          // last stick to end
+          if (isLastLetter) {
+            dz = rowWordsX - (x + width) + paddingSide
+          } else {
+            const currentZ = x + width
+  
+            const nextChar = chars.get(word.charCodeAt(c + 1))
+            const nextX = rowWordsX + nextChar.xoffset * ff
+  
+            dz = (nextX - currentZ) * 0.5
+          }
+        }
+  
+        spaceDiffs.push([dx, dz])
+   
+        wordGlyphId++
 
-      spaceDiffs.push([dx, dz])
-      ii++
+      
+      })
     })
-
-    rowWidthes.push(rowGlyphX + paddingSide)
+    
+       
+    rowWidthes.push(rowWordsX + paddingSide)
   })
 
   const fontLineHeight = opts.alignHeight ? (gt - gb) * paddingHeight : lineHeight;
@@ -188,11 +199,10 @@ const calculateCanvasTextData = (
   const basePadding =  (paddingHeight - 1.) * .5
   const base = opts.alignHeight ? gt + (gt - gb) * basePadding: config.common.base * ff * (1. + basePadding)
 
-  
 
   return {
     rowWidthes,
-    glyphPositions: glyphPositions.filter((p) => p),
+    glyphPositions: wordGlyphPositions.filter((p) => p),
     heightBounds: [gb, gt],
     spaceDiffs,
     textLineHeight: opts.textLineHeight,

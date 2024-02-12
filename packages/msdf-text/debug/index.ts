@@ -155,23 +155,31 @@ const input = {
   {
 
     const text3 = 
-`@
-Ät`
+`hello 
+my dear
+friend`
     const input3 = {
       fontUrl: fu,
       options: {
-        padding: 200,        
+        padding: 150,        
         sdfExponent: 60,
         chars: text3,
-        unitPerEmFactor: 1.
+        unitPerEmFactor: .5
       }
     }
   
     console.time('atlas')
     const atlasData = await renderAtlas(input3)
     console.timeEnd('atlas')
-    console.log('atlas data', atlasData)
+// {
 
+//     const atlasCanvas = atlasData.pages[0] as HTMLCanvasElement
+//     const dpr = Math.min(2, window.devicePixelRatio)
+//     atlasCanvas.style.width = `${atlasCanvas.width  / dpr }px`
+//     atlasCanvas.style.height = `${atlasCanvas.height / dpr }px`
+  
+//     document.body.appendChild(atlasCanvas)
+//   }
     const canvas = document.createElement('canvas')
 
     const size = [300, 600]
