@@ -19,6 +19,7 @@ out float vS;
 uniform vec2 uAtlasResolution;
 uniform vec2 uResolution;
 uniform vec2 uResolutionInPx;
+uniform float uFontLineHeight;
 uniform float uLineHeight;
 uniform float uBaseLine;
 uniform vec4 uPadding;
@@ -34,7 +35,8 @@ vec4 getBounds () {
 
   vec2 start = aGlyphStart;
   start.x += diffs.x;
-  vec2 end = aGlyphStart + vec2( aGlyphSize.x, uLineHeight);
+  
+  vec2 end = aGlyphStart + vec2( aGlyphSize.x, uFontLineHeight);
   end.x += diffs.y;
   
   
@@ -46,6 +48,10 @@ vec2 getPosition(){
   vec2 pos = aPosition;
 
   vec4 bounds = getBounds();
+  
+  // manage space between lines 
+  bounds.yw += aGlyphRowColumn.y * uFontLineHeight * (1. - uLineHeight);
+  
   pos = mix(bounds.xy, bounds.zw, pos);
   
   pos *= FONT_SCALE;
