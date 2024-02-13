@@ -14,7 +14,6 @@
     "watch": "nodemon -e ts,js --watch ./src -x 'npm run build' ",
     "format": "prettier --write \"src/**/*.ts\"",
     "lint": "eslint \"src/**/*.{js,ts}\" --fix"
-
   },
   "dependencies": {
     "@webglify/chain": "^0.2.2",
@@ -30,9 +29,23 @@
     "eslint-plugin-import": "^2.29.1",
     "eslint-plugin-n": "^16.6.2",
     "eslint-plugin-promise": "^6.1.1",
+    "husky": "^9.0.10",
+    "lint-staged": "^15.2.2",
     "ncp": "^2.0.0",
     "prettier": "^3.2.5",
     "tweakpane": "^4.0.0",
     "typescript": "^5.3.3"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{ts}": [
+      "prettier --write",
+      "eslint --fix",
+      "git add"
+    ]
   }
 }

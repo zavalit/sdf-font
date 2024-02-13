@@ -49,18 +49,18 @@ const calculateCanvasTextData = (
 
   const pad = padding[0]
 
-
   // find glyph min and max
   textRows.forEach((text, i) => {
     text.split('').forEach((char, j) => {
       // glyph pos in text
       const unicode = char.charCodeAt(0)
       const g = chars.get(unicode)
-      if(typeof(g.yoffset) !== 'undefined') {
-        heightBounds.push([g.yoffset * ff, g.height * ff + g.yoffset * ff - pad])
+      if (typeof g.yoffset !== 'undefined') {
+        heightBounds.push([
+          g.yoffset * ff,
+          g.height * ff + g.yoffset * ff - pad
+        ])
       }
-      
-      
     })
   })
 
@@ -68,9 +68,9 @@ const calculateCanvasTextData = (
   const gb = Math.min(...heightBounds.map((g) => g[0]))
   const gt = Math.max(...heightBounds.map((g) => g[1]))
 
-  const coreLineHeight = config.common.lineHeight * ff;
+  const coreLineHeight = config.common.lineHeight * ff
   const paddingHeight = 1 + opts.paddingHeight
-  const paddingSide = coreLineHeight * opts.paddingWidth * .5;
+  const paddingSide = coreLineHeight * opts.paddingWidth * 0.5
   const lineHeight = coreLineHeight * paddingHeight
 
   let wordGlyphId = 0
@@ -81,19 +81,16 @@ const calculateCanvasTextData = (
     wordId++
 
     let rowWordsX = paddingSide
-    const rowWords = text.split(' ').filter(w => w.length > 0)
+    const rowWords = text.split(' ').filter((w) => w.length > 0)
     rowWords.forEach((word, w) => {
-      if(rowWords[w - 1]) {
-        
+      if (typeof (rowWords[w - 1]) !== 'undefined') {
         const g = chars.get(32)
-        
-        rowWordsX +=  g.xadvance * ff
-        wordId++
 
+        rowWordsX += g.xadvance * ff
+        wordId++
       }
-      
+
       word.split('').forEach((char, c) => {
-        
         const unicode = char.charCodeAt(0)
 
         const g = chars.get(unicode)
@@ -102,13 +99,13 @@ const calculateCanvasTextData = (
         const width = g.width * ff - pad
 
         const isFirstLetter = c === 0
-        const isLastLetter = word.length - 1 === c 
-        
-        const letterSpace = isLastLetter
-        ? g.xadvance * ff
-        : g.xadvance * letterSpacing * ff
+        const isLastLetter = word.length - 1 === c
 
-        rowWordsX +=  letterSpace
+        const letterSpace = isLastLetter
+          ? g.xadvance * ff
+          : g.xadvance * letterSpacing * ff
+
+        rowWordsX += letterSpace
 
         // glyph
         const glyphPos = [
@@ -133,30 +130,27 @@ const calculateCanvasTextData = (
           w / Math.max(rowWords.length - 1, 1),
 
           // aChannel
-          g.chnl,
-
-          
-
+          g.chnl
         ]
 
         wordGlyphPositions[wordGlyphId] = glyphPos
-      
+
         // close space
-  
+
         // change x and z
-  
-        let dx = 0;
+
+        let dx = 0
         // first x take a padding
         if (isFirstLetter) {
-          dx = -paddingSide;
+          dx = -paddingSide
         }
         // last z sticks to line end
         let dz = 0
         // last z take a padding
         if (isLastLetter) {
-          dz = paddingSide;
+          dz = paddingSide
         }
-  
+
         if (alignBounds) {
           // dx
           // first stick to start
@@ -167,42 +161,44 @@ const calculateCanvasTextData = (
             const prevZ = prevX + prevWidth
             dx = (prevZ - x) * 0.5
           }
-  
+
           // dz
           // last stick to end
           if (isLastLetter) {
             dz = rowWordsX - (x + width) + paddingSide
           } else {
             const currentZ = x + width
-  
+
             const nextChar = chars.get(word.charCodeAt(c + 1))
             const nextX = rowWordsX + nextChar.xoffset * ff
-  
+
             dz = (nextX - currentZ) * 0.5
           }
         }
-  
-        spaceDiffs.push([dx, dz])
-   
-        wordGlyphId++
 
-      
+        spaceDiffs.push([dx, dz])
+
+        wordGlyphId++
       })
     })
-    
-       
+
     rowWidthes.push(rowWordsX + paddingSide)
   })
 
-  const fontLineHeight = opts.alignHeight ? (gt - gb) * paddingHeight : lineHeight;
-  
-  const basePadding =  (paddingHeight - 1.) * .5
-  const base = opts.alignHeight ? gt + (gt - gb) * basePadding: config.common.base * ff * (1. + basePadding)
+  console.log('WORDID', wordId)
+  const fontLineHeight = opts.alignHeight
+    ? (gt - gb) * paddingHeight
+    : lineHeight
 
+  const basePadding = (paddingHeight - 1) * 0.5
+  const base = opts.alignHeight
+    ? gt + (gt - gb) * basePadding
+    : config.common.base * ff * (1 + basePadding)
 
   return {
     rowWidthes,
     glyphPositions: wordGlyphPositions.filter((p) => p),
+    wordsCount: wordId + 1,
     heightBounds: [gb, gt],
     spaceDiffs,
     textLineHeight: opts.textLineHeight,
@@ -221,7 +217,6 @@ interface CanvasTextOptions {
   paddingWidth: number
   fontSize: number
   textLineHeight: number
-
 }
 
 const defaultCanvasTextOptions: CanvasTextOptions = {
@@ -239,7 +234,7 @@ export const calculateFontSizeByCanvas = (
   text: string,
   config,
   options?: Partial<CanvasTextOptions>
-) => {
+): number => {
   const textRows = text.split('\n')
 
   const opts = { ...defaultCanvasTextOptions, ...options }
@@ -264,15 +259,15 @@ const canvasTextPass = (
     atlasMap,
     atlasCanvas,
     fontSize,
-    passGLSL: { vertexShader, fragmentShader, uniforms, framebuffer, viewport }
+    passGLSL: { vertexShader, fragmentShader, uniforms, framebuffer }
   } = shaderData
 
   const atlasTexture = createTexture(gl, atlasCanvas)
   const atlasRes = [atlasCanvas.width, atlasCanvas.height]
   const count = glyphData.glyphPositions.length
   return {
-    vertexShader: vertexShader || glyphVertexShader,
-    fragmentShader: fragmentShader || glyphFragmentShader,
+    vertexShader: vertexShader ?? glyphVertexShader,
+    fragmentShader: fragmentShader ?? glyphFragmentShader,
     textures: [atlasTexture],
     framebuffer,
     uniforms (gl, locs) {
@@ -281,10 +276,13 @@ const canvasTextPass = (
       gl.uniform1f(locs.uLineHeight, glyphData.textLineHeight)
       gl.uniform1f(locs.uOriginLineHeight, glyphData.originLineHeight)
       gl.uniform1f(locs.uBaseLine, glyphData.base)
+      gl.uniform1f(locs.uWordsCount, glyphData.wordsCount)
       gl.uniform4fv(locs.uPadding, glyphData.padding)
       gl.uniform1f(locs.uFontSize, fontSize)
 
-      uniforms && uniforms(gl, locs)
+      if (typeof (uniforms) !== 'undefined') {
+        uniforms(gl, locs)
+      }
     },
     vertexArrayObject (gl, vao) {
       const b1 = gl.createBuffer()
@@ -382,6 +380,7 @@ interface GlyphData {
   rowWidthes: number[]
   base: number
   padding: number[]
+  wordsCount: number
 }
 
 interface ShaderData {
@@ -408,7 +407,7 @@ export class MSDFText {
   shaderData: ShaderData
   nWidth: number
   nHeight: number
-  
+
   constructor (
     textRows: string[],
     shaderData: ShaderData,
@@ -421,14 +420,12 @@ export class MSDFText {
     // calculate normalised width & height
     const { rowWidthes, originLineHeight } = this.shaderData.glyphData
 
-    
     this.nWidth = Math.max(...rowWidthes)
 
     this.nHeight = this.textRows.length * originLineHeight
-    
   }
 
-  static init (text: string, config, options?: Partial<CanvasTextOptions>) {
+  static init (text: string, config, options?: Partial<CanvasTextOptions>): MSDFText {
     const textRows = text.split('\n')
     const opts = { ...defaultCanvasTextOptions, ...options }
 
@@ -445,13 +442,16 @@ export class MSDFText {
     return new MSDFText(textRows, shaderData, opts)
   }
 
-  renderCanvasText (canvas: HTMLCanvasElement) {
+  renderCanvasText (canvas: HTMLCanvasElement): void {
     const { fontSize } = this.opts
 
     const canvasWidth = this.nWidth * fontSize
     const canvasHeight = this.shaderData.glyphData.originLineHeight * fontSize
 
-    const gl = canvas.getContext('webgl2')!
+    const gl = canvas.getContext('webgl2')
+    if (gl === null) {
+      throw new Error('can not obtain a webgl2 context')
+    }
     const dpr = Math.min(2, window.devicePixelRatio)
     canvas.width = canvasWidth * dpr
     canvas.height = canvasHeight * dpr
@@ -466,13 +466,13 @@ export class MSDFText {
     r.renderFrame({ frame: 0, elapsedTime: 0 })
   }
 
-  calculateFontSizeByWidth (width: number) {
+  calculateFontSizeByWidth (width: number): number {
     const dpr = Math.min(2, window.devicePixelRatio)
 
     return width / (this.nWidth * dpr)
   }
 
-  calculateFontSizeByCanvas (canvas: HTMLCanvasElement) {
+  calculateFontSizeByCanvas (canvas: HTMLCanvasElement): number {
     const dpr = Math.min(2, window.devicePixelRatio)
 
     const wFontSize = canvas.width / (this.nWidth * dpr)
@@ -491,11 +491,11 @@ export class MSDFText {
     return [w, h]
   }
 
-  updateFontSize (fontSize: number) {
+  updateFontSize (fontSize: number): void {
     this.shaderData.fontSize = fontSize
   }
 
-  canvasTextPass (gl: WebGL2RenderingContext, passGLSL?: Partial<PassGLSL>) {
+  canvasTextPass (gl: WebGL2RenderingContext, passGLSL?: Partial<PassGLSL>): PassGLSL {
     this.shaderData.passGLSL = { ...defatulPassGLSL, ...passGLSL }
     return canvasTextPass(gl, this.shaderData)
   }

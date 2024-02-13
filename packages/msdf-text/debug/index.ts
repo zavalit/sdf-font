@@ -66,97 +66,97 @@ const input = {
     fontSize: 200,
   }
   
-  // // 1. canvas word
-  {
+  // // // 1. canvas word
+  // {
 
-    const mt = MSDFText.init(text, atlasData, canvasOpts)
+  //   const mt = MSDFText.init(text, atlasData, canvasOpts)
 
-    const canvas = document.createElement('canvas')
-    canvas.setAttribute('id', 'canvas')
-    document.body.appendChild(canvas)
+  //   const canvas = document.createElement('canvas')
+  //   canvas.setAttribute('id', 'canvas')
+  //   document.body.appendChild(canvas)
   
-    console.time('text')
+  //   console.time('text')
 
-    mt.renderCanvasText(canvas)
-    console.timeEnd('text')
+  //   mt.renderCanvasText(canvas)
+  //   console.timeEnd('text')
       
-    const f = mt.calculateFontSizeByCanvas(canvas)
-    const res = MSDFText.calculateDrawingBufferSizeByFontSize(mt, f)
-    console.log('text calculated font size', f, 'res', res)
+  //   const f = mt.calculateFontSizeByCanvas(canvas)
+  //   const res = MSDFText.calculateDrawingBufferSizeByFontSize(mt, f)
+  //   console.log('text calculated font size', f, 'res', res)
    
   
-    console.log('calculated font size', f)
+  //   console.log('calculated font size', f)
 
-  }
+  // }
 
-  // // 2. canvas text pass word
-  {
+  // // // 2. canvas text pass word
+  // {
 
-    const canvas = document.createElement('canvas')
+  //   const canvas = document.createElement('canvas')
 
-    const size = [400, 100]
-    canvas.style.width = `${size[0]}px`
-    canvas.style.height = `${size[1]}px`
+  //   const size = [400, 100]
+  //   canvas.style.width = `${size[0]}px`
+  //   canvas.style.height = `${size[1]}px`
 
-    const dpr = Math.min(window.devicePixelRatio, 2)
-    canvas.width = size[0] * dpr
-    canvas.height = size[1] * dpr
+  //   const dpr = Math.min(window.devicePixelRatio, 2)
+  //   canvas.width = size[0] * dpr
+  //   canvas.height = size[1] * dpr
 
 
-    document.body.appendChild(canvas)
+  //   document.body.appendChild(canvas)
   
-    console.time('text pass')
+  //   console.time('text pass')
 
-    const canvasOpts = {
-      letterSpacing: 1,
-      alignBounds: true,
-      alignHeight: true,
+  //   const canvasOpts = {
+  //     letterSpacing: 1,
+  //     alignBounds: true,
+  //     alignHeight: true,
       
-      fontSize: 443,
-    }
+  //     fontSize: 443,
+  //   }
     
 
-    const mt = MSDFText.init(text, atlasData, canvasOpts)
+  //   const mt = MSDFText.init(text, atlasData, canvasOpts)
      
-    const f = mt.calculateFontSizeByCanvas(canvas)
-    console.log('pass fontsize', f, canvas.width, canvas.height)
-    mt.updateFontSize(f)
+  //   const f = mt.calculateFontSizeByCanvas(canvas)
+  //   console.log('pass fontsize', f, canvas.width, canvas.height)
+  //   mt.updateFontSize(f)
    
 
-    const gl = canvas.getContext('webgl2')!
+  //   const gl = canvas.getContext('webgl2')!
 
    
 
     
-    const pass = mt.canvasTextPass(gl)
+  //   const pass = mt.canvasTextPass(gl)
 
-    const res = MSDFText.calculateDrawingBufferSizeByFontSize(mt, f)
-    console.log('calculated font size', f, 'res', res)
+  //   const res = MSDFText.calculateDrawingBufferSizeByFontSize(mt, f)
+  //   console.log('calculated font size', f, 'res', res)
 
-    const perf = new PerformancePlugin(gl)
+  //   const perf = new PerformancePlugin(gl)
    
-    const {renderFrame} = chain(gl, [pass], 
-      [
-        new CanvasUniformsPlugin(gl.canvas as HTMLCanvasElement),
-        perf
-      ])
+  //   const {renderFrame} = chain(gl, [pass], 
+  //     [
+  //       new CanvasUniformsPlugin(gl.canvas as HTMLCanvasElement),
+  //       perf
+  //     ])
 
-    const animate = animationFactory(renderFrame)
+  //   const animate = animationFactory(renderFrame)
 
-    window.requestAnimationFrame((time) => animate(time, () => {
-        PARAMS.Performance = perf.stats[0].avg
-    }))
+  //   window.requestAnimationFrame((time) => animate(time, () => {
+  //       PARAMS.Performance = perf.stats[0].avg
+  //   }))
 
-    console.timeEnd('text pass')
+  //   console.timeEnd('text pass')
 
-  }
+  // }
 
   // 3. canvas text pass
   {
 
     const text3 = 
 `hello 
-my dear
+my dear 
 friend`
     const input3 = {
       fontUrl: fu,
