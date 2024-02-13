@@ -5,7 +5,7 @@ layout(location=0) in vec2 aPosition;
 layout(location=1) in vec2 aGlyphStart;
 layout(location=2) in vec2 aGlyphSize;
 layout(location=3) in vec2 aGlyphOffset;
-layout(location=4) in vec2 aGlyphRowColumn;
+layout(location=4) in vec2 aWordRow;
 layout(location=5) in vec2 aGlyphRowColumnNormalized;
 layout(location=6) in float aGlyphChannel;
 layout(location=7) in vec4 aAtlasBounds;
@@ -52,7 +52,7 @@ vec2 getPosition(){
   vec4 bounds = getBounds();
   
   // manage space between lines 
-  bounds.yw += aGlyphRowColumn.y * uOriginLineHeight * (1. - uLineHeight);
+  bounds.yw += aWordRow.y * uOriginLineHeight * (1. - uLineHeight);
   
   pos = mix(bounds.xy, bounds.zw, pos);
   
