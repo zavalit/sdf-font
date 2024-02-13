@@ -12,6 +12,9 @@ function riseToBaseLine(commands, spaceToBaseline) {
       if (flippedCommand.y1 !== undefined) {
           flippedCommand.y1 = flippedCommand.y1 + spaceToBaseline;
       }
+      if (flippedCommand.y2 !== undefined) {
+        flippedCommand.y2 = flippedCommand.y2 + spaceToBaseline;
+      }
       return flippedCommand;
   });
 }
@@ -21,6 +24,9 @@ function flipCommandsOnYAxis(commands) {
   let maxY = Math.max(...commands.flatMap(cmd => {
       if (cmd.type === 'Q') {
           return [cmd.y, cmd.y1];
+      }
+      if (cmd.type === 'C') {
+        return [cmd.y, cmd.y1, cmd.y2];
       }
       if(cmd.type === 'M' || cmd.type === 'L'){
         return [cmd.y];
@@ -38,6 +44,9 @@ function flipCommandsOnYAxis(commands) {
       if (flippedCommand.y1 !== undefined) {
           flippedCommand.y1 = maxY - flippedCommand.y1;
       }
+      if (flippedCommand.y2 !== undefined) {
+        flippedCommand.y2 = maxY - flippedCommand.y2;
+      }
 
       return flippedCommand;
   });
@@ -53,9 +62,12 @@ export const commandsToPathData = (commands) => {
               return `${command.type} ${command.x} ${command.y}`;
           case 'Q': // Quadratic Bezier Curve
               return `${command.type} ${command.x1} ${command.y1} ${command.x} ${command.y}`;
+          case 'C': // Bézier curve from the current position
+              return `${command.type} ${command.x1} ${command.y1} ${command.x2} ${command.y2} ${command.x} ${command.y}`;
           case 'Z': // ClosePath
               return 'Z';
           default:
+              console.error(command)
               throw new Error(`unhandeled command type ${command}`)
               return ''; // Handle other commands or invalid types
       }
@@ -71,34 +83,7 @@ type BBox = {
   width: number
   height: number
 }
-const calculateBoundingBox = (commands): BBox => {
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
 
-  commands.forEach(command => {
-      if (command.x !== undefined) {
-          minX = Math.min(minX, command.x);
-          maxX = Math.max(maxX, command.x);
-      }
-      if (command.y !== undefined) {
-          minY = Math.min(minY, command.y);
-          maxY = Math.max(maxY, command.y);
-      }
-
-      // Include control points for quadratic bezier curves
-      if (command.type === 'Q') {
-          if (command.x1 !== undefined) {
-              minX = Math.min(minX, command.x1);
-              maxX = Math.max(maxX, command.x1);
-          }
-          if (command.y1 !== undefined) {
-              minY = Math.min(minY, command.y1);
-              maxY = Math.max(maxY, command.y1);
-          }
-      }
-  });
-
-  return { minX, minY, maxY, maxX, width: maxX - minX, height: maxY - minY };
-}
 
 type WSDFGlyph = {
 
@@ -157,15 +142,14 @@ export class AtlasGlyph {
       
       const path = glyph.getPath(0, 0, this.fontSize)
 
-      const spaceToBaseline = glyph.yMax + glyph.yMin
       
+      const {x1, y1, x2, y2} = glyph.getBoundingBox()
+      const spaceToBaseline = y2 + y1
 
       const bCommands = riseToBaseLine(path.commands, spaceToBaseline)
-      const fCommands =  flipCommandsOnYAxis(bCommands)
-      
+      const fCommands = flipCommandsOnYAxis(bCommands)
       const svgPath = commandsToPathData(fCommands);
-      const {xMin, xMax, yMin, yMax} = glyph
-      const [minX, maxX, minY, maxY] = [xMin, xMax, yMin, yMax].map(u => u*uf)
+      const [minX, maxX, minY, maxY] = [x1, x2, y1, y2].map(u => u*uf)
       const bbox = {
         minX,
         maxX,

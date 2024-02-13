@@ -276,7 +276,7 @@ export const renderAtlas = async ({fontUrl, options}: AtlasInput) => {
     const segmentsFBO = createFramebufferTexture(gl, [width, height])
     
 //     // segments
-    programs['segments'].chainDrawCall(0, (gl, props) => {
+    programs['segments'].chainDrawCall({frame:0, elapsedTime:0}, (gl, props) => {
 
 
       const {buffers, uniformLocations} = props
@@ -330,7 +330,7 @@ export const renderAtlas = async ({fontUrl, options}: AtlasInput) => {
 
 
     
-    programs['atlas'].chainDrawCall(0, (gl) => {
+    programs['atlas'].chainDrawCall({frame:0, elapsedTime:0}, (gl) => {
       gl.viewport(x, y, width, height)
       gl.bindTexture(gl.TEXTURE_2D, segmentsFBO.texture);
 

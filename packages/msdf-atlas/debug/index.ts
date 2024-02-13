@@ -7,6 +7,8 @@ import cairoBlackFontUrl from 'url:./fonts/Cairo/static/Cairo-Black.ttf'
 import baseneueFontUrl from 'url:./fonts/BaseNeue-Trial/web/WOFF/BaseNeueTrial-Regular.ttf'
 import travelNextUrl from 'url:./fonts/TT-Travels-Next/TT Travels Next Regular.ttf'
 import bluescreensTrialUrl from 'url:./fonts/ttbluescreens_trial/TT Bluescreens Trial Regular.ttf'
+import LaNordUrl from 'url:./fonts/LaNord/LaNord-Regular.woff'
+
 import {segmentize} from '../src/segmetizer'
 import {AtlasGlyph, commandsToPathData} from '../src/glyph'
 import {renderAtlas, defaultChars} from '../src'
@@ -15,6 +17,7 @@ let fu = fontUrl;
 fu = travelNextUrl
  //fu = baseneueFontUrl
  fu = cairoBlackFontUrl
+ fu = LaNordUrl
 
 
 export const calculateSvgSize = (boundingBox, desiredWidth) => {
@@ -39,17 +42,17 @@ function segmentsToSvgPaths(segments) {
 }
 
 (async() => {
-// //render SVG
+// // //render SVG
 // 	{
 
 // 		const ag = await AtlasGlyph.init(fu, {unitPerEmFactor: 1.})
-// 		const glyph = ag.obtainCharData(`q`, true)
+// 		const glyph = ag.obtainCharData(`A`, true)
 // 		console.log('svg glyph', glyph)
 					
 	
 // 		const bb = glyph.bbox
 // 		const res = calculateSvgSize(bb, glyph.bbox.width)
-// 		// Create SVG element
+// 		//Create SVG element
 // 		const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
 // 		svg.setAttribute("width", res.svgWidth);
 // 		svg.setAttribute("height", res.svgHeight as any);
@@ -61,17 +64,17 @@ function segmentsToSvgPaths(segments) {
 // 		const segPath = segmentsToSvgPaths(segmentize(glyph.baselineCommands))
 	
 // 		const d = commandsToPathData(glyph.baselineCommands);
-// 		// Set the path data
+// 		//Set the path data
 // 		path.setAttribute("d", d);
 // 		//path.setAttribute("d", segPath)
 // 		path.setAttribute("stroke", "black");
 // 		path.setAttribute("fill", "white");
 	
-// 		// Append the path to the SVG
+// 		//Append the path to the SVG
 // 		svg.appendChild(path);
 	
 	
-// 		// Append the SVG to the body or any other container element
+// 		//Append the SVG to the body or any other container element
 // 		document.body.appendChild(svg);  
 // 	}
 
@@ -85,9 +88,11 @@ function segmentsToSvgPaths(segments) {
 
 		const altasInput = {
 			fontUrl: fu,
+			
 			options: {
 				padding: 100,
-				unitPerEmFactor: 1.			
+				unitPerEmFactor: 1.,
+				chars: 'S'
 			}
 		}
 		const config = await renderAtlas(altasInput)
