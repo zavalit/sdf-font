@@ -25,6 +25,7 @@ uniform float uLineHeight;
 uniform float uBaseLine;
 uniform vec4 uPadding;
 uniform float uFontSize;
+uniform float uWordsCount;
 
 #define FONT_SCALE uFontSize/uResolutionInPx
 #define SCALED_LINE_HEIGHT uFontSize/uResolutionInPx.y
