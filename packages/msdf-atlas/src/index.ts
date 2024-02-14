@@ -241,7 +241,7 @@ export const renderAtlas = async ({fontUrl, options}: AtlasInput) => {
     },
     common: {
       lineHeight: lineHeight * aOptions.unitPerEmFactor,
-      base: atlasGlyph.font.ascender  * aOptions.unitPerEmFactor,
+      base: atlasGlyph.font.ascender * aOptions.unitPerEmFactor,
       scaleW: width,
       scaleH: height,
       pages: 1,
