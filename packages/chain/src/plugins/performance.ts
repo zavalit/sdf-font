@@ -36,9 +36,9 @@ export class PerformancePlugin implements ChainPlugin {
     this.stats[this.aggregateKey] = {avg:0}
   }
 
-  beforeDrawCall({passId, time}:PluginCallProps) {
+  beforeDrawCall({passId, frameProps}:PluginCallProps) {
     if (!this.ext) return
-    const key = `${passId}-${time}`
+    const key = `${passId}-${frameProps.elapsedTime}`
     const query = this.gl.createQuery()!;
     this.query[key] = query;
 
@@ -48,7 +48,7 @@ export class PerformancePlugin implements ChainPlugin {
     }
     
     !this.stats[passId] && this.initStatsKey(passId)
-    this.aggStats[time] = []
+    this.aggStats[frameProps.elapsedTime] = []
 
   }
 
@@ -89,8 +89,8 @@ export class PerformancePlugin implements ChainPlugin {
   }
   // Get the query result
 checkQueryResult(props: PluginCallProps) {
-  const {passId, time} = props
-  const key = `${passId}-${time}`
+  const {passId, frameProps} = props
+  const key = `${passId}-${frameProps.elapsedTime}`
 
   const query = this.query[key]
   
@@ -125,7 +125,7 @@ checkQueryResult(props: PluginCallProps) {
     }
     
     
-    this.tryToFlushAggStats(time, avg)
+    this.tryToFlushAggStats(frameProps.elapsedTime, avg)
     
     delete this.query[key]
   } else {

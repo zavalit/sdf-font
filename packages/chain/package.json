@@ -1,11 +1,11 @@
 {
   "name": "@webglify/chain",
-  "version": "0.2.1",
+  "version": "0.2.3",
   "description": "draw call chain api",
   "keywords": [
     "webgl"
   ],
-  "author": "Vsevolod Dolgopolov",
+  "author": "Seva Dolgopolov",
   "homepage": "https://github.com/zavalit/webglify#readme",
   "license": "MIT",
   "main": "./lib/chain.js",

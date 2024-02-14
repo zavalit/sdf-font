@@ -7,6 +7,8 @@ export type DrawData = {[key:string]: number[]}
 export type UnirformLocationsMap =   {[key: string]: WebGLUniformLocation}
 
 export type UniformSignature = (gl:W2, locs: UnirformLocationsMap) => void
+export type FrameUniformSignature = (gl:W2, locs: UnirformLocationsMap, frameProps: FrameProps) => void
+
 export type FramebufferChainProp = [WebGLFramebuffer | null, null?]
 
 export type BufferMap = {[key: string]: WebGLBuffer}
@@ -29,6 +31,7 @@ export type ChainPassPops = {
   viewport?: [number, number, number, number]
   vertexArrayObject?: (gl:W2, defaultVAO: WebGLVertexArrayObject, vaoMap?:VAOBufferMap) => WebGLVertexArrayObject
   uniforms?: UniformSignature
+  frameUniforms?: FrameUniformSignature
   
   drawCall?: DrawCallSignature
 };
@@ -36,7 +39,7 @@ export type ChainPassPops = {
 export type ProgramsMapType = {
   [name: string]: {
     program: WebGLProgram,
-    chainDrawCall: (time: number, drawCall?: DrawCallSignature) => void
+    chainDrawCall: (frameProps: FrameProps, drawCall?: DrawCallSignature) => void
   }
 }
 
@@ -45,7 +48,7 @@ export type ProgramsMapType = {
 export type PluginCallProps = {
   program: WebGLProgram
   passId: string,
-  time: number,
+  frameProps: FrameProps,
   uniformLocations: UnirformLocationsMap
   gl: W2
 }
@@ -55,8 +58,11 @@ export interface ChainPlugin {
   afterDrawCall?: (props: PluginCallProps) => void;
 }
 
-
-export type RenderFrame = (frame: number) => void
+export type FrameProps = {
+  frame: number,
+  elapsedTime: number
+}
+export type RenderFrame = (frameProps: FrameProps) => void
 
 export type ChainDrawProps = {
  
@@ -69,6 +75,7 @@ export type ChainDrawProps = {
 
 // Exported Plugins
 export * from './plugins'
+
 
 export default (
   gl: WebGL2RenderingContext,
@@ -158,7 +165,7 @@ export default (
     }
 
 
-    const beforeDrawCall = () => {
+    const beforeDrawCall = (frameProps: FrameProps) => {
 
       gl.viewport(x, y, width, height);
 
@@ -169,7 +176,12 @@ export default (
       
       textures.forEach(t => t.activate())      
       
-      props.uniforms &&  props.uniforms(gl, uniformLocations)
+      if(props.uniforms) {
+        props.uniforms(gl, uniformLocations)
+      }
+      if (props.frameUniforms) {
+        props.frameUniforms(gl, uniformLocations, frameProps)
+      }
           
     }
 
@@ -183,12 +195,12 @@ export default (
 
     
   
-    const chainDrawCall = (time: number, drawCallCb?: (gl: W2, props: DrawCallProps) => void) => {
+    const chainDrawCall = (frameProps: FrameProps, drawCallCb?: (gl: W2, props: DrawCallProps) => void) => {
 
 
-      beforeDrawCall()
+      beforeDrawCall(frameProps)
 
-      plugins.forEach(p => p.beforeDrawCall && p.beforeDrawCall({gl, passId, time, program, uniformLocations}))
+      plugins.forEach(p => p.beforeDrawCall && p.beforeDrawCall({gl, passId, frameProps, program, uniformLocations}))
 
       const drawProps = {buffers: vaoMap.get(vao), uniformLocations};
       
@@ -200,7 +212,7 @@ export default (
 
       
       // Call the function to start checking for the query result asynchronously
-      plugins.forEach(p => p.afterDrawCall && p.afterDrawCall({gl, passId, time, program, uniformLocations}))
+      plugins.forEach(p => p.afterDrawCall && p.afterDrawCall({gl, passId, frameProps, program, uniformLocations}))
       
 
       afterDrawCall()
@@ -224,11 +236,10 @@ export default (
           chainDrawCall, program
         }}
     }, {}),
-    renderFrame: function (frame: number){
-
+    renderFrame: (frameProps: FrameProps) => {
       calls.forEach((c) => {
         // Perform the draw call 
-        c.chainDrawCall(frame);         
+        c.chainDrawCall(frameProps);         
 
       })      
     }
@@ -243,28 +254,33 @@ export default (
 
 // Utils functions
 
-export const animationFactory = (renderFrame: RenderFrame, fps: number = 60): (time: number, cb?:()=> void) => number => {
+export const animationFactory = (renderFrame: RenderFrame, fps: number = 60): (time: number, cb:()=> void) => void => {
 
   const frameDuration = 1000/fps
   let frame = 0;
   let lastTimeUpdate: null | number = null
-  const animate = (time: number, cb?: () => void) => {
-    
+  let startTime: null | number = null
+  
+  const animate = (time: number, cb?: () =>  void) => {
     if (lastTimeUpdate === null) {
-      lastTimeUpdate = time;  
+        lastTimeUpdate = time;
     }
-          
-    const diff = (time - lastTimeUpdate) - frameDuration
-        
-    if(diff > 0) {
-      lastTimeUpdate = time - Math.min(diff, frameDuration)                
-      renderFrame(frame++)   
-      cb && cb()
+    if (startTime === null) {
+        startTime = time;
     }
-
+    const diff = (time - lastTimeUpdate) - frameDuration;
+    if (diff > 0) {
+        lastTimeUpdate = time - Math.min(diff, frameDuration);
+        frame++;
+        renderFrame({ frame, elapsedTime: time - startTime });
+        cb && cb();
+    }
+    
     const frameId: number = window.requestAnimationFrame((time) => animate(time, cb))
     return frameId
-  }
+
+  };
+
 
   return animate
 }

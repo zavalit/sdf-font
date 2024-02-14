@@ -27,11 +27,12 @@ export class CanvasUniformsPlugin implements ChainPlugin {
   }
   
   
-  beforeDrawCall({gl, time, uniformLocations}: PluginCallProps) {
+  beforeDrawCall({gl, frameProps, uniformLocations}: PluginCallProps) {
 
     const {canvas, MOUSE_COORDS} = this
     gl.uniform2fv(uniformLocations.uResolution, [gl.drawingBufferWidth, gl.drawingBufferHeight]);
-    gl.uniform1f(uniformLocations.uTime, time);        
+    gl.uniform1f(uniformLocations.uTime, frameProps.elapsedTime);        
+    gl.uniform1f(uniformLocations.uFrame, frameProps.frame);        
     gl.uniform3fv(uniformLocations.uMouse, [MOUSE_COORDS.x, MOUSE_COORDS.y, MOUSE_COORDS.z]);
     gl.uniform2fv(uniformLocations.uResolutionInPx, [canvas.clientWidth, canvas.clientHeight]);    
     

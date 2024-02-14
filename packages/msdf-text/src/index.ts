@@ -259,7 +259,7 @@ const canvasTextPass = (
     atlasMap,
     atlasCanvas,
     fontSize,
-    passGLSL: { vertexShader, fragmentShader, uniforms, framebuffer }
+    passGLSL: { vertexShader, fragmentShader, uniforms, frameUniforms, framebuffer }
   } = shaderData
 
   const atlasTexture = createTexture(gl, atlasCanvas)
@@ -270,7 +270,7 @@ const canvasTextPass = (
     fragmentShader: fragmentShader ?? glyphFragmentShader,
     textures: [atlasTexture],
     framebuffer,
-    uniforms (gl, locs) {
+    frameUniforms (gl, locs, frameProps) {
       gl.uniform2fv(locs.uAtlasResolution, atlasRes)
       gl.uniform1f(locs.uFontLineHeight, glyphData.fontLineHeight)
       gl.uniform1f(locs.uLineHeight, glyphData.textLineHeight)
@@ -283,6 +283,10 @@ const canvasTextPass = (
       if (typeof (uniforms) !== 'undefined') {
         uniforms(gl, locs)
       }
+      if (typeof (frameUniforms) !== 'undefined') {
+        frameUniforms(gl, locs, frameProps)
+      }
+      
     },
     vertexArrayObject (gl, vao) {
       const b1 = gl.createBuffer()
@@ -393,7 +397,7 @@ interface ShaderData {
 
 type PassGLSL = Pick<
 ChainPassPops,
-'vertexShader' | 'fragmentShader' | 'uniforms' | 'framebuffer' | 'viewport'
+'vertexShader' | 'fragmentShader' | 'uniforms' | 'frameUniforms' | 'framebuffer' | 'viewport'
 >
 
 const defatulPassGLSL: PassGLSL = {

@@ -1,6 +1,6 @@
 {
   "name": "@webglify/msdf-text",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": false,
   "main": "lib/index.js",
   "directories": {
@@ -16,7 +16,7 @@
     "lint": "eslint \"src/**/*.{js,ts}\" --fix"
   },
   "dependencies": {
-    "@webglify/chain": "^0.2.2"
+    "@webglify/chain": "^0.2.3"
   },
   "devDependencies": {
     "@tweakpane/core": "^2.0.0",
