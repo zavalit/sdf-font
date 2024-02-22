@@ -6,10 +6,11 @@ layout(location=1) in vec2 aGlyphStart;
 layout(location=2) in vec2 aGlyphSize;
 layout(location=3) in vec2 aGlyphOffset;
 layout(location=4) in vec2 aWordRow;
-layout(location=5) in vec2 aGlyphRowColumnNormalized;
-layout(location=6) in float aGlyphChannel;
-layout(location=7) in vec4 aAtlasBounds;
-layout(location=8) in vec2 aSpaceDiffs;
+layout(location=5) in vec2 aWordGlyph;
+layout(location=6) in vec2 aRowWord;
+layout(location=7) in float aGlyphChannel;
+layout(location=8) in vec4 aAtlasBounds;
+layout(location=9) in vec2 aSpaceDiffs;
 
 out vec2 glyphUV;
 out float vGlyphChannel;

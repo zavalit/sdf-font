@@ -125,9 +125,13 @@ const calculateCanvasTextData = (
           wordId,
           i,
 
-          // aGlyphWordRowNormalized
-          c / Math.max(word.length - 1, 1),
-          w / Math.max(rowWords.length - 1, 1),
+          // aWordGlyph
+          c,
+          word.length,
+          
+          // aRowWord
+          w,
+          rowWords.length,
 
           // aChannel
           g.chnl
@@ -185,7 +189,6 @@ const calculateCanvasTextData = (
     rowWidthes.push(rowWordsX + paddingSide)
   })
 
-  console.log('WORDID', wordId)
   const fontLineHeight = opts.alignHeight
     ? (gt - gb) * paddingHeight
     : lineHeight
@@ -199,6 +202,7 @@ const calculateCanvasTextData = (
     rowWidthes,
     glyphPositions: wordGlyphPositions.filter((p) => p),
     wordsCount: wordId + 1,
+    rowsCount: textRows.length,
     heightBounds: [gb, gt],
     spaceDiffs,
     textLineHeight: opts.textLineHeight,
@@ -277,6 +281,7 @@ const canvasTextPass = (
       gl.uniform1f(locs.uOriginLineHeight, glyphData.originLineHeight)
       gl.uniform1f(locs.uBaseLine, glyphData.base)
       gl.uniform1f(locs.uWordsCount, glyphData.wordsCount)
+      gl.uniform1f(locs.uRowsCount, glyphData.rowsCount)
       gl.uniform4fv(locs.uPadding, glyphData.padding)
       gl.uniform1f(locs.uFontSize, fontSize)
 
@@ -331,9 +336,13 @@ const canvasTextPass = (
         gl.enableVertexAttribArray(5)
         gl.vertexAttribDivisor(5, 1)
 
-        gl.vertexAttribPointer(6, 1, gl.FLOAT, false, stride, 10 * 4)
+        gl.vertexAttribPointer(6, 2, gl.FLOAT, false, stride, 10 * 4)
         gl.enableVertexAttribArray(6)
         gl.vertexAttribDivisor(6, 1)
+
+        gl.vertexAttribPointer(7, 1, gl.FLOAT, false, stride, 12 * 4)
+        gl.enableVertexAttribArray(7)
+        gl.vertexAttribDivisor(7, 1)
 
         // atlas pos
         const ap = gl.createBuffer()
@@ -344,9 +353,9 @@ const canvasTextPass = (
           gl.STATIC_DRAW
         )
 
-        gl.vertexAttribPointer(7, 4, gl.FLOAT, false, 0, 0)
-        gl.enableVertexAttribArray(7)
-        gl.vertexAttribDivisor(7, 1)
+        gl.vertexAttribPointer(8, 4, gl.FLOAT, false, 0, 0)
+        gl.enableVertexAttribArray(8)
+        gl.vertexAttribDivisor(8, 1)
 
         // space diffs
         const sp = gl.createBuffer()
@@ -357,9 +366,9 @@ const canvasTextPass = (
           gl.STATIC_DRAW
         )
 
-        gl.vertexAttribPointer(8, 2, gl.FLOAT, false, 0, 0)
-        gl.enableVertexAttribArray(8)
-        gl.vertexAttribDivisor(8, 1)
+        gl.vertexAttribPointer(9, 2, gl.FLOAT, false, 0, 0)
+        gl.enableVertexAttribArray(9)
+        gl.vertexAttribDivisor(9, 1)
       }
       return vao
     },
@@ -385,6 +394,7 @@ interface GlyphData {
   base: number
   padding: number[]
   wordsCount: number
+  rowsCount: number
 }
 
 interface ShaderData {
