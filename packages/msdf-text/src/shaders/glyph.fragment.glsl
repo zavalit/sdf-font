@@ -40,10 +40,11 @@ void main () {
   
   fragColor = vec4(color, edge);
   
-  // fragColor.a += .5;
-  // float ch = vGlyphChannel;
-  // vec3 bg = vec3(ch==0. ? 1.: 0., ch==1. ? 1.: 0., ch==2. ? 1.: 0.);
-  // fragColor.rgb += .5 * bg;
+  fragColor.a += .5;
+  float ch = vGlyphChannel;
+  vec3 bg = vec3(ch==0. ? 1.: 0., ch==1. ? 1.: 0., ch==2. ? 1.: 0.);
+  //fragColor.rgb += .5 * bg;
+  fragColor.xy = glyphUV;
   
   
 }

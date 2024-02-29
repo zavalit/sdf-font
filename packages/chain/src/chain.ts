@@ -14,7 +14,7 @@ export type FramebufferChainProp = [WebGLFramebuffer | null, null?]
 export type BufferMap = {[key: string]: WebGLBuffer}
 export type VAOBufferMap = Map<WebGLVertexArrayObject, BufferMap>;
 
-export type DrawCallProps = {buffers?: BufferMap, uniformLocations: UnirformLocationsMap}
+export type DrawCallProps = {buffers?: BufferMap, uniformLocations: UnirformLocationsMap, frameProps: FrameProps}
 
 export type DrawCallSignature = (gl:W2, props: DrawCallProps) => void
 
@@ -133,7 +133,9 @@ export default (
           
       textures.push({
         activate(){
+          
           const tex = typeof texture === 'function' ? texture() : texture
+          
           gl.uniform1i(textureLocation, i);  
           gl.activeTexture(gl.TEXTURE0 + i);  
           gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -160,7 +162,7 @@ export default (
       if(!framebuffer) return
 
       if(framebuffer.length == 2 && framebuffer[1] === null) {
-          gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null)
       }
     }
 
@@ -173,7 +175,8 @@ export default (
       
       gl.useProgram(program)
       gl.bindVertexArray(vao)
-      
+
+      textures.forEach(t => t.deactivate())
       textures.forEach(t => t.activate())      
       
       if(props.uniforms) {
@@ -202,7 +205,7 @@ export default (
 
       plugins.forEach(p => p.beforeDrawCall && p.beforeDrawCall({gl, passId, frameProps, program, uniformLocations}))
 
-      const drawProps = {buffers: vaoMap.get(vao), uniformLocations};
+      const drawProps = {buffers: vaoMap.get(vao), uniformLocations, frameProps};
       
       props.drawCall 
       ? props.drawCall(gl, drawProps)
@@ -324,29 +327,28 @@ export function createTexture(gl: W2, image: TexImageSource, parameterCb?: (gl: 
 
 }
 
-export const createFramebufferTexture = (gl:W2, resolution : [number, number]) => {
-    
-    const [width, height] = resolution;  
+export const createFramebufferTexture = (gl:W2, resolution? : [number, number]) => {
+
+
+    const [width, height] = resolution || [gl.canvas.width, gl.canvas.height];  
     
     // Create a framebuffer
     const framebuffer = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-    
-    // Create a texture to render to
+
+    // Create a texture for color
     const texture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, texture);
-
-
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-    
-    
-    // Attach the texture to the framebuffer
+    // Attach the color texture to the framebuffer
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+
+    
     
     // Check if the framebuffer is complete
     if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
@@ -359,6 +361,81 @@ export const createFramebufferTexture = (gl:W2, resolution : [number, number]) =
       framebuffer,
       texture
     }
+}
+
+
+export const createMultisampleFramebufferTexture = (gl: W2, resolution = [gl.canvas.width, gl.canvas.height], samples = 4) => {
+  const [width, height] = resolution;
+
+  // Create a framebuffer for multisampled rendering
+  const framebuffer = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+
+  // Create a multisampled color renderbuffer
+  const colorRenderbuffer = gl.createRenderbuffer();
+  gl.bindRenderbuffer(gl.RENDERBUFFER, colorRenderbuffer);
+  gl.renderbufferStorageMultisample(gl.RENDERBUFFER, samples, gl.RGBA8, width, height);
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, colorRenderbuffer);
+
+  // Create a multisampled depth renderbuffer (optional, if you need depth)
+  const depthRenderbuffer = gl.createRenderbuffer();
+  gl.bindRenderbuffer(gl.RENDERBUFFER, depthRenderbuffer);
+  gl.renderbufferStorageMultisample(gl.RENDERBUFFER, samples, gl.DEPTH_COMPONENT24, width, height);
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthRenderbuffer);
+
+  // Check if the multisampled framebuffer is complete
+  if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
+      throw new Error('Multisampled framebuffer is not complete');
+  }
+
+  // Create a framebuffer for the resolved texture (single-sample, for use as texture)
+  const resolvedFramebuffer = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, resolvedFramebuffer);
+
+  // Create a texture for color
+  const texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+
+  // Check if the resolved framebuffer is complete
+  if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
+      throw new Error('Resolved framebuffer is not complete');
+  }
+
+  // Unbind framebuffers and renderbuffers
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+  gl.bindTexture(gl.TEXTURE_2D, null);
+
+  return {
+      framebuffer,
+      resolvedFramebuffer,
+      texture(){
+        
+       
+        
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, framebuffer);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, resolvedFramebuffer);
+        gl.clearBufferfv(gl.COLOR, 0, [0.0, 0.0, 0.0, 1.0]); // Clear if necessary
+        gl.blitFramebuffer(
+            0, 0, width, height,
+            0, 0, width, height,
+            gl.COLOR_BUFFER_BIT, gl.NEAREST
+        );
+
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+        
+        return texture
+      },
+      colorRenderbuffer,
+      depthRenderbuffer
+  };
 }
 
 

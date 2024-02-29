@@ -40,6 +40,7 @@ vec4 getBounds () {
   start.x += diffs.x;
   
   vec2 end = aGlyphStart + vec2( aGlyphSize.x, uFontLineHeight);
+  //end = aGlyphStart + aGlyphSize;
   end.x += diffs.y;
   
   
@@ -110,7 +111,7 @@ vec2 getUV () {
   vec2 from = (ab.xy)/ar;
   vec2 to = ab.zw/ar;
   vec2 uv = mix(from, to, gpos);
-
+  //uv = clamp(uv, from, to);
 
   return uv;
 
