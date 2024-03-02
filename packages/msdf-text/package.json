@@ -1,22 +1,26 @@
 {
   "name": "@webglify/msdf-text",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "private": false,
-  "main": "lib/index.js",
+  "main": "./lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./three": "./lib/three/index.js"
+  },  
   "directories": {
     "dist": "lib"
   },
   "files": [
     "lib"
   ],
-    "scripts": {
+  "scripts": {
     "build": "ncp src/ lib/ --filter=\"^(?!.*\\.ts$).*\" && tsc",
     "watch": "nodemon -e ts,js --watch ./src -x 'npm run build' ",
     "format": "prettier --write \"src/**/*.ts\"",
     "lint": "eslint \"src/**/*.{js,ts}\" --fix"
   },
   "dependencies": {
-    "@webglify/chain": "^0.2.3"
+    "@webglify/chain": "^0.2.4"
   },
   "devDependencies": {
     "@tweakpane/core": "^2.0.0",
@@ -32,9 +36,15 @@
     "lint-staged": "^15.2.2",
     "ncp": "^2.0.0",
     "prettier": "^3.2.5",
+    "three": "^0.162.0",
     "tweakpane": "^4.0.0",
     "typescript": "^5.3.3"
   },
+  
+  "peerDependencies": {
+    "three": "^0.162.0"
+  },
+  
   "husky": {
     "hooks": {
       "pre-commit": "lint-staged"

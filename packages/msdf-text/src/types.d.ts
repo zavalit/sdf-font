@@ -1,5 +1,5 @@
 declare module '*.glsl' {
-  const value: string
+  const value: string;
 
-  export default value
+  export default value;
 }

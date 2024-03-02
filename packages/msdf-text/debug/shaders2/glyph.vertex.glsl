@@ -1,19 +1,20 @@
-#version 300 es
-
+precision mediump float;
 in vec2 position;
+in float aGlyphChannel;
 in vec2 aGlyphStart;
 in vec2 aGlyphSize;
 in vec2 aGlyphOffset;
 in vec2 aWordRow;
 in vec2 aWordGlyph;
 in vec2 aRowWord;
-in float aGlyphChannel;
+
 in vec4 aAtlasBounds;
 in vec2 aSpaceDiffs;
 
-out vec2 glyphUV;
+
+out vec2 vUV;
+out vec2 vGlyphUV;
 out float vGlyphChannel;
-out float vS;
 
 
 uniform vec2 uAtlasResolution;
@@ -26,6 +27,7 @@ uniform float uBaseLine;
 uniform vec4 uPadding;
 uniform float uFontSize;
 uniform float uWordsCount;
+
 
 #define FONT_SCALE uFontSize/uResolutionInPx
 #define SCALED_LINE_HEIGHT uFontSize/uResolutionInPx.y
@@ -63,7 +65,7 @@ vec2 getPosition(){
 }
 
 vec2 getUV () {
-  
+
   vec4 ab = aAtlasBounds;
   vec2 ar = uAtlasResolution;
   
@@ -116,17 +118,13 @@ vec2 getUV () {
 
 }
 
-void main(){
+void main() {
+  vec2 glyphPos = getPosition();
+  glyphPos = mix(vec2(-1.), vec2(1.), glyphPos);
 
-  
-  vec2 pos = getPosition();
-  
-  pos = mix(vec2(-1.), vec2(1.), pos);
+  gl_Position = vec4(glyphPos, 0., 1.0);
 
-  gl_Position = vec4(pos, 0.,1.);
-
-  glyphUV = getUV();
- 
+  vUV = position.xy;
   vGlyphChannel = aGlyphChannel;
-  
+  vGlyphUV = getUV();
 }

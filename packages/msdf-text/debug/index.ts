@@ -155,7 +155,9 @@ const input = {
   {
 
     const text3 = 
-`pa`
+`pa
+dam
+`
     const input3 = {
       fontUrl: fu,
       options: {
@@ -169,15 +171,15 @@ const input = {
     console.time('atlas')
     const atlasData = await renderAtlas(input3)
     console.timeEnd('atlas')
-{
+// {
 
-    const atlasCanvas = atlasData.pages[0] as HTMLCanvasElement
-    const dpr = Math.min(2, window.devicePixelRatio)
-    atlasCanvas.style.width = `${atlasCanvas.width  / dpr }px`
-    atlasCanvas.style.height = `${atlasCanvas.height / dpr }px`
+//     const atlasCanvas = atlasData.pages[0] as HTMLCanvasElement
+//     const dpr = Math.min(2, window.devicePixelRatio)
+//     atlasCanvas.style.width = `${atlasCanvas.width  / dpr }px`
+//     atlasCanvas.style.height = `${atlasCanvas.height / dpr }px`
   
-    document.body.appendChild(atlasCanvas)
-  }
+//     document.body.appendChild(atlasCanvas)
+//   }
     const canvas = document.createElement('canvas')
 
     const size = [300, 600]

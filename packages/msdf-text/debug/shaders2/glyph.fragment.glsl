@@ -1,14 +1,11 @@
-#version 300 es
-
 precision mediump float;
-
-in vec2 glyphUV;
-in float vGlyphChannel;
-in float vS;
 out vec4 fragColor;
 
 uniform sampler2D uTexture0;
-uniform vec3 uColor;
+
+in vec2 vUV;
+in float vGlyphChannel;
+in vec2 vGlyphUV;
 
 
 float obtainMSDFTextureMask(vec2 uv, float chnl) {
@@ -29,19 +26,19 @@ else if(chnl==3.){
 return mask;
 }
 
-void main () {
 
-  float mask = obtainMSDFTextureMask(glyphUV, vGlyphChannel);
+void main() {
+
+  float mask = obtainMSDFTextureMask(vGlyphUV, vGlyphChannel);
   float f = fwidth(mask);
   mask = smoothstep(.5 - f, .5 + f, mask);
 
   fragColor = vec4(vec3(0., 0., 0.), mask);
   
-  // fragColor.a += .5;
+  
+  fragColor.a += .5;
   // float ch = vGlyphChannel;
   // vec3 bg = vec3(ch==0. ? 1.: 0., ch==1. ? 1.: 0., ch==2. ? 1.: 0.);
-  // //fragColor.rgb += .5 * bg;
-  // fragColor.xy = glyphUV;
-  
+  // fragColor.rgb += .5 * bg;
   
 }
