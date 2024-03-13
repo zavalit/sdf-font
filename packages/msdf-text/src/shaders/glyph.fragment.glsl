@@ -35,7 +35,7 @@ void main () {
   float f = fwidth(mask);
   mask = smoothstep(.5 - f, .5 + f, mask);
 
-  fragColor = vec4(vec3(0., 0., 0.), mask);
+  fragColor = vec4(vec3(1.), mask);
   
   // fragColor.a += .5;
   // float ch = vGlyphChannel;

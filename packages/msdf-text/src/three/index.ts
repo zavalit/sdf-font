@@ -102,7 +102,7 @@ const getInstancedGeometry = ({
   return geometry;
 };
 
-const getUniforms = (shaderData, canvas) => {
+const getUniforms = (shaderData, frameRes) => {
   const texture = new Texture(shaderData.atlasCanvas);
   texture.needsUpdate = true; // This is important for the texture to be updated with the canvas content
   const atlasRes = [
@@ -127,7 +127,7 @@ const getUniforms = (shaderData, canvas) => {
 
     // canvas res
     uResolutionInPx: {
-      value: new Vector2(canvas.clientWidth, canvas.clientHeight),
+      value: new Vector2(...frameRes),
     },
   };
 
@@ -155,7 +155,7 @@ const defaultTextShaderProps: TextShaderProps = {
 
 export default (
   mt: MSDFText,
-  canvas: HTMLCanvasElement,
+  frameRes: [number, number],
   props?: Partial<TextShaderProps>
 ) => {
   const glyphCount = mt.shaderData.glyphData.glyphPositions.length;
@@ -166,7 +166,7 @@ export default (
   };
   // Define the shaders
   const geometry = getInstancedGeometry(mt.shaderData);
-  const baseUniforms = getUniforms(mt.shaderData, canvas);
+  const baseUniforms = getUniforms(mt.shaderData, frameRes);
   const material = new RawShaderMaterial({
     vertexShader,
     fragmentShader,

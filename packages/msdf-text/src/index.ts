@@ -508,17 +508,27 @@ export class MSDFText {
     return Math.min(wFontSize, hFontSize);
   }
 
+
+
   static calculateDrawingBufferSizeByFontSize(
     mt: MSDFText,
     fontSize: number
   ): [number, number] {
     const dpr = Math.min(2, window.devicePixelRatio);
-    const w = mt.nWidth * fontSize * dpr;
-    const h = mt.nHeight * fontSize * dpr;
+    const [w, h] = MSDFText.calculateClientSizeByFontSize(mt, fontSize)
+
+    return [w*dpr, h*dpr]
+  }
+
+  static calculateClientSizeByFontSize(
+    mt: MSDFText,
+    fontSize: number
+  ): [number, number] {
+    const w = mt.nWidth * fontSize;
+    const h = mt.nHeight * fontSize;
 
     return [w, h];
   }
-
   updateFontSize(fontSize: number): void {
     this.shaderData.fontSize = fontSize;
   }
