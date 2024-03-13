@@ -26,6 +26,7 @@ void main() {
     
     vec2 p = vViewBox;
     
+    
     float lineDist = absDistToSegment(p, seg.xy, seg.zw);
     
     float val = pow(1.0 - clamp(lineDist / maxHeight, 0.0, 1.0), uExponent) * 0.5;

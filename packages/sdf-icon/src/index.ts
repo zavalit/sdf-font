@@ -162,6 +162,7 @@ export const renderSVGPathToCanvas = async (
   const options = { ...defaultRenderOptions, ...inputOptions };
 
   const { data, res } = pathToAttributes(path, options);
+  console.log('data', data)
 
   const canvas = document.createElement("canvas");
   const gl = canvas.getContext("webgl2", { premultipliedAlpha: false })!;
@@ -237,3 +238,5 @@ export const renderSVGPathToCanvas = async (
 
   return canvas;
 };
+
+

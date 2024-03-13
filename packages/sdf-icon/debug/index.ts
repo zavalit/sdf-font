@@ -5,8 +5,10 @@ import {renderSVGPathToCanvas} from '../src'
 
 
 
-
 const pathD = document.querySelector('#icon path')!.getAttribute('d')!;
+//const pathD = document.querySelector('#icon_gallery path')!.getAttribute('d')!;
+//const pathD = document.querySelector('#icon_house path')!.getAttribute('d')!;
+//const pathD = document.querySelector('#icon_pencil path')!.getAttribute('d')!;
 
         // Parse the d attribute into an array of command objects
 

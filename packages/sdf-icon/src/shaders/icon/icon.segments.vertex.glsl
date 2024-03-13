@@ -11,9 +11,7 @@ out vec2 vUv;
 void main() {
   vec4 gb = uGlyphBounds;
   float xOffset = gb.x;
-  gb.yw -= gb.y;
-  float height = (gb.w - gb.y) / uUnitsPerEm;
-  float width = (gb.z + gb.x) / uUnitsPerEm;
+  
   float p = 0.;
   vec2 ir = uItemResolution;
   vec2 scale = ir / (gb.zw - gb.xy);
@@ -26,4 +24,7 @@ void main() {
   vViewBox = mix(gb.xy, gb.zw, uv);
   vMaxDistance = uUnitsPerEm;
   vSegmentsCoord = aSegments;
+  
+  // flip Y
+  vSegmentsCoord.yw = uGlyphBounds.w - vSegmentsCoord.yw;
 }
